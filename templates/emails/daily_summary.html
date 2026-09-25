@@ -1,0 +1,321 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
+  <title>PhilHealth LHIO Cauayan - Daily Feedback Summary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td, a, span, div { font-family: 'IBM Plex Sans', sans-serif !important; }
+  </style>
+  <![endif]-->
+  <style type="text/css">
+    :root { color-scheme: light; supported-color-schemes: light; }
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; max-width: 100% !important; border-radius: 0 !important; }
+      .mobile-padding { padding: 16px !important; }
+      .mobile-kpi-cell { border-right: none !important; border-bottom: 1px solid #e2e8f0 !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef1f5; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #1e293b;">
+
+  <!-- Preheader text (visible in inbox preview snippet) -->
+  <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all;">
+    Official Digest: {{ metrics.total_count }} feedback submissions received with {{ metrics.satisfaction_rate }}% satisfaction rate for {{ metrics.date_str }}.
+    &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+  </div>
+
+  <!-- Outer Canvas Table -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #eef1f5; width: 100%; min-height: 100%;">
+    <tr>
+      <td align="center" style="padding: 32px 12px;">
+
+        <!-- Main Document Sheet (Max 600px width) -->
+        <table role="presentation" class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
+
+          <!-- Institutional Header Bar -->
+          <tr>
+            <td style="background-color: #14532d; padding: 28px 28px 24px 28px; text-align: left;">
+              <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; font-weight: 700; color: #a8c9b3; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px;">
+                Philippine Health Insurance Corporation
+              </div>
+              <div style="font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; line-height: 1.25; margin: 0;">
+                Daily Feedback & Satisfaction Summary
+              </div>
+              <div style="font-size: 13px; font-weight: 400; color: #d3e2d8; margin-top: 6px;">
+                Local Health Insurance Office &bull; Cauayan City, Isabela
+              </div>
+            </td>
+          </tr>
+
+          <!-- Metadata Ribbon -->
+          <tr>
+            <td style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-size: 12px; font-weight: 600; color: #334155;">
+                    Summary Date &nbsp;<span style="color: #14532d; font-weight: 700;">{{ metrics.date_str }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Document Body -->
+          <tr>
+            <td class="mobile-padding" style="padding: 28px;">
+
+              <!-- SECTION 1: KEY METRICS -->
+              <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;">
+                Operational Performance
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; margin-bottom: 28px;">
+                <!-- Top Row: Volume & Satisfaction Score -->
+                <tr>
+                  <td class="mobile-kpi-cell" width="50%" valign="top" style="padding: 18px 18px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background-color: #ffffff;">
+                    <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">
+                      Total Responses
+                    </div>
+                    <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 34px; font-weight: 700; color: #0f172a; line-height: 1.1;">
+                      {{ metrics.total_count }}
+                    </div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
+                      {% if metrics.yest_total > 0 %}
+                        {{ metrics.yest_total }} recorded yesterday
+                      {% else %}
+                        Recorded for this cycle
+                      {% endif %}
+                    </div>
+                  </td>
+
+                  <td width="50%" valign="top" style="padding: 18px 18px; border-bottom: 1px solid #e2e8f0; background-color: #ffffff;">
+                    <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">
+                      Overall Satisfaction
+                    </div>
+                    <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 34px; font-weight: 700; color: {% if metrics.satisfaction_rate >= 85 %}#15803d{% elif metrics.satisfaction_rate >= 70 %}#92660f{% else %}#b91c1c{% endif %}; line-height: 1.1;">
+                      {{ metrics.satisfaction_rate }}%
+                    </div>
+                    <div style="font-size: 11px; font-weight: 600; margin-top: 8px; color: #64748b;">
+                      {% if metrics.trend_diff is not None %}
+                        {% if metrics.trend_diff > 0 %}
+                          Up {{ metrics.trend_diff }}% from previous day
+                        {% elif metrics.trend_diff < 0 %}
+                          Down {{ metrics.trend_diff|floatformat:0 }}% from previous day
+                        {% else %}
+                          Consistent with previous day
+                        {% endif %}
+                      {% else %}
+                        National benchmark: 85% or higher
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Bottom Row: Favorable Ratio & Triage Status -->
+                <tr>
+                  <td width="50%" valign="top" style="padding: 14px 18px; border-right: 1px solid #e2e8f0; background-color: #f8fafc;">
+                    <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em;">
+                      Positive Sentiment
+                    </div>
+                    <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-top: 3px;">
+                      {{ metrics.pos_pct|floatformat:0 }}% <span style="font-size: 12px; font-weight: 400; color: #64748b;">({{ metrics.pos_count }} of {{ metrics.total_count }})</span>
+                    </div>
+                  </td>
+
+                  <td width="50%" valign="top" style="padding: 14px 18px; background-color: #f8fafc;">
+                    <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em;">
+                      Attention Required
+                    </div>
+                    <div style="font-size: 15px; font-weight: 700; color: {% if metrics.total_flagged_count > 0 %}#b91c1c{% else %}#0f172a{% endif %}; margin-top: 3px;">
+                      {% if metrics.total_flagged_count > 0 %}
+                        {{ metrics.total_flagged_count }} Flagged Issues
+                      {% else %}
+                        0 Issues Flagged
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- SECTION 2: SENTIMENT & CATEGORY -->
+              <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;">
+                Sentiment & Feedback Classification
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; margin-bottom: 28px; background-color: #ffffff;">
+                <tr>
+                  <td style="padding: 20px;">
+
+                    <!-- Sentiment Distribution Breakdown -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 18px;">
+                      <tr>
+                        <td width="33%" align="center" style="padding: 6px 4px; border-right: 1px solid #e2e8f0;">
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; color: #0f172a;">
+                            {{ metrics.pos_count }}
+                          </div>
+                          <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px;">
+                            Positive
+                          </div>
+                        </td>
+                        <td width="33%" align="center" style="padding: 6px 4px; border-right: 1px solid #e2e8f0;">
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; color: #0f172a;">
+                            {{ metrics.neu_count }}
+                          </div>
+                          <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px;">
+                            Neutral
+                          </div>
+                        </td>
+                        <td width="34%" align="center" style="padding: 6px 4px;">
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; color: #0f172a;">
+                            {{ metrics.neg_count }}
+                          </div>
+                          <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px;">
+                            Negative
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Proportional Bar -->
+                    {% if metrics.total_count > 0 %}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 18px; background-color: #eef1f5;">
+                      <tr>
+                        {% if metrics.pos_pct > 0 %}
+                        <td width="{{ metrics.pos_pct|floatformat:0 }}%" style="background-color: #15803d; height: 6px; font-size: 0; line-height: 0;">&nbsp;</td>
+                        {% endif %}
+                        {% if metrics.neu_pct > 0 %}
+                        <td width="{{ metrics.neu_pct|floatformat:0 }}%" style="background-color: #94a3b8; height: 6px; font-size: 0; line-height: 0;">&nbsp;</td>
+                        {% endif %}
+                        {% if metrics.neg_pct > 0 %}
+                        <td width="{{ metrics.neg_pct|floatformat:0 }}%" style="background-color: #b91c1c; height: 6px; font-size: 0; line-height: 0;">&nbsp;</td>
+                        {% endif %}
+                      </tr>
+                    </table>
+                    {% endif %}
+
+                    <!-- Categories -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                      <tr>
+                        <td width="25%" align="center" style="font-size: 11px; color: #64748b; padding-top: 14px;">
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: #0f172a;">{{ metrics.categories.compliments }}</div>
+                          Compliments
+                        </td>
+                        <td width="25%" align="center" style="font-size: 11px; color: #64748b; padding-top: 14px;">
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: #0f172a;">{{ metrics.categories.suggestions }}</div>
+                          Suggestions
+                        </td>
+                        <td width="25%" align="center" style="font-size: 11px; color: #64748b; padding-top: 14px;">
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: {% if metrics.categories.complaints > 0 %}#b91c1c{% else %}#0f172a{% endif %};">{{ metrics.categories.complaints }}</div>
+                          Complaints
+                        </td>
+                        <td width="25%" align="center" style="font-size: 11px; color: #64748b; padding-top: 14px;">
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: #0f172a;">{{ metrics.categories.concerns }}</div>
+                          Inquiries
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+
+              <!-- SECTION 3: SUPERVISOR ATTENTION & FLAGGED SUBMISSIONS -->
+              {% if metrics.total_flagged_count > 0 %}
+              <div style="font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;">
+                Submissions Requiring Follow-up ({{ metrics.total_flagged_count }})
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #f3d1d1; border-radius: 6px; overflow: hidden; margin-bottom: 28px; background-color: #ffffff;">
+                <tr>
+                  <td style="padding: 18px;">
+                    <div style="font-size: 12px; color: #475569; margin-bottom: 14px; line-height: 1.5;">
+                      Flagged due to low satisfaction ratings, negative sentiment, or a formal complaint category.
+                    </div>
+
+                    {% for item in metrics.flagged_items %}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fafbfc; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 8px;">
+                      <tr>
+                        <td style="padding: 12px 14px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 6px;">
+                            <tr>
+                              <td style="font-size: 11px; color: #64748b;">
+                                <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: #0f172a;">#{{ item.id }}</span>
+                                &nbsp;&bull;&nbsp; {{ item.time }}
+                                &nbsp;&bull;&nbsp; {{ item.client }}
+                                &nbsp;&bull;&nbsp; {{ item.client_type }}
+                              </td>
+                              <td align="right">
+                                <span style="display: inline-block; padding: 2px 8px; background-color: #fdf1f1; border-radius: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">
+                                  {{ item.category }}
+                                </span>
+                              </td>
+                            </tr>
+                          </table>
+                          <div style="font-size: 12px; color: #1e293b; line-height: 1.5;">
+                            {{ item.comment }}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                    {% endfor %}
+
+                    {% if metrics.additional_flagged_count > 0 %}
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #64748b; text-align: center; margin-top: 10px;">
+                      + {{ metrics.additional_flagged_count }} additional flagged submissions in Admin Portal
+                    </div>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+              {% else %}
+              <!-- Clean Audit State -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; margin-bottom: 28px; background-color: #f8fafc;">
+                <tr>
+                  <td style="padding: 16px 18px; font-size: 12px; color: #1e293b; line-height: 1.5;">
+                    <strong style="color: #15803d;">Clean audit status.</strong> No complaints, dissatisfaction marks, or negative sentiment flags recorded for this date.
+                  </td>
+                </tr>
+              </table>
+              {% endif %}
+
+              <!-- SECTION 4: CALL TO ACTION -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 8px; margin-bottom: 4px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{ responses_url }}" target="_blank" style="display: inline-block; background-color: #14532d; color: #ffffff; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 600; text-decoration: none; padding: 13px 30px; border-radius: 5px;">
+                      Open Feedback Admin Portal
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Institutional Document Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 28px; text-align: center;">
+              <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.05em;">
+                Philippine Health Insurance Corporation
+              </div>
+              <div style="font-size: 11px; font-weight: 400; color: #64748b; margin-top: 3px;">
+                Local Health Insurance Office &bull; Cauayan City, Isabela &bull; Region II
+              </div>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

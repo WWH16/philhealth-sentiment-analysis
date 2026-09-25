@@ -1,0 +1,1104 @@
+{% extends 'feedback_admin/base.html' %}
+{% load static %}
+
+{% block title %}User Management | PhilHealth Cauayan City{% endblock %}
+
+{% block nav_users %}active{% endblock %}
+
+{% block extra_styles %}
+.stat-card, .card-block, .modal-card {
+  contain: content;
+}
+.tab-bar {
+  display: flex; gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 24px;
+}
+.tab-btn {
+  padding: 10px 20px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border: none; border-bottom: 2px solid transparent;
+  background: transparent; color: var(--text-muted);
+  cursor: pointer; font-family: var(--font);
+  margin-bottom: -2px; transition: color 120ms, border-color 120ms;
+  display: flex; align-items: center; gap: 7px;
+}
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--g-primary); border-bottom-color: var(--g-primary); }
+.tab-btn .material-icons-round { font-size: 16px; }
+.tab-count {
+  font-size: 9px; font-weight: 700; padding: 2px 6px;
+  background: var(--border); color: var(--text-muted); font-family: var(--mono);
+}
+.tab-btn.active .tab-count { background: var(--g-xlight); color: var(--g-forest); }
+
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-family: var(--mono); flex-shrink: 0;
+}
+.avatar-superuser { background: var(--badge-vsat-bg); color: var(--badge-vsat-text); border: 1.5px solid var(--badge-vsat-border); }
+.avatar-staff     { background: var(--badge-sat-bg);  color: var(--badge-sat-text);  border: 1.5px solid var(--badge-sat-border); }
+.avatar-user      { background: var(--surface-page);  color: var(--text-secondary);  border: 1.5px solid var(--border); }
+
+.status-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; padding: 3px 7px; white-space: nowrap;
+}
+.status-chip .material-icons-round { font-size: 11px; }
+.chip-active   { background: var(--badge-vsat-bg); color: var(--badge-vsat-text); border: 1px solid var(--badge-vsat-border); }
+.chip-inactive { background: var(--surface-page);  color: var(--text-muted);     border: 1px solid var(--border); }
+.chip-super    { background: var(--badge-sat-bg);   color: var(--badge-sat-text);  border: 1px solid var(--badge-sat-border); }
+.chip-staff    { background: var(--badge-blue-bg);  color: var(--badge-blue-text); border: 1px solid var(--badge-blue-border); }
+
+/* ── BULK BAR ── */
+.user-bulk-bar {
+  display: none; align-items: center; gap: 10px; padding: 9px 16px;
+  background: var(--red-bg); border-bottom: 1px solid var(--badge-unsat-border);
+  font-size: 12px; font-weight: 600; color: var(--red-text);
+}
+.user-bulk-bar.visible { display: flex; flex-wrap: wrap; gap: 8px; }
+.user-bulk-bar .material-icons-round { font-size: 16px; }
+
+.modal-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: rgba(10,26,4,0.5); backdrop-filter: blur(3px);
+  align-items: flex-start; justify-content: center; padding: 40px 16px;
+  overflow-y: auto;
+}
+.modal-backdrop.open { display: flex; }
+.modal-card {
+  background: var(--surface-card); border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%; max-width: 640px; flex-shrink: 0; position: relative;
+}
+.modal-head {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.modal-title {
+  font-size: 13px; font-weight: 800; color: var(--text-primary);
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-title .material-icons-round { font-size: 18px; color: var(--g-primary); }
+.modal-close {
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+  cursor: pointer; transition: all 120ms;
+}
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-close .material-icons-round { font-size: 16px; }
+.modal-body { padding: 20px 24px; max-height: 72vh; overflow-y: auto; }
+.modal-body::-webkit-scrollbar { width: 4px; }
+.modal-body::-webkit-scrollbar-thumb { background: var(--border); }
+.modal-footer {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+}
+
+.form-section { margin-bottom: 24px; }
+.form-section-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-muted); padding-bottom: 10px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;
+}
+.form-section-label .material-icons-round { font-size: 14px; color: var(--g-primary); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-row.full { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.form-label .req { color: var(--red); margin-left: 2px; }
+.form-input {
+  height: 36px; padding: 0 12px; font-size: 13px; font-family: var(--font);
+  border: 1.5px solid var(--border); background: var(--surface-page);
+  color: var(--text-primary); outline: none; border-radius: 0;
+  transition: border-color 120ms;
+}
+.form-input:focus { border-color: var(--g-primary); }
+.form-input.input-error { border-color: var(--red) !important; background: var(--red-bg); }
+.form-hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+.field-error {
+  display: none; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; color: var(--red); line-height: 1.4;
+}
+.field-error.visible { display: flex; }
+.field-error .material-icons-round { font-size: 13px; flex-shrink: 0; }
+
+.perm-grid { display: flex; flex-direction: column; gap: 5px; max-height: 180px; overflow-y: auto; padding-right: 4px; }
+.perm-grid::-webkit-scrollbar { width: 4px; }
+.perm-grid::-webkit-scrollbar-thumb { background: var(--border); }
+.perm-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px;
+  border: 1px solid var(--border); background: var(--surface-page); cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+.perm-item:hover { border-color: var(--g-primary); }
+.perm-item.checked { border-color: var(--g-primary); background: var(--g-xlight); }
+[data-theme="dark"] .perm-item.checked { background: rgba(35,164,85,0.08); }
+.perm-item input[type="checkbox"] { cursor: pointer; accent-color: var(--g-primary); flex-shrink: 0; margin-top: 2px; }
+.perm-item-label { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.perm-item-module { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; padding: 64px 20px;
+  color: var(--text-muted);
+}
+.empty-state .material-icons-round { font-size: 48px; opacity: 0.25; }
+.empty-state-title { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.empty-state-sub   { font-size: 12px; }
+
+@media (max-width: 575px) {
+  .form-row { grid-template-columns: 1fr; gap: 10px; }
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal-card {
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+  }
+  .modal-body { max-height: 75vh; padding: 20px 20px 30px; }
+  .modal-head { padding: 16px 20px; }
+  .modal-footer {
+    padding: 16px 20px 24px;
+    background: var(--surface-card);
+    position: sticky; bottom: 0; z-index: 10;
+    border-top: 1px solid var(--border);
+  }
+  .tab-btn { padding: 10px 12px; font-size: 10px; }
+  .form-section-label { font-size: 8px; }
+}
+{% endblock %}
+
+{% block page_content %}
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-eyebrow">
+          <span class="material-icons-round">manage_accounts</span>
+          Authentication &amp; Authorization
+        </div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">Manage admin users, permissions, and groups.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="btn-ph btn-ph-primary" onclick="openUserModal()">
+          <span class="material-icons-round" aria-hidden="true">person_add</span> Add User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="stat-card card-sat">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:var(--g-primary);background:var(--g-xlight)">people</span></div>
+        <div class="stat-value">{{ total_users }}</div>
+        <div class="stat-label">Total Users</div>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">people</span></div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="stat-card card-vsat">
+        <div class="stat-card-icon"><span class="material-icons-round">verified_user</span></div>
+        <div class="stat-value">{{ active_users }}</div>
+        <div class="stat-label">Active Users</div>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">verified_user</span></div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="stat-card card-neu">
+        <div class="stat-card-icon"><span class="material-icons-round">admin_panel_settings</span></div>
+        <div class="stat-value">{{ staff_users }}</div>
+        <div class="stat-label">Staff / Admin</div>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">admin_panel_settings</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── USERS CONTENT ── -->
+  <div id="panel-users">
+    <div class="card-block">
+
+      <!-- TABLE CONTROLS -->
+      <div class="table-controls">
+        <div class="search-box">
+          <span class="material-icons-round">search</span>
+          <input type="text" id="userSearch" placeholder="Search username or email…" oninput="onUserSearchInput()" aria-label="Search users">
+        </div>
+        <div class="table-controls-right">
+          <select class="btn-ph" id="roleFilter" onchange="filterUsers()" style="cursor:pointer">
+            <option value="">All Roles</option>
+            <option value="superuser">Superuser</option>
+            <option value="staff">Staff</option>
+            <option value="user">Regular</option>
+          </select>
+          <select class="btn-ph" id="statusFilter" onchange="filterUsers()" style="cursor:pointer">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <span class="table-info" id="userTableInfo">—</span>
+        </div>
+      </div>
+
+      <!-- BULK DELETE BAR -->
+      <div class="user-bulk-bar" id="userBulkBar">
+        <span class="material-icons-round">delete_sweep</span>
+        <span id="userBulkCount">0 selected</span>
+        <button class="btn-ph btn-ph-sm" onclick="clearUserSelection()" style="border-color:rgba(192,0,26,0.4);color:inherit;">
+          <span class="material-icons-round">close</span> Deselect all
+        </button>
+        <button class="btn-ph btn-ph-sm" onclick="bulkDeleteUsers()"
+          style="background:var(--red);border-color:var(--red);color:var(--white);">
+          <span class="material-icons-round">delete_forever</span>
+          Delete selected
+        </button>
+      </div>
+
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table class="ph-table" aria-label="Admin users">
+          <thead>
+            <tr>
+              <th style="width:36px;padding:10px 8px 10px 16px;">
+                <input type="checkbox" id="userSelectAll" onchange="toggleUserSelectAll(this)"
+                  aria-label="Select all deletable users"
+                  style="cursor:pointer;accent-color:var(--g-primary)">
+              </th>
+              <th style="min-width:190px;">Username</th>
+              <th style="min-width:210px;">Email Address</th>
+              <th style="min-width:130px;">Full Name</th>
+              <th style="min-width:100px;">Role</th>
+              <th style="min-width:90px;">Status</th>
+              <th style="min-width:130px;">Last Login</th>
+              <th style="min-width:110px;">Date Joined</th>
+              <th style="width:90px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            {% for u in users %}
+            <tr class="user-row"
+              data-userid="{{ u.id }}"
+              data-username="{{ u.username|lower }}"
+              data-email="{{ u.email|lower }}"
+              data-fullname="{{ u.get_full_name|lower }}"
+              data-role="{% if u.is_superuser %}superuser{% elif u.is_staff %}staff{% else %}user{% endif %}"
+              data-status="{% if u.is_active %}active{% else %}inactive{% endif %}"
+              data-isself="{% if u.id == request.user.id %}true{% else %}false{% endif %}">
+
+              <td style="padding:13px 8px 13px 16px;">
+                {% if u.id != request.user.id %}
+                <input type="checkbox" class="user-select-cb"
+                  data-userid="{{ u.id }}"
+                  data-username="{{ u.username }}"
+                  onchange="toggleUserSelect(this)"
+                  aria-label="Select {{ u.username }}"
+                  style="cursor:pointer;accent-color:var(--red)">
+                {% else %}
+                <span class="material-icons-round" style="font-size:14px;color:var(--text-muted);opacity:0.4;" title="Cannot delete your own account">lock</span>
+                {% endif %}
+              </td>
+
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="user-avatar {% if u.is_superuser %}avatar-superuser{% elif u.is_staff %}avatar-staff{% else %}avatar-user{% endif %}">
+                    {{ u.first_name|first|upper }}{{ u.last_name|first|upper }}{% if not u.first_name and not u.last_name %}{{ u.username|slice:":2"|upper }}{% endif %}
+                  </div>
+                  <div>
+                    <div style="font-size:13px;font-weight:700;color:var(--text-primary)">{{ u.username }}{% if u.id == request.user.id %} <span style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:var(--g-xlight);color:var(--g-forest);padding:2px 6px;margin-left:4px;">You</span>{% endif %}</div>
+                    {% if u.groups.all %}
+                    <div style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">
+                      {% for g in u.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td><span style="font-size:12px;color:var(--text-secondary)">{{ u.email|default:"—" }}</span></td>
+              <td><span style="font-size:12px;font-weight:600;color:var(--text-primary)">{{ u.get_full_name|default:"—" }}</span></td>
+              <td>
+                {% if u.is_superuser %}
+                  <span class="status-chip chip-super"><span class="material-icons-round">verified</span>Superuser</span>
+                {% elif u.is_staff %}
+                  <span class="status-chip chip-staff"><span class="material-icons-round">admin_panel_settings</span>Staff</span>
+                {% else %}
+                  <span class="status-chip" style="background:var(--surface-page);border:1px solid var(--border);color:var(--text-muted)"><span class="material-icons-round">person</span>Regular</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}
+                  <span class="status-chip chip-active"><span class="material-icons-round">check_circle</span>Active</span>
+                {% else %}
+                  <span class="status-chip chip-inactive"><span class="material-icons-round">cancel</span>Inactive</span>
+                {% endif %}
+              </td>
+              <td class="datetime-cell">
+                {% if u.last_login %}
+                  <div class="datetime-date">{{ u.last_login|date:"M j, Y" }}</div>
+                  <div class="datetime-time">{{ u.last_login|date:"g:i A" }}</div>
+                {% else %}
+                  <span style="color:var(--text-muted);font-style:italic;font-size:11px">Never</span>
+                {% endif %}
+              </td>
+              <td class="datetime-cell">
+                <div class="datetime-date">{{ u.date_joined|date:"M j, Y" }}</div>
+                <div class="datetime-time">{{ u.date_joined|date:"g:i A" }}</div>
+              </td>
+              <td style="white-space:nowrap;">
+                <div style="display:flex;gap:4px;">
+                  <button class="btn-ph btn-ph-sm"
+                    onclick="openUserModal({{ u.id }}, '{{ u.username }}', '{{ u.email }}', '{{ u.first_name }}', '{{ u.last_name }}', {{ u.is_active|yesno:'true,false' }}, {{ u.is_staff|yesno:'true,false' }}, {{ u.is_superuser|yesno:'true,false' }}, [{% for g in u.groups.all %}'{{ g.id }}'{% if not forloop.last %},{% endif %}{% endfor %}], [{% for p in u.user_permissions.all %}'{{ p.id }}'{% if not forloop.last %},{% endif %}{% endfor %}])"
+                    title="Edit" aria-label="Edit {{ u.username }}">
+                    <span class="material-icons-round">edit</span>
+                  </button>
+                  {% if u.id != request.user.id %}
+                  <form method="post" action="{% url 'user_toggle_active' u.id %}" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-ph btn-ph-sm"
+                      style="{% if u.is_active %}color:var(--red);border-color:var(--red){% else %}color:var(--g-primary);border-color:var(--g-primary){% endif %}"
+                      title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}"
+                      aria-label="{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.username }}">
+                      <span class="material-icons-round">{% if u.is_active %}person_off{% else %}how_to_reg{% endif %}</span>
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9">
+              <div class="empty-state">
+                <span class="material-icons-round">manage_accounts</span>
+                <div class="empty-state-title">No users yet</div>
+                <div class="empty-state-sub">Add your first user to get started.</div>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-row">
+        <span class="table-info" id="userPageInfo">Showing all {{ total_users }} user{{ total_users|pluralize }}</span>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- USER MODAL -->
+  <div class="modal-backdrop" id="userModal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle"
+    onclick="if(event.target===this) closeModal('userModal')">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">
+          <span class="material-icons-round">person</span>
+          <span id="userModalTitle">Add User</span>
+        </div>
+        <button class="modal-close" onclick="closeModal('userModal')" aria-label="Close">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+
+      <form id="userForm" onsubmit="return false;">
+        {% csrf_token %}
+        <input type="hidden" id="userFormUserId" name="user_id" value="">
+        <input type="hidden" name="form_type" value="user">
+
+        <div class="modal-body">
+
+          <div class="form-section">
+            <div class="form-section-label">
+              <span class="material-icons-round">badge</span> Personal Information
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fieldUsername">Username <span class="req">*</span></label>
+                <input class="form-input" type="text" id="fieldUsername" name="username" placeholder="e.g. juan.dela_cruz" autocomplete="off" required oninput="clearFieldError('errUsername')">
+                <span class="field-error" id="errUsername"><span class="material-icons-round">error</span><span></span></span>
+                <span class="form-hint">Required. 150 chars max. Letters, digits, and @/./+/-/_ only.</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fieldEmail">Email Address</label>
+                <input class="form-input" type="email" id="fieldEmail" name="email" placeholder="user@philhealth.gov.ph" oninput="clearFieldError('errEmail')">
+                <span class="field-error" id="errEmail"><span class="material-icons-round">error</span><span></span></span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fieldFirstName">First Name</label>
+                <input class="form-input" type="text" id="fieldFirstName" name="first_name" placeholder="Juan">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fieldLastName">Last Name</label>
+                <input class="form-input" type="text" id="fieldLastName" name="last_name" placeholder="Dela Cruz">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-label">
+              <span class="material-icons-round">lock</span> Credentials
+            </div>
+            <div class="form-row full" id="currentPasswordRow" style="display:none;margin-bottom:12px;">
+              <div class="form-group">
+                <label class="form-label" for="fieldCurrentPassword">Current Password <span class="req" id="pwCurrentRequired">*</span></label>
+                <input class="form-input" type="password" id="fieldCurrentPassword" name="current_password" placeholder="••••••••" autocomplete="current-password" oninput="clearFieldError('errCurrentPassword')">
+                <span class="field-error" id="errCurrentPassword"><span class="material-icons-round">error</span><span></span></span>
+                <span class="form-hint">Enter your current password to authorize this password update.</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fieldPassword"><span id="pwLabelText">Password</span> <span class="req" id="pwRequired">*</span></label>
+                <input class="form-input" type="password" id="fieldPassword" name="password1" placeholder="••••••••" autocomplete="new-password" oninput="clearFieldError('errPassword')">
+                <span class="field-error" id="errPassword"><span class="material-icons-round">error</span><span></span></span>
+                <span class="form-hint">Min. 8 chars. Not too common. Not entirely numeric.</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fieldPassword2"><span id="pw2LabelText">Confirm Password</span> <span class="req" id="pw2Required">*</span></label>
+                <input class="form-input" type="password" id="fieldPassword2" name="password2" placeholder="••••••••" autocomplete="new-password" oninput="clearFieldError('errPassword2')">
+                <span class="field-error" id="errPassword2"><span class="material-icons-round">error</span><span></span></span>
+              </div>
+            </div>
+            <div id="editPasswordNote" style="display:none;font-size:12px;color:var(--text-muted);padding:10px 12px;border:1px solid var(--border);background:var(--surface-page);">
+              <span class="material-icons-round" style="font-size:14px;vertical-align:middle;color:var(--g-primary)">info</span>
+              <span id="editPasswordNoteText">Leave both fields blank to keep the current password.</span>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom:0;">
+            <div class="form-section-label">
+              <span class="material-icons-round">security</span> Permissions
+            </div>
+            <div class="form-row full" style="margin-bottom:8px;">
+              <div class="perm-item" id="permActiveRow" onclick="togglePermItem(this)">
+                <input type="checkbox" id="chkActive" name="is_active" checked onclick="event.stopPropagation();this.closest('.perm-item').classList.toggle('checked',this.checked)" style="accent-color:var(--g-primary)">
+                <div>
+                  <div class="perm-item-label">Active</div>
+                  <div class="perm-item-module">Designates whether this user should be treated as active. Uncheck instead of deleting accounts.</div>
+                </div>
+              </div>
+            </div>
+            <div class="form-row full" style="margin-bottom:8px;">
+              <div class="perm-item" id="permStaffRow" onclick="togglePermItem(this)">
+                <input type="checkbox" id="chkStaff" name="is_staff" onclick="event.stopPropagation();this.closest('.perm-item').classList.toggle('checked',this.checked)" style="accent-color:var(--g-primary)">
+                <div>
+                  <div class="perm-item-label">Staff Status</div>
+                  <div class="perm-item-module">Designates whether the user can log into the admin dashboard.</div>
+                </div>
+              </div>
+            </div>
+            <div class="form-row full" style="margin-bottom:0;">
+              <div class="perm-item" id="permSuperRow" onclick="togglePermItem(this)">
+                <input type="checkbox" id="chkSuperuser" name="is_superuser" onclick="event.stopPropagation();this.closest('.perm-item').classList.toggle('checked',this.checked)" style="accent-color:var(--g-primary)">
+                <div>
+                  <div class="perm-item-label">Superuser Status</div>
+                  <div class="perm-item-module">Designates that this user has all permissions without explicitly assigning them.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /modal-body -->
+
+        <div class="modal-footer">
+          <div id="userDangerSection" style="display:none;margin-right:auto;">
+            <button type="button" class="btn-ph" style="border-color:var(--red);color:var(--red);" onclick="triggerDeleteUserFromModal()">
+              <span class="ph-loader"></span>
+              <span class="material-icons-round">delete_forever</span> Delete User
+            </button>
+          </div>
+          <button type="button" class="btn-ph" onclick="closeModal('userModal')">Cancel</button>
+          <button type="button" class="btn-ph btn-ph-primary" onclick="submitUserForm()">
+            <span class="ph-loader"></span>
+            <span class="material-icons-round">save</span>
+            <span id="saveUserLabel">Add User</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="deleteConfirmModal" role="dialog" aria-modal="true" style="z-index: 400;"
+    onclick="if(event.target===this) closeModal('deleteConfirmModal')">
+    <div class="modal-card" style="max-width:400px;margin-top:10vh;" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title" style="color:var(--red)">
+          <span class="material-icons-round">warning</span>
+          Confirm Deletion
+        </div>
+        <button class="modal-close" onclick="closeModal('deleteConfirmModal')">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="modal-body" style="padding:24px;text-align:center;">
+        <div style="width:64px;height:64px;background:var(--red-bg);color:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <span class="material-icons-round" style="font-size:32px;">delete_forever</span>
+        </div>
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text-primary)" id="deleteModalTitle">Delete Item?</h3>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:0;">
+          Are you sure you want to delete <strong id="deleteTargetName">this item</strong>?
+          This action cannot be undone and all associated data will be permanently removed.
+        </p>
+      </div>
+      <div class="modal-footer" style="background:var(--surface-page);padding:16px;justify-content:center;gap:12px;">
+        <button type="button" class="btn-ph" onclick="closeModal('deleteConfirmModal')" style="min-width:110px;justify-content:center;">
+          <span class="material-icons-round" style="font-size:16px;">close</span> Cancel
+        </button>
+        <button type="button" class="btn-ph" id="confirmDeleteBtn" style="min-width:110px;background:var(--red);border-color:var(--red);color:white;justify-content:center;" onclick="executeGenericDelete()">
+          <span class="ph-loader"></span>
+          <span class="material-icons-round" style="font-size:16px;">delete</span> Confirm Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden delete forms -->
+  <form method="post" id="deleteUserForm" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="delete_user">
+    <input type="hidden" name="user_id" id="deleteUserId">
+  </form>
+  <form method="post" id="deleteGroupForm" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="delete_group">
+    <input type="hidden" name="group_id" id="deleteGroupId">
+  </form>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+/* ── TAB SWITCH ── */
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-users').style.display  = tab === 'users'  ? 'block' : 'none';
+  document.getElementById('panel-groups').style.display = tab === 'groups' ? 'block' : 'none';
+}
+
+let userSearchDebounce = null;
+function onUserSearchInput() {
+  clearTimeout(userSearchDebounce);
+  userSearchDebounce = setTimeout(filterUsers, 150);
+}
+
+/* ── CLIENT-SIDE USER FILTER ── */
+function filterUsers() {
+  const q      = document.getElementById('userSearch').value.toLowerCase();
+  const role   = document.getElementById('roleFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  const rows   = document.querySelectorAll('.user-row');
+  let visible  = 0;
+  rows.forEach(r => {
+    const matchQ      = !q || r.dataset.username.includes(q) || r.dataset.email.includes(q) || r.dataset.fullname.includes(q);
+    const matchRole   = !role   || r.dataset.role   === role;
+    const matchStatus = !status || r.dataset.status === status;
+    const show = matchQ && matchRole && matchStatus;
+    r.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('userTableInfo').textContent =
+    `Showing ${visible} of ${rows.length} user${rows.length !== 1 ? 's' : ''}`;
+  updateUserSelectAll();
+}
+
+/* ── BULK SELECTION & DELETE ── */
+const selectedUsers = new Map();
+let currentDeleteAction = { type: '', id: '', name: '' };
+
+function toggleUserSelect(cb) {
+  const id       = parseInt(cb.dataset.userid);
+  const username = cb.dataset.username;
+  if (cb.checked) selectedUsers.set(id, username); else selectedUsers.delete(id);
+  cb.closest('tr').style.background = cb.checked ? 'var(--red-bg)' : '';
+  updateUserBulkBar();
+  updateUserSelectAll();
+}
+
+function toggleUserSelectAll(masterCb) {
+  const visibleCbs = getVisibleDeletableCbs();
+  visibleCbs.forEach(cb => {
+    cb.checked = masterCb.checked;
+    const id       = parseInt(cb.dataset.userid);
+    const username = cb.dataset.username;
+    if (masterCb.checked) selectedUsers.set(id, username); else selectedUsers.delete(id);
+    cb.closest('tr').style.background = masterCb.checked ? 'var(--red-bg)' : '';
+  });
+  updateUserBulkBar();
+}
+
+function getVisibleDeletableCbs() {
+  return Array.from(document.querySelectorAll('.user-select-cb')).filter(cb => {
+    const row = cb.closest('tr');
+    return row && row.style.display !== 'none';
+  });
+}
+
+function updateUserSelectAll() {
+  const all      = getVisibleDeletableCbs();
+  const checked  = all.filter(cb => cb.checked);
+  const masterCb = document.getElementById('userSelectAll');
+  if (!masterCb) return;
+  if (all.length === 0) {
+    masterCb.checked = masterCb.indeterminate = false;
+  } else if (checked.length === all.length) {
+    masterCb.checked = true; masterCb.indeterminate = false;
+  } else if (checked.length === 0) {
+    masterCb.checked = masterCb.indeterminate = false;
+  } else {
+    masterCb.checked = false; masterCb.indeterminate = true;
+  }
+}
+
+function updateUserBulkBar() {
+  const bar = document.getElementById('userBulkBar');
+  if (selectedUsers.size > 0) {
+    bar.classList.add('visible');
+    document.getElementById('userBulkCount').textContent = `${selectedUsers.size} user(s) selected`;
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function clearUserSelection() {
+  selectedUsers.clear();
+  document.querySelectorAll('.user-select-cb').forEach(cb => {
+    cb.checked = false; cb.closest('tr').style.background = '';
+  });
+  const masterCb = document.getElementById('userSelectAll');
+  if (masterCb) { masterCb.checked = false; masterCb.indeterminate = false; }
+  updateUserBulkBar();
+}
+
+/* ── DELETE FLOWS ── */
+function triggerDeleteUserFromModal() {
+  const id   = document.getElementById('userFormUserId').value;
+  const name = document.getElementById('fieldUsername').value;
+  if (!id) return;
+  openDeleteConfirm('user', id, name);
+}
+
+function triggerDeleteGroup(id, name) {
+  openDeleteConfirm('group', id, name);
+}
+
+function triggerDeleteGroupFromModal() {
+  const id   = document.getElementById('groupFormId').value;
+  const name = document.getElementById('fieldGroupName').value;
+  if (!id) return;
+  openDeleteConfirm('group', id, name);
+}
+
+function bulkDeleteUsers() {
+  if (selectedUsers.size === 0) return;
+  const count  = selectedUsers.size;
+  const names  = Array.from(selectedUsers.values()).slice(0, 3).join(', ');
+  const suffix = count > 3 ? ` and ${count - 3} more` : '';
+  openDeleteConfirm('bulk_user', null, `${count} selected users (${names}${suffix})`);
+}
+
+function openDeleteConfirm(type, id, name) {
+  currentDeleteAction = { type, id, name };
+  document.getElementById('deleteModalTitle').textContent = type.includes('user') ? 'Delete User?' : 'Delete Group?';
+  document.getElementById('deleteTargetName').textContent = name;
+  document.getElementById('deleteConfirmModal').classList.add('open');
+}
+
+async function executeGenericDelete() {
+  const btn = document.getElementById('confirmDeleteBtn');
+  if (btn) {
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+  }
+  const { type, id } = currentDeleteAction;
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  try {
+    if (type === 'bulk_user') {
+      const ids = Array.from(selectedUsers.keys());
+      let successCount = 0, lastError = null;
+      for (const uid of ids) {
+        const fd = new FormData();
+        fd.append('csrfmiddlewaretoken', csrfToken);
+        fd.append('form_type', 'delete_user');
+        fd.append('user_id', uid);
+        const res  = await fetch(`/dashboard/users/${uid}/delete/`, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const json = await res.json().catch(() => ({}));
+        if (json.ok) successCount++; else lastError = json.error;
+      }
+      closeModal('deleteConfirmModal');
+      if (btn) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+      }
+      if (successCount > 0) {
+        showToast(`${successCount} user(s) deleted successfully.`, 'success', true);
+      } else {
+        showToast(lastError || 'Failed to delete selected users.', 'error', false);
+      }
+      return;
+    }
+    if (type === 'user') {
+      const fd = new FormData();
+      fd.append('csrfmiddlewaretoken', csrfToken);
+      fd.append('form_type', 'delete_user');
+      fd.append('user_id', id);
+      const res  = await fetch(`/dashboard/users/${id}/delete/`, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const json = await res.json().catch(() => ({}));
+      if (btn) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+      }
+      if (json.ok) {
+        closeModal('deleteConfirmModal');
+        closeModal('userModal');
+        showToast(json.message || 'User deleted successfully.', 'success', true);
+      } else {
+        throw new Error(json.error || 'Failed to delete user.');
+      }
+      return;
+    }
+    if (type === 'group') {
+      const fd = new FormData();
+      fd.append('csrfmiddlewaretoken', csrfToken);
+      fd.append('form_type', 'delete_group');
+      fd.append('group_id', id);
+      const res  = await fetch(`/dashboard/groups/${id}/delete/`, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const json = await res.json().catch(() => ({}));
+      if (btn) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+      }
+      if (json.ok) {
+        closeModal('deleteConfirmModal');
+        const gm = document.getElementById('groupModal');
+        if (gm && gm.classList.contains('open')) closeModal('groupModal');
+        showToast(json.message || 'Group deleted successfully.', 'success', true);
+      } else {
+        throw new Error(json.error || 'Failed to delete group.');
+      }
+      return;
+    }
+  } catch (err) {
+    closeModal('deleteConfirmModal');
+    if (btn) {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+    }
+    showToast(err.message || 'An error occurred.', 'error', false);
+  }
+}
+
+/* ── MODAL HELPERS ── */
+const CURRENT_USER_ID = {{ request.user.id }};
+
+function openUserModal(userId, username, email, first, last, isActive, isStaff, isSuperuser, groupIds, permIds) {
+  clearAllFieldErrors();
+  const isEdit = !!userId;
+  const isSelf = parseInt(userId, 10) === CURRENT_USER_ID;
+
+  document.getElementById('userModalTitle').textContent      = isEdit ? 'Edit User' : 'Add User';
+  document.getElementById('saveUserLabel').textContent       = isEdit ? 'Save Changes' : 'Add User';
+  document.getElementById('userDangerSection').style.display = (isEdit && !isSelf) ? 'block' : 'none';
+  document.getElementById('editPasswordNote').style.display  = isEdit ? 'block' : 'none';
+  document.getElementById('pwRequired').style.display        = isEdit ? 'none' : 'inline';
+  document.getElementById('pw2Required').style.display       = isEdit ? 'none' : 'inline';
+  document.getElementById('userFormUserId').value            = userId || '';
+
+  const currentPwRow = document.getElementById('currentPasswordRow');
+  if (currentPwRow) {
+    currentPwRow.style.display = (isEdit && isSelf) ? 'block' : 'none';
+  }
+  const currentPwInput = document.getElementById('fieldCurrentPassword');
+  if (currentPwInput) currentPwInput.value = '';
+
+  const pwLabel = document.getElementById('pwLabelText');
+  if (pwLabel) pwLabel.textContent = isEdit ? 'New Password' : 'Password';
+  const pw2Label = document.getElementById('pw2LabelText');
+  if (pw2Label) pw2Label.textContent = isEdit ? 'Confirm New Password' : 'Confirm Password';
+
+  const noteText = document.getElementById('editPasswordNoteText');
+  if (noteText) {
+    noteText.textContent = isSelf
+      ? 'Leave password fields blank to keep your current password.'
+      : 'Leave both fields blank to keep the user’s current password.';
+  }
+
+  document.getElementById('userForm').action = isEdit
+    ? `/dashboard/users/${userId}/edit/`
+    : `/dashboard/users/add/`;
+
+  document.getElementById('fieldUsername').value  = username  || '';
+  document.getElementById('fieldEmail').value     = email     || '';
+  document.getElementById('fieldFirstName').value = first     || '';
+  document.getElementById('fieldLastName').value  = last      || '';
+  document.getElementById('fieldPassword').value  = '';
+  document.getElementById('fieldPassword2').value = '';
+
+  setPermItem('permActiveRow',  'chkActive',    isActive    !== false);
+  setPermItem('permStaffRow',   'chkStaff',     !!isStaff);
+  setPermItem('permSuperRow',   'chkSuperuser', !!isSuperuser);
+
+  const chkActive     = document.getElementById('chkActive');
+  const permActiveRow = document.getElementById('permActiveRow');
+  if (isSelf) {
+    chkActive.disabled = true;
+    permActiveRow.style.opacity = '0.6';
+    permActiveRow.style.pointerEvents = 'none';
+    permActiveRow.title = 'You cannot deactivate your own account.';
+  } else {
+    chkActive.disabled = false;
+    permActiveRow.style.opacity = '1';
+    permActiveRow.style.pointerEvents = 'auto';
+    permActiveRow.title = '';
+  }
+
+  const gIds = groupIds || [];
+  document.querySelectorAll('#groupPickerList .perm-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    const checked = gIds.includes(String(cb.value));
+    cb.checked = checked;
+    item.classList.toggle('checked', checked);
+  });
+
+  const pIds = permIds || [];
+  document.querySelectorAll('#permPickerList .perm-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    const checked = pIds.includes(String(cb.value));
+    cb.checked = checked;
+    item.classList.toggle('checked', checked);
+  });
+
+  document.getElementById('userModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('fieldUsername').focus();
+}
+
+function openGroupModal(groupId, groupName, permIds) {
+  const isEdit = !!groupId;
+  document.getElementById('groupModalTitle').textContent      = isEdit ? 'Edit Group' : 'Add Group';
+  document.getElementById('saveGroupLabel').textContent       = isEdit ? 'Save Changes' : 'Add Group';
+  document.getElementById('groupDangerSection').style.display = isEdit ? 'block' : 'none';
+  document.getElementById('groupFormId').value                = groupId || '';
+  document.getElementById('fieldGroupName').value             = groupName || '';
+
+  document.getElementById('groupForm').action = isEdit
+    ? `/dashboard/groups/${groupId}/edit/`
+    : `/dashboard/groups/add/`;
+
+  const pIds = permIds || [];
+  document.querySelectorAll('#groupPermPickerList .perm-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    const checked = pIds.includes(String(cb.value));
+    cb.checked = checked;
+    item.classList.toggle('checked', checked);
+  });
+
+  document.getElementById('groupModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('fieldGroupName').focus();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function togglePermItem(el) {
+  const cb = el.querySelector('input[type="checkbox"]');
+  cb.checked = !cb.checked;
+  el.classList.toggle('checked', cb.checked);
+}
+
+function setPermItem(rowId, cbId, checked) {
+  document.getElementById(cbId).checked = checked;
+  document.getElementById(rowId).classList.toggle('checked', checked);
+}
+
+/* ── FIELD ERROR HELPERS ── */
+const ERROR_FIELD_MAP = [
+  { match: 'current password',       field: 'fieldCurrentPassword', err: 'errCurrentPassword' },
+  { match: 'username is required',   field: 'fieldUsername',  err: 'errUsername'  },
+  { match: 'username',               field: 'fieldUsername',  err: 'errUsername'  },
+  { match: 'email',                  field: 'fieldEmail',     err: 'errEmail'     },
+  { match: 'passwords do not match', field: 'fieldPassword2', err: 'errPassword2' },
+  { match: 'password must be',       field: 'fieldPassword',  err: 'errPassword'  },
+  { match: 'password',               field: 'fieldPassword',  err: 'errPassword'  },
+];
+
+function showFieldError(fieldId, errorElId, msg) {
+  const input = document.getElementById(fieldId);
+  const errEl = document.getElementById(errorElId);
+  if (input)  input.classList.add('input-error');
+  if (errEl) {
+    errEl.querySelector('span:last-child').textContent = msg;
+    errEl.classList.add('visible');
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function clearFieldError(errorElId) {
+  const errEl = document.getElementById(errorElId);
+  if (!errEl) return;
+  errEl.classList.remove('visible');
+  const input = errEl.previousElementSibling;
+  if (input && input.tagName === 'INPUT') input.classList.remove('input-error');
+}
+
+function clearAllFieldErrors() {
+  ['errUsername','errEmail','errCurrentPassword','errPassword','errPassword2'].forEach(clearFieldError);
+  document.querySelectorAll('#userForm .form-input').forEach(i => i.classList.remove('input-error'));
+}
+
+function routeError(msg) {
+  if (!msg) return false;
+  const lower = msg.toLowerCase();
+  for (const rule of ERROR_FIELD_MAP) {
+    if (lower.includes(rule.match)) {
+      showFieldError(rule.field, rule.err, msg);
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ── SUBMIT USER FORM ── */
+function submitUserForm() {
+  clearAllFieldErrors();
+  const userId    = document.getElementById('userFormUserId').value;
+  const isEdit    = !!userId;
+  const isSelf    = parseInt(userId, 10) === CURRENT_USER_ID;
+  const username  = document.getElementById('fieldUsername').value.trim();
+  const currentPw = document.getElementById('fieldCurrentPassword') ? document.getElementById('fieldCurrentPassword').value : '';
+  const pw1       = document.getElementById('fieldPassword').value;
+  const pw2       = document.getElementById('fieldPassword2').value;
+
+  if (!username) { showFieldError('fieldUsername', 'errUsername', 'Username is required.'); return; }
+  if (!/^[\w.@+\-]+$/.test(username)) { showFieldError('fieldUsername', 'errUsername', 'Letters, digits and @/./+/-/_ only.'); return; }
+  if (!isEdit && !pw1) { showFieldError('fieldPassword', 'errPassword', 'Password is required.'); return; }
+  if (!isEdit && pw1.length < 8) { showFieldError('fieldPassword', 'errPassword', 'Password must be at least 8 characters.'); return; }
+  if (!isEdit && pw1 !== pw2)    { showFieldError('fieldPassword2', 'errPassword2', 'Passwords do not match.'); return; }
+  if (isEdit && isSelf && pw1 && !currentPw) {
+    showFieldError('fieldCurrentPassword', 'errCurrentPassword', 'Current password is required to change your password.');
+    return;
+  }
+  if (isEdit && pw1 && pw1.length < 8) { showFieldError('fieldPassword', 'errPassword', 'Password must be at least 8 characters.'); return; }
+  if (isEdit && pw1 && pw1 !== pw2)    { showFieldError('fieldPassword2', 'errPassword2', 'Passwords do not match.'); return; }
+
+  const saveBtn = document.querySelector('#userModal .btn-ph-primary');
+  if (saveBtn) {
+    saveBtn.classList.add('is-loading');
+    saveBtn.disabled = true;
+  }
+
+  const form = document.getElementById('userForm');
+  const fd   = new FormData(form);
+
+  fetch(form.action, {
+    method: 'POST',
+    body: fd,
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+    .then(async r => {
+      let json = {};
+      try { json = await r.json(); } catch (e) {}
+      if (saveBtn) {
+        saveBtn.classList.remove('is-loading');
+        saveBtn.disabled = false;
+      }
+      if (json.ok) {
+        closeModal('userModal');
+        showToast(json.message || 'User saved successfully.', 'success', true);
+      } else {
+        const errorMsg = json.error || 'An error occurred.';
+        const routed = routeError(errorMsg);
+        if (!routed) {
+          showToast(errorMsg, 'error', false);
+        }
+      }
+    })
+    .catch(() => {
+      if (saveBtn) {
+        saveBtn.classList.remove('is-loading');
+        saveBtn.disabled = false;
+      }
+      showToast('Network error. Please try again.', 'error', false);
+    });
+}
+
+/* ── SUBMIT GROUP FORM ── */
+function submitGroupForm() {
+  const nameInput = document.getElementById('fieldGroupName');
+  if (!nameInput) return;
+  const name = nameInput.value.trim();
+  if (!name) {
+    nameInput.classList.add('input-error');
+    nameInput.focus();
+    return;
+  }
+
+  const saveBtn = document.querySelector('#groupModal .btn-ph-primary');
+  if (saveBtn) {
+    saveBtn.classList.add('is-loading');
+    saveBtn.disabled = true;
+  }
+
+  const form = document.getElementById('groupForm');
+  if (!form) return;
+  const fd   = new FormData(form);
+
+  fetch(form.action, {
+    method: 'POST',
+    body: fd,
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+    .then(async r => {
+      let json = {};
+      try { json = await r.json(); } catch (e) {}
+      if (saveBtn) {
+        saveBtn.classList.remove('is-loading');
+        saveBtn.disabled = false;
+      }
+      if (json.ok) {
+        closeModal('groupModal');
+        showToast(json.message || 'Group saved successfully.', 'success', true);
+      } else {
+        nameInput.classList.add('input-error');
+        nameInput.focus();
+        showToast(json.error || 'An error occurred.', 'error', false);
+      }
+    })
+    .catch(() => {
+      if (saveBtn) {
+        saveBtn.classList.remove('is-loading');
+        saveBtn.disabled = false;
+      }
+      showToast('Network error. Please try again.', 'error', false);
+    });
+}
+
+/* ── TOAST ── */
+const showToast = function(msg, type = 'success', reloadAfter) {
+  const isSuccess = type === 'success';
+  const shouldReload = reloadAfter !== undefined ? !!reloadAfter : isSuccess;
+  if (typeof window.showToast === 'function') {
+    window.showToast(msg, type, shouldReload);
+  } else if (shouldReload) {
+    try {
+      sessionStorage.setItem('pendingToast', JSON.stringify({ msg, type }));
+    } catch (e) {}
+    location.reload();
+  }
+};
+const _flashSuccessToast = showToast;
+
+function pageInit() { filterUsers(); }
+</script>
+{% endblock %}

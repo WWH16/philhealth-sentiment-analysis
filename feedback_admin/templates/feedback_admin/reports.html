@@ -1,0 +1,683 @@
+{% extends 'feedback_admin/base.html' %}
+{% load static %}
+
+{% block title %}Reports | PhilHealth Cauayan City{% endblock %}
+
+{% block head_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block extra_styles %}
+.metric-tile, .card-block {
+  contain: content;
+}
+.metric-tile {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 18px; background: var(--surface-card);
+  border: 1px solid var(--border); text-align: center;
+}
+.metric-value { font-size: 32px; font-weight: 800; letter-spacing: -0.05em; color: var(--g-primary); }
+.metric-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.metric-tile.alt .metric-value { color: var(--gold); }
+.metric-tile.neg .metric-value { color: var(--red); }
+
+.summary-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.summary-item:last-child { border-bottom: none; }
+.summary-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0; font-size: 18px;
+}
+.summary-icon.pos { background: var(--g-xlight); color: var(--g-primary); }
+.summary-icon.neu { background: var(--gold-light); color: var(--gold); }
+.summary-icon.neg { background: var(--red-bg); color: var(--red); }
+.summary-content { flex: 1; }
+.summary-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.summary-value { font-size: 13px; font-weight: 600; font-family: var(--mono); color: var(--g-primary); }
+
+.report-actions {
+  display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0;
+}
+.print-header { display: none; }
+
+.performance-bar-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0;
+}
+.performance-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); min-width: 110px; }
+.performance-bar { flex: 1; height: 8px; background: var(--border); position: relative; border-radius: 4px; overflow: hidden; }
+.performance-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 100% !important;
+  background: var(--g-primary); border-radius: 4px;
+  transform-origin: left center; will-change: transform;
+  transition: transform 300ms cubic-bezier(.4,0,.2,1);
+}
+.performance-value { font-size: 11px; font-weight: 700; color: var(--text-primary); font-family: var(--mono); min-width: 36px; text-align: right; }
+
+.performance-caption {
+  font-size: 11px; color: var(--text-muted); line-height: 1.6;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+.performance-caption .material-icons-round { font-size: 14px; color: var(--g-primary); flex-shrink: 0; }
+{% endblock %}
+
+{% block nav_reports %}active{% endblock %}
+
+{% block page_content %}
+
+<!-- PRINT-ONLY HEADER (hidden on screen, visible when printing) -->
+<div class="print-header">
+  <div style="text-align:center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #1e293b;">
+    <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em;">Republic of the Philippines</div>
+    <div style="font-size: 13px; font-weight: 800; letter-spacing: 0.02em; margin: 2px 0;">PHILIPPINE HEALTH INSURANCE CORPORATION</div>
+    <div style="font-size: 11px; font-weight: 600;">PhilHealth Regional Office II &mdash; Cauayan City</div>
+    <div style="margin-top: 12px; font-size: 16px; font-weight: 800; letter-spacing: -0.02em;">Customer Satisfaction Measurement Report</div>
+    <div style="font-size: 11px; color: #475569; margin-top: 2px;" id="printPeriodLabel"></div>
+  </div>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <div class="page-eyebrow">
+        <span class="material-icons-round">bar_chart</span>
+        Generated Reports
+      </div>
+      <h1 class="page-title">Reports</h1>
+      <p class="page-subtitle">Comprehensive feedback reports with satisfaction metrics and trend analysis.</p>
+    </div>
+    <div class="report-actions">
+      <button type="button" class="btn-ph btn-ph-primary" onclick="exportReportExcel()" id="btnExportExcel">
+        <span class="material-icons-round" aria-hidden="true">table_chart</span>
+        Export Excel
+        <span class="ph-loader"></span>
+      </button>
+      <button type="button" class="btn-ph" onclick="printReport()">
+        <span class="material-icons-round" aria-hidden="true">print</span>
+        Print
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT PERIOD SELECTOR -->
+<div style="margin-bottom: 20px;">
+  <div class="filter-tabs" role="tablist" aria-label="Report period filter" style="display:inline-flex;max-width:560px;width:100%">
+    <button type="button" role="tab" id="tab-daily" aria-selected="true" class="filter-tab active" onclick="setReportPeriod(this, 'daily')">Daily</button>
+    <button type="button" role="tab" id="tab-weekly" aria-selected="false" class="filter-tab" onclick="setReportPeriod(this, 'weekly')">Weekly</button>
+    <button type="button" role="tab" id="tab-monthly" aria-selected="false" class="filter-tab" onclick="setReportPeriod(this, 'monthly')">Monthly</button>
+    <button type="button" role="tab" id="tab-quarterly" aria-selected="false" class="filter-tab" onclick="setReportPeriod(this, 'quarterly')">Quarterly</button>
+    <button type="button" role="tab" id="tab-annual" aria-selected="false" class="filter-tab" onclick="setReportPeriod(this, 'annual')">Annual</button>
+  </div>
+</div>
+
+<!-- KEY METRICS ROW -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile">
+      <div class="metric-value" id="metricTotal">0</div>
+      <div class="metric-label">Total Responses</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile">
+      <div class="metric-value" id="metricSatisfaction">0</div>
+      <div class="metric-label">Satisfaction Rate %</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile alt">
+      <div class="metric-value" id="metricVsat">0</div>
+      <div class="metric-label">😃 Strongly Agree</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile neg">
+      <div class="metric-value" id="metricNeg">0</div>
+      <div class="metric-label">😠 Disagree / Strongly Disagree</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT ROW -->
+<div class="row g-3 mb-4">
+
+  <!-- Satisfaction Distribution -->
+  <div class="col-12 col-lg-5">
+    <div class="card-block h-100">
+      <div class="card-block-head">
+        <h2 class="card-block-title">
+          <span class="material-icons-round">donut_large</span>
+          SQD Distribution
+        </h2>
+      </div>
+      <div class="card-block-body">
+        <div class="pie-chart-layout">
+          <div class="pie-chart-col">
+            <div class="chart-wrap" style="height: 200px;">
+              <canvas id="reportPieChart" aria-label="SQD Distribution pie chart" role="img"></canvas>
+            </div>
+          </div>
+          <div class="pie-legend-col">
+            <div class="pie-legend" style="gap:6px;">
+              <div class="pie-legend-item">
+                <div class="pie-legend-dot" style="background: #169651"></div>
+                <span class="pie-legend-label">Strongly Agree</span>
+                <span class="pie-legend-value" id="legendSa">0</span>
+                <span class="pie-legend-pct" id="legendSaPct">0%</span>
+              </div>
+              <div class="pie-legend-item">
+                <div class="pie-legend-dot" style="background: #10b981"></div>
+                <span class="pie-legend-label">Agree</span>
+                <span class="pie-legend-value" id="legendA">0</span>
+                <span class="pie-legend-pct" id="legendAPct">0%</span>
+              </div>
+              <div class="pie-legend-item">
+                <div class="pie-legend-dot" style="background: #d97706"></div>
+                <span class="pie-legend-label">Neither</span>
+                <span class="pie-legend-value" id="legendNad">0</span>
+                <span class="pie-legend-pct" id="legendNadPct">0%</span>
+              </div>
+              <div class="pie-legend-item">
+                <div class="pie-legend-dot" style="background: #f97316"></div>
+                <span class="pie-legend-label">Disagree</span>
+                <span class="pie-legend-value" id="legendD">0</span>
+                <span class="pie-legend-pct" id="legendDPct">0%</span>
+              </div>
+              <div class="pie-legend-item">
+                <div class="pie-legend-dot" style="background: #dc2626"></div>
+                <span class="pie-legend-label">Strongly Dis.</span>
+                <span class="pie-legend-value" id="legendSd">0</span>
+                <span class="pie-legend-pct" id="legendSdPct">0%</span>
+              </div>
+              <div class="pie-legend-item">
+                <div class="pie-legend-dot" style="background: #64748b"></div>
+                <span class="pie-legend-label">N/A</span>
+                <span class="pie-legend-value" id="legendNa">0</span>
+                <span class="pie-legend-pct" id="legendNaPct">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SERVICE PERFORMANCE RATING -->
+  <div class="col-12 col-lg-7">
+    <div class="card-block h-100">
+      <div class="card-block-head">
+        <h2 class="card-block-title">
+          <span class="material-icons-round">trending_up</span>
+          Service Performance Rating
+        </h2>
+      </div>
+      <div class="card-block-body">
+        <div class="performance-bar-row">
+          <span class="performance-label">Compliments</span>
+          <div class="performance-bar"><div class="performance-fill" style="width: 0%; background: var(--g-primary);"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+        <div class="performance-bar-row">
+          <span class="performance-label">Suggestions</span>
+          <div class="performance-bar"><div class="performance-fill" style="width: 0%; background: var(--gold);"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+        <div class="performance-bar-row">
+          <span class="performance-label">Complaints</span>
+          <div class="performance-bar"><div class="performance-fill" style="width: 0%; background: var(--red);"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+        <div class="performance-bar-row">
+          <span class="performance-label">Service Concerns</span>
+          <div class="performance-bar"><div class="performance-fill" style="width: 0%; background: #3b82f6;"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+
+        <div class="performance-caption" id="performanceCaption">
+          <span class="material-icons-round">info</span>
+          <span>Based on 0 of 0 total responses reviewed and categorized by admin staff.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row 1 -->
+
+<!-- CHARTS ROW -->
+<div class="row g-3 mb-4">
+
+    <!-- RESPONSE TREND -->
+    <div class="col-12 col-lg-7">
+      <div class="card-block h-100">
+        <div class="card-block-head">
+          <h2 class="card-block-title">
+            <span class="material-icons-round">show_chart</span>
+            Response Trend
+          </h2>
+          <span class="table-info" id="trendRangeCaption">—</span>
+        </div>
+        <div class="card-block-body">
+          <div id="reportTrendEmptyState" class="chart-empty-state d-none" style="height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;color:var(--text-muted,#64748b);">
+            <span class="material-icons-round" style="font-size:36px;opacity:0.6;">query_stats</span>
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary,#0f172a);">No responses recorded for this report period</div>
+            <div style="font-size:11px;max-width:280px;">Select "Weekly", "Monthly", "Quarterly", or "Annual" to view longer-term response trends.</div>
+          </div>
+          <div class="chart-wrap" id="reportTrendChartWrap" style="height: 260px;">
+            <canvas id="reportTrendChart" aria-label="Response trend chart" role="img"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- SUMMARY STATISTICS -->
+  <div class="col-12 col-lg-5">
+    <div class="card-block h-100">
+      <div class="card-block-head">
+        <h2 class="card-block-title">
+          <span class="material-icons-round">info</span>
+          Report Summary
+        </h2>
+      </div>
+      <div class="card-block-body">
+        <div class="summary-item">
+          <div class="summary-icon pos"><span class="material-icons-round">check_circle</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Strongly Agree</div>
+            <div class="summary-value" id="summarySa">0 responses</div>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon pos"><span class="material-icons-round">check_circle</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Agree</div>
+            <div class="summary-value" id="summaryA">0 responses</div>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon neu"><span class="material-icons-round">circle</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Neither</div>
+            <div class="summary-value" id="summaryNad">0 responses</div>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon neg"><span class="material-icons-round">cancel</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Disagree</div>
+            <div class="summary-value" id="summaryD">0 responses</div>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon neg"><span class="material-icons-round">cancel</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Strongly Disagree</div>
+            <div class="summary-value" id="summarySd">0 responses</div>
+          </div>
+        </div>
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Average Score</div>
+          <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.05em; color: var(--g-primary);" id="summaryScore">83/100</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row 2 -->
+
+{% endblock %}
+
+{% block page_scripts %}
+{{ report_json|json_script:"report-json" }}
+<script>
+const REPORT_DATA = JSON.parse(document.getElementById('report-json').textContent);
+
+let currentPeriod = 'daily';
+let reportPieChart, reportTrendChart;
+
+function setReportPeriod(btn, period) {
+  document.querySelectorAll('.filter-tab').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+  currentPeriod = period;
+  updateReport();
+}
+
+const TREND_CAPTIONS = {
+  daily: 'Hourly · Today',
+  weekly: 'Daily · Last 7 days',
+  monthly: 'Daily · Last 30 days',
+  quarterly: 'Weekly · Last 90 days',
+  annual: 'Monthly · Last 12 months',
+};
+
+function updateReport(forceRecreate = false) {
+  const data = REPORT_DATA[currentPeriod];
+  document.getElementById('trendRangeCaption').textContent = TREND_CAPTIONS[currentPeriod];
+
+  const sa  = data.strongly_agree || 0;
+  const a   = data.agree || 0;
+  const nad = data.neither || 0;
+  const d   = data.disagree || 0;
+  const sd  = data.strongly_disagree || 0;
+  const na  = data.na || 0;
+  const neg = d + sd;
+
+  if (typeof animateCount === 'function') {
+    animateCount('metricTotal', data.total);
+    animateCount('metricSatisfaction', data.satisfaction);
+    animateCount('metricVsat', sa);
+    animateCount('metricNeg', neg);
+  } else {
+    document.getElementById('metricTotal').textContent = data.total.toLocaleString();
+    document.getElementById('metricSatisfaction').textContent = data.satisfaction;
+    document.getElementById('metricVsat').textContent = sa.toLocaleString();
+    document.getElementById('metricNeg').textContent = neg.toLocaleString();
+  }
+
+  const setLegend = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val.toLocaleString();
+  };
+  const setPct = (id, count) => {
+    const el = document.getElementById(id);
+    const pct = data.total ? Math.round((count / data.total) * 100) : 0;
+    if (el) el.textContent = pct + '%';
+  };
+
+  setLegend('legendSa', sa);
+  setPct('legendSaPct', sa);
+  setLegend('legendA', a);
+  setPct('legendAPct', a);
+  setLegend('legendNad', nad);
+  setPct('legendNadPct', nad);
+  setLegend('legendD', d);
+  setPct('legendDPct', d);
+  setLegend('legendSd', sd);
+  setPct('legendSdPct', sd);
+  setLegend('legendNa', na);
+  setPct('legendNaPct', na);
+
+  const setSummary = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val.toLocaleString() + ' responses';
+  };
+  setSummary('summarySa', sa);
+  setSummary('summaryA', a);
+  setSummary('summaryNad', nad);
+  setSummary('summaryD', d);
+  setSummary('summarySd', sd);
+  document.getElementById('summaryScore').textContent = data.satisfaction + '/100';
+
+  const cats = data.categories;
+  const categorized = data.categorized || 0;
+  const order = ['compliment', 'suggestion', 'complaint', 'concern'];
+
+  document.querySelectorAll('.performance-bar-row').forEach((row, idx) => {
+    const key = order[idx];
+    const count = cats[key] || 0;
+    const pct = categorized > 0 ? Math.round((count / categorized) * 100) : 0;
+    const fill = row.querySelector('.performance-fill');
+    const valSpan = row.querySelector('.performance-value');
+    if (fill) fill.style.transform = `scaleX(${pct / 100})`;
+    if (valSpan) valSpan.textContent = pct + '%';
+  });
+
+  document.getElementById('performanceCaption').querySelector('span:last-child').textContent =
+    `Based on ${categorized.toLocaleString()} of ${data.total.toLocaleString()} total responses reviewed and categorized by admin staff.`;
+
+  updateReportPieChart(data, forceRecreate);
+  updateReportTrendChart(data, forceRecreate);
+}
+
+function updateReportPieChart(data, forceRecreate = false) {
+  const canvas = document.getElementById('reportPieChart');
+  if (!canvas) return;
+  const ctx    = canvas.getContext('2d');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const sa  = data.strongly_agree || data.vsat || 0;
+  const a   = data.agree || data.sat || 0;
+  const nad = data.neither || 0;
+  const d   = data.disagree || 0;
+  const sd  = data.strongly_disagree || 0;
+  const na  = data.na || 0;
+  const datasetData = [sa, a, nad, d, sd, na];
+
+  if (reportPieChart && !forceRecreate) {
+    reportPieChart.data.datasets[0].data = datasetData;
+    reportPieChart.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
+    reportPieChart.update();
+    return;
+  }
+
+  if (reportPieChart) reportPieChart.destroy();
+
+  const centerTextPlugin = {
+    id: 'centerReportText',
+    afterDraw(chart) {
+      if (!chart.chartArea) return;
+      const ctx = chart.ctx;
+      ctx.save();
+      const dataset = chart.data.datasets[0];
+      const t = dataset.data.reduce((acc, b) => acc + b, 0);
+      const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+      const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+
+      ctx.font = '700 22px "IBM Plex Sans", sans-serif';
+      ctx.fillStyle = isDarkMode ? '#f8fafc' : '#0f172a';
+      ctx.fillText(t.toLocaleString(), centerX, centerY - 8);
+
+      ctx.font = '600 10px "IBM Plex Sans", sans-serif';
+      ctx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
+      ctx.fillText('Total Responses', centerX, centerY + 12);
+      ctx.restore();
+    }
+  };
+
+  reportPieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Strongly Agree', 'Agree', 'Neither Agree nor Disagree', 'Disagree', 'Strongly Disagree', 'Not Applicable'],
+      datasets: [{
+        data: datasetData,
+        backgroundColor: ['#169651', '#10b981', '#d97706', '#f97316', '#dc2626', '#64748b'],
+        borderColor: isDark ? '#1e293b' : '#ffffff',
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    plugins: [centerTextPlugin],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      animation: { duration: 300, animateRotate: true, animateScale: true },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#0f172a' : '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#f1f5f9',
+          padding: 10,
+          cornerRadius: 4,
+          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+          bodyFont: { family: "'IBM Plex Sans'", size: 12 },
+          callbacks: {
+            label: function(ctx) {
+              const t = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = t ? Math.round((ctx.parsed / t) * 100) : 0;
+              return `  ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateReportTrendChart(data, forceRecreate = false) {
+  const canvas     = document.getElementById('reportTrendChart');
+  const emptyState = document.getElementById('reportTrendEmptyState');
+  const chartWrap  = document.getElementById('reportTrendChartWrap');
+  if (!canvas) return;
+
+  const totalResponses = (data.trendData || []).reduce((a, b) => a + b, 0);
+  if (totalResponses === 0) {
+    if (emptyState) emptyState.classList.remove('d-none');
+    if (chartWrap) chartWrap.classList.add('d-none');
+    return;
+  } else {
+    if (emptyState) emptyState.classList.add('d-none');
+    if (chartWrap) chartWrap.classList.remove('d-none');
+  }
+
+  const ctx       = canvas.getContext('2d');
+  const isDark    = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  if (reportTrendChart && !forceRecreate) {
+    reportTrendChart.data.labels = data.trendLabels;
+    reportTrendChart.data.datasets[0].data = data.trendData;
+    reportTrendChart.update();
+    return;
+  }
+
+  if (reportTrendChart) reportTrendChart.destroy();
+
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+  const textColor = isDark ? '#cbd5e1' : '#475569';
+  const ptBgColor = isDark ? '#0f172a' : '#ffffff';
+
+  const gradPos = ctx.createLinearGradient(0, 0, 0, 240);
+  gradPos.addColorStop(0, 'rgba(22, 150, 81, 0.22)');
+  gradPos.addColorStop(1, 'rgba(22, 150, 81, 0.0)');
+
+  reportTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.trendLabels,
+      datasets: [{
+        label: 'Responses',
+        data: data.trendData,
+        borderColor: '#169651',
+        backgroundColor: gradPos,
+        tension: 0.35,
+        fill: true,
+        pointBackgroundColor: '#169651',
+        pointBorderColor: ptBgColor,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHitRadius: 10,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: '#169651',
+        pointHoverBorderColor: ptBgColor,
+        pointHoverBorderWidth: 2.5,
+        borderWidth: 2.5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          grid: { color: gridColor, borderDash: [], drawTicks: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+          border: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: gridColor, borderDash: [], drawTicks: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, precision: 0, stepSize: 1 },
+          border: { display: false }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#0f172a' : '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#f1f5f9',
+          borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 4,
+          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+          bodyFont: { family: "'IBM Plex Sans'", size: 12 }
+        }
+      }
+    }
+  });
+}
+
+/* ── EXPORT FUNCTIONS ── */
+const PERIOD_LABELS = {
+  daily: 'Daily Report',
+  weekly: 'Weekly Report (Last 7 Days)',
+  monthly: 'Monthly Report (Last 30 Days)',
+  quarterly: 'Quarterly Report (Last 90 Days)',
+  annual: 'Annual Report (Last 12 Months)',
+};
+
+function exportReportExcel() {
+  window.location.href = '{% url "export_report_excel" %}?period=' + encodeURIComponent(currentPeriod);
+}
+
+function printReport() {
+  const label = document.getElementById('printPeriodLabel');
+  if (label) {
+    const now = new Date();
+    label.textContent = PERIOD_LABELS[currentPeriod] + ' — Generated ' + now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  window.print();
+}
+
+/* ── THEME & RESIZE ── */
+function onThemeChange() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (reportPieChart) {
+    reportPieChart.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
+    if (reportPieChart.options && reportPieChart.options.plugins && reportPieChart.options.plugins.tooltip) {
+      reportPieChart.options.plugins.tooltip.backgroundColor = isDark ? '#0f172a' : '#1e293b';
+    }
+    reportPieChart.update('none');
+  }
+  if (reportTrendChart) {
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+    const textColor = isDark ? '#cbd5e1' : '#475569';
+    if (reportTrendChart.options && reportTrendChart.options.scales) {
+      if (reportTrendChart.options.scales.x) {
+        reportTrendChart.options.scales.x.grid.color = gridColor;
+        reportTrendChart.options.scales.x.ticks.color = textColor;
+      }
+      if (reportTrendChart.options.scales.y) {
+        reportTrendChart.options.scales.y.grid.color = gridColor;
+        reportTrendChart.options.scales.y.ticks.color = textColor;
+      }
+    }
+    if (reportTrendChart.options && reportTrendChart.options.plugins && reportTrendChart.options.plugins.tooltip) {
+      reportTrendChart.options.plugins.tooltip.backgroundColor = isDark ? '#0f172a' : '#1e293b';
+    }
+    reportTrendChart.update('none');
+  }
+}
+function onResize() {
+  // Chart.js automatically handles container resize events smoothly
+}
+
+/* ── INIT ── */
+function pageInit() {
+  updateReport();
+}
+</script>
+{% endblock %}

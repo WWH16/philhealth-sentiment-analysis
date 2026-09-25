@@ -1,0 +1,571 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}PhilHealth Client Satisfaction Measurement (CSM) Form{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{% static 'feedback/css/feedback.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'img/philhealth_logo.png' %}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-[960px] mx-auto py-4 sm:py-8 px-3 sm:px-6">
+  <main role="main">
+
+    <!-- ── OFFICIAL PAPER FORM SHEET CONTAINER ────────────────────────────── -->
+    <div class="paper-sheet p-4 sm:p-8 md:p-10 space-y-6">
+
+      <!-- ── 1. FORM HEADER ──────────────────────────────────────────────── -->
+      <div class="pb-5 border-b border-slate-200 space-y-3 md:space-y-0 md:grid md:grid-cols-[200px_1fr_200px] md:items-center">
+        
+        <!-- LEFT: PHILHEALTH LOGO & TAGLINE (Mobile: top row left, Desktop: left col) -->
+        <div class="flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
+          <div class="flex items-center gap-2">
+            <img src="{% static 'img/philhealth_logo.png' %}" alt="PhilHealth Logo" width="56" height="56" class="h-9 sm:h-12 md:h-14 w-auto object-contain">
+            <div>
+              <div class="text-[10px] sm:text-xs md:text-sm font-black text-slate-900 tracking-tight uppercase leading-none">PhilHealth</div>
+              <div class="text-[8.5px] sm:text-[10px] md:text-[11px] text-emerald-700 italic font-bold leading-tight mt-0.5">Your Partner in Health</div>
+            </div>
+          </div>
+
+          <!-- RIGHT (MOBILE ONLY): BAGONG PILIPINAS SEAL -->
+          <div class="flex md:hidden flex-col items-center justify-center shrink-0">
+            <img src="{% static 'img/bagong_pilipinas_logo.png' %}" alt="Bagong Pilipinas Logo" width="44" height="41" class="h-9 sm:h-11 w-auto object-contain" loading="eager" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="hidden flex-col items-center justify-center px-1.5 py-0.5 border border-slate-200 bg-slate-50 min-w-[64px]">
+              <div class="text-[8px] font-black text-blue-900 tracking-widest uppercase">Bagong</div>
+              <div class="text-[9px] font-black text-red-600 tracking-wider uppercase">Pilipinas</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER: OFFICIAL AGENCY TITLE & ADDRESS -->
+        <div class="text-center space-y-0.5 px-2">
+          <div class="text-[9px] sm:text-[10px] font-bold tracking-widest text-slate-600 uppercase">Republic of the Philippines</div>
+          <div class="text-xs sm:text-sm font-black text-slate-900 tracking-wide uppercase leading-tight">Philippine Health Insurance Corporation</div>
+          <div class="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase">Local Health Insurance Office – Cauayan City</div>
+          <div class="text-[10px] sm:text-[11px] text-slate-600 leading-tight">AM Commercial Building, Quezon Street, District I, Cauayan City, Isabela</div>
+        </div>
+
+        <!-- RIGHT (DESKTOP ONLY): BAGONG PILIPINAS SEAL -->
+        <div class="hidden md:flex flex-col items-center justify-end shrink-0 ml-auto">
+          <img src="{% static 'img/bagong_pilipinas_logo.png' %}" alt="Bagong Pilipinas Logo" width="56" height="53" class="h-12 md:h-14 w-auto object-contain" loading="eager" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="hidden flex-col items-center justify-center p-2 border border-slate-200 bg-slate-50 shrink-0 min-w-[85px]">
+            <div class="text-[10px] font-black text-blue-900 tracking-widest uppercase">Bagong</div>
+            <div class="text-xs font-black text-red-600 tracking-wider uppercase">Pilipinas</div>
+          </div>
+        </div>
+
+      </div>
+
+      {% if not survey_enabled %}
+      <!-- ── SERVICE PAUSED / OFFLINE NOTICE ──────────────────────────────── -->
+      <div class="py-10 sm:py-14 px-4 text-center max-w-lg mx-auto space-y-5">
+        <!-- COLORIZED STATUS ICON DISC -->
+        <div class="w-16 h-16 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-amber-800 shadow-sm mx-auto" aria-hidden="true">
+          <span class="material-icons-round text-3xl">pause_circle</span>
+        </div>
+
+        <div class="space-y-2">
+          <div class="inline-flex items-center px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 rounded-[3px]">
+            Submissions Paused
+          </div>
+
+          <h1 class="text-base sm:text-xl font-black text-slate-900 tracking-tight uppercase" style="text-wrap: balance;">
+            Online Feedback Form is Currently Unavailable
+          </h1>
+        </div>
+
+        <!-- HIGHLIGHTED OFFLINE NOTICE MESSAGE -->
+        <div class="p-4 sm:p-5 bg-amber-50/80 border border-amber-200/90 rounded-[4px] text-center shadow-xs">
+          <p class="text-xs sm:text-sm text-amber-950 font-semibold leading-relaxed m-0" style="text-wrap: pretty;">
+            {{ offline_message }}
+          </p>
+        </div>
+      </div>
+      {% else %}
+
+      <!-- TITLE -->
+      <div class="text-center pt-1 pb-1">
+        <h1 class="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase">Client Satisfaction Measurement (CSM) Form</h1>
+      </div>
+
+      <!-- ── 2. INTRODUCTORY NOTICE BOX ──────────────────────────────────── -->
+      <div class="paper-box p-3.5 sm:p-4 bg-[#f8fafc] text-slate-800 text-xs sm:text-sm leading-relaxed">
+        <div class="font-bold uppercase tracking-wider text-slate-900 text-xs mb-1">INSTRUCTION:</div>
+        <p>
+          This <strong>Client Satisfaction Measurement (CSM)</strong> tracks the customer experience of the government offices. Your Feedback on your <u><strong>recently concluded transaction</strong></u> will help this office provide a better service.<br>
+          Personal information shared will be kept confidential and you always have the option to not answer this form.
+        </p>
+      </div>
+
+      <form id="csmForm" onsubmit="handleSubmitCSM(event)" class="space-y-6" novalidate>
+
+
+        <!-- ── 3. RESPONDENT INFORMATION BLOCK ────────────────────────────── -->
+        <div class="paper-box">
+          <div class="paper-box-header">Respondent Information</div>
+          
+          <div class="divide-y divide-slate-200 bg-white text-xs">
+            <!-- ROW 1: INPUT FIELDS GRID (clean 1px matrix grid across all breakpoints) -->
+            <div class="paper-info-grid">
+              <div class="paper-info-cell">
+                <label for="dateTime" class="block text-[11px] font-bold text-slate-900 uppercase mb-1">Date & Time</label>
+                <input type="datetime-local" id="dateTime" name="date_time" class="csm-paper-input font-mono text-slate-900 cursor-pointer" required>
+              </div>
+              <div class="paper-info-cell">
+                <label for="contactNo" class="block text-[11px] font-bold text-slate-900 uppercase mb-1">Contact No.</label>
+                <input type="tel" id="contactNo" name="contact_no" placeholder="e.g. 09171234567" maxlength="20" autocomplete="tel" pattern="[0-9+\s\(\)\-]*" class="csm-paper-input" required>
+              </div>
+              <div class="paper-info-cell">
+                <label for="emailAddress" class="block text-[11px] font-bold text-slate-900 uppercase mb-1">Email Address</label>
+                <input type="email" id="emailAddress" name="email_address" placeholder="name@example.com" maxlength="100" autocomplete="email" class="csm-paper-input" required>
+              </div>
+              <div class="paper-info-cell">
+                <label for="clientAge" class="block text-[11px] font-bold text-slate-900 uppercase mb-1">Age</label>
+                <input type="number" id="clientAge" name="age" min="1" max="120" placeholder="35" inputmode="numeric" class="csm-paper-input" required>
+              </div>
+            </div>
+
+            <!-- ROW 2: CLIENT TYPE -->
+            <div class="p-3" id="group-clientType">
+              <div class="text-[11px] font-bold text-slate-900 uppercase mb-2">Client Type:</div>
+              <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-6">
+                <label class="paper-option">
+                  <input type="radio" name="client_type" value="Citizen" required>
+                  <span>Citizen</span>
+                </label>
+                <label class="paper-option">
+                  <input type="radio" name="client_type" value="Business (Employers & Stakeholder)" required>
+                  <span>Business (Employers & Stakeholder)</span>
+                </label>
+                <label class="paper-option">
+                  <input type="radio" name="client_type" value="Government (Employee or another agency)" required>
+                  <span>Government (Employee or another agency)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- ROW 3: SEX -->
+            <div class="p-3" id="group-sex">
+              <div class="text-[11px] font-bold text-slate-900 uppercase mb-2">Sex:</div>
+              <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-6">
+                <label class="paper-option">
+                  <input type="radio" name="sex" value="Male" required>
+                  <span>Male</span>
+                </label>
+                <label class="paper-option">
+                  <input type="radio" name="sex" value="Female" required>
+                  <span>Female</span>
+                </label>
+                <label class="paper-option">
+                  <input type="radio" name="sex" value="Prefer not to mention" required>
+                  <span>Prefer not to mention</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- ROW 4: NAME OF CLIENT & ATTENDING STAFF -->
+            <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+              <div class="p-3">
+                <label for="clientName" class="block text-[11px] font-bold text-slate-900 uppercase mb-1">
+                  Name of Client <span class="font-normal text-slate-500 lowercase">(optional)</span>:
+                </label>
+                <input type="text" id="clientName" name="name_of_client" placeholder="e.g. Juan Dela Cruz" maxlength="100" autocomplete="name" class="csm-paper-input">
+              </div>
+              <div class="p-3" id="group-staffAssisted">
+                <label for="staffAssisted" class="block text-[11px] font-bold text-slate-900 uppercase mb-1">
+                  Staff Who Assisted You <span class="text-rose-600 font-bold" aria-hidden="true">*</span>:
+                </label>
+                <select id="staffAssisted" name="staff_assisted" class="csm-paper-select" aria-label="Staff who assisted you" required{% if not staff_members %} disabled{% endif %}>
+                  <option value="">{% if staff_members %}-- Select Attending Staff --{% else %}-- No Attending Staff Listed --{% endif %}</option>
+                  {% for staff in staff_members %}
+                    <option value="{{ staff.id }}">{{ staff.get_full_name|default:staff.username }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 4. SERVICE AVAILED SECTION ─────────────────────────────────── -->
+        <div class="paper-box">
+          <div class="paper-box-header">Service Availed</div>
+          <div class="p-3.5 sm:p-4 bg-white">
+            <div class="text-[11px] text-slate-600 font-medium mb-3">Check all services availed during your visit:</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Registration of Member/Employer (1-4)">
+                <span>1. Registration of Member/Employer (1-4)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="KonSulTa Registration (5)">
+                <span>2. KonSulTa Registration (5)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Claims Filing (8)">
+                <span>3. Claims Filing (8)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Application for Accre HCF (9-11) HC Prof (12)">
+                <span>4. Application for Accre HCF (9-11) HC Prof (12)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Payment of Premium & Accre Fee (13-14)">
+                <span>5. Payment of Premium & Accre Fee (13-14)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="PAMMS-related Transactions (15-20)">
+                <span>6. PAMMS-related Transactions (15-20)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Inquiry (21)">
+                <span>7. Inquiry (21)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Request Records (22)">
+                <span>8. Request Records (22)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Update-MDR (23-24)">
+                <span>9. Update-MDR (23-24)</span>
+              </label>
+              <label class="paper-option">
+                <input type="checkbox" name="services_availed" value="Public Assistance (25)">
+                <span>10. Public Assistance (25)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 5. CITIZEN'S CHARTER (CC) SECTION ─────────────────────────── -->
+        <div class="paper-box">
+          <div class="paper-box-header">Citizen's Charter (CC)</div>
+          <div class="p-3.5 sm:p-4 bg-white space-y-4">
+            <div class="text-[11px] font-bold text-slate-900 uppercase">
+              INSTRUCTION: Please put a checkmark ( ✓ ) on your answer.
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- CC1 -->
+              <div class="paper-cc-card space-y-2" id="cc1Block">
+                <div class="text-xs font-bold text-slate-900">CC1</div>
+                <div class="text-xs text-slate-800 leading-snug">Which of the following best describes your awareness of a Citizen's Charter (CC)?</div>
+                <div class="space-y-1.5 pt-1">
+                  <label class="paper-option flex items-start">
+                    <input type="radio" name="cc1" value="1" onclick="handleCC1Change(1)" required class="mt-0.5">
+                    <span>1. I know what a CC is and I saw this office's CC</span>
+                  </label>
+                  <label class="paper-option flex items-start">
+                    <input type="radio" name="cc1" value="2" onclick="handleCC1Change(2)" required class="mt-0.5">
+                    <span>2. I know what a CC is but I did NOT see this office's CC</span>
+                  </label>
+                  <label class="paper-option flex items-start">
+                    <input type="radio" name="cc1" value="3" onclick="handleCC1Change(3)" required class="mt-0.5">
+                    <span>3. I learned of the CC only when I saw this office's CC</span>
+                  </label>
+                  <label class="paper-option flex items-start">
+                    <input type="radio" name="cc1" value="4" onclick="handleCC1Change(4)" required class="mt-0.5">
+                    <span>4. I do not know what a CC is and I did not see one in this office. <em class="text-slate-500">(Answer "N/A" on CC2 and CC3)</em></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- CC2 -->
+              <div class="paper-cc-card space-y-2" id="cc2Block">
+                <div class="text-xs font-bold text-slate-900">CC2</div>
+                <div class="text-xs text-slate-800 leading-snug">If aware of Citizen's Charter, would you say that the CC of this office was...?</div>
+                <div class="space-y-1.5 pt-1">
+                  <label class="paper-option">
+                    <input type="radio" name="cc2" value="1" required>
+                    <span>1. Easy to see</span>
+                  </label>
+                  <label class="paper-option">
+                    <input type="radio" name="cc2" value="2" required>
+                    <span>2. Somewhat easy to see</span>
+                  </label>
+                  <label class="paper-option">
+                    <input type="radio" name="cc2" value="3" required>
+                    <span>3. Difficult to see</span>
+                  </label>
+                  <label class="paper-option">
+                    <input type="radio" name="cc2" value="4" required>
+                    <span>4. Not visible</span>
+                  </label>
+                  <label class="paper-option">
+                    <input type="radio" name="cc2" value="5" required>
+                    <span>5. N/A</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- CC3 -->
+              <div class="paper-cc-card space-y-2" id="cc3Block">
+                <div class="text-xs font-bold text-slate-900">CC3</div>
+                <div class="text-xs text-slate-800 leading-snug">If aware of Citizen's Charter, how much did the CC help you in your transaction?</div>
+                <div class="space-y-1.5 pt-1">
+                  <label class="paper-option">
+                    <input type="radio" name="cc3" value="1" required>
+                    <span>1. Helped very much</span>
+                  </label>
+                  <label class="paper-option">
+                    <input type="radio" name="cc3" value="2" required>
+                    <span>2. Somewhat helped</span>
+                  </label>
+                  <label class="paper-option">
+                    <input type="radio" name="cc3" value="3" required>
+                    <span>3. Did not help</span>
+                  </label>
+                  <label class="paper-option">
+                    <input type="radio" name="cc3" value="4" required>
+                    <span>4. N/A</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 6. SERVICE QUALITY DIMENSIONS (SQD) MATRIX TABLE ──────────────── -->
+        <div class="paper-box">
+          <div class="paper-box-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <span>Service Quality Dimensions (SQD)</span>
+            <span class="text-[10px] font-normal text-slate-500 block sm:hidden">Scroll table horizontally →</span>
+          </div>
+          <div class="p-3 sm:p-4 bg-white space-y-3">
+            <div class="text-[11px] font-bold text-slate-900 uppercase">
+              INSTRUCTION: Please put a checkmark ( ✓ ) on the column that best corresponds to your answer.
+            </div>
+
+            <div class="paper-sqd-wrap">
+              <table class="paper-sqd-table">
+                <thead>
+                  <tr>
+                    <th class="w-[36%] text-left pl-3 sqd-col-statement">Service Quality Dimensions (SQD)</th>
+                    <th class="w-[10%]">
+                      <div class="text-base">😠</div>
+                      <div class="text-[10px]">Strongly Disagree</div>
+                    </th>
+                    <th class="w-[10%]">
+                      <div class="text-base">🙁</div>
+                      <div class="text-[10px]">Disagree</div>
+                    </th>
+                    <th class="w-[11%]">
+                      <div class="text-base">😐</div>
+                      <div class="text-[10px]">Neither Agree nor Disagree</div>
+                    </th>
+                    <th class="w-[10%]">
+                      <div class="text-base">🙂</div>
+                      <div class="text-[10px]">Agree</div>
+                    </th>
+                    <th class="w-[11%]">
+                      <div class="text-base">😃</div>
+                      <div class="text-[10px]">Strongly Agree</div>
+                    </th>
+                    <th class="w-[12%]">
+                      <div class="text-xs font-mono">N/A</div>
+                      <div class="text-[10px]">Not Applicable</div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- SQD0 -->
+                  <tr id="sqdRow-sqd0">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD0. Overall Satisfaction</div>
+                      <div class="text-[11px] text-slate-700">I am satisfied with the service that I availed.</div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd0" value="1" required aria-label="SQD0 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd0" value="2" required aria-label="SQD0 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd0" value="3" required aria-label="SQD0 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd0" value="4" required aria-label="SQD0 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd0" value="5" required aria-label="SQD0 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd0" value="6" required aria-label="SQD0 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD1 -->
+                  <tr id="sqdRow-sqd1">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD1. Responsiveness</div>
+                      <div class="text-[11px] text-slate-700">I spent reasonable amount of time for my transaction. <em class="text-slate-500">(Mula matawag sa Front Desk hanggang matapos)</em></div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd1" value="1" required aria-label="SQD1 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd1" value="2" required aria-label="SQD1 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd1" value="3" required aria-label="SQD1 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd1" value="4" required aria-label="SQD1 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd1" value="5" required aria-label="SQD1 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd1" value="6" required aria-label="SQD1 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD2 -->
+                  <tr id="sqdRow-sqd2">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD2. Reliability</div>
+                      <div class="text-[11px] text-slate-700">The office followed the transaction's requirements and steps.</div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd2" value="1" required aria-label="SQD2 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd2" value="2" required aria-label="SQD2 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd2" value="3" required aria-label="SQD2 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd2" value="4" required aria-label="SQD2 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd2" value="5" required aria-label="SQD2 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd2" value="6" required aria-label="SQD2 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD3 -->
+                  <tr id="sqdRow-sqd3">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD3. Access & Facility</div>
+                      <div class="text-[11px] text-slate-700">The steps (including payment) I needed to do for my transaction were easy and simple.</div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd3" value="1" required aria-label="SQD3 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd3" value="2" required aria-label="SQD3 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd3" value="3" required aria-label="SQD3 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd3" value="4" required aria-label="SQD3 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd3" value="5" required aria-label="SQD3 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd3" value="6" required aria-label="SQD3 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD4 -->
+                  <tr id="sqdRow-sqd4">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD4. Communication</div>
+                      <div class="text-[11px] text-slate-700">I easily found information about my transaction from the office or its website.</div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd4" value="1" required aria-label="SQD4 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd4" value="2" required aria-label="SQD4 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd4" value="3" required aria-label="SQD4 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd4" value="4" required aria-label="SQD4 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd4" value="5" required aria-label="SQD4 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd4" value="6" required aria-label="SQD4 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD5 -->
+                  <tr id="sqdRow-sqd5">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD5. Costs</div>
+                      <div class="text-[11px] text-slate-700">I paid a reasonable amount of fees for my transaction. <em class="text-slate-500">(Check "NOT APPLICABLE" kung walang binayaran)</em></div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd5" value="1" required aria-label="SQD5 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd5" value="2" required aria-label="SQD5 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd5" value="3" required aria-label="SQD5 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd5" value="4" required aria-label="SQD5 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd5" value="5" required aria-label="SQD5 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd5" value="6" required aria-label="SQD5 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD6 -->
+                  <tr id="sqdRow-sqd6">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD6. Integrity</div>
+                      <div class="text-[11px] text-slate-700">I feel the office was fair to everyone or "walang palakasan" during my transaction.</div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd6" value="1" required aria-label="SQD6 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd6" value="2" required aria-label="SQD6 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd6" value="3" required aria-label="SQD6 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd6" value="4" required aria-label="SQD6 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd6" value="5" required aria-label="SQD6 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd6" value="6" required aria-label="SQD6 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD7 -->
+                  <tr id="sqdRow-sqd7">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD7. Assurance</div>
+                      <div class="text-[11px] text-slate-700">I was treated courteously by the staff and the staff was helpful. <em class="text-slate-500">(Pangalanan ang Staff sa Commendation box)</em></div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd7" value="1" required aria-label="SQD7 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd7" value="2" required aria-label="SQD7 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd7" value="3" required aria-label="SQD7 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd7" value="4" required aria-label="SQD7 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd7" value="5" required aria-label="SQD7 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd7" value="6" required aria-label="SQD7 Not Applicable"></td>
+                  </tr>
+
+                  <!-- SQD8 -->
+                  <tr id="sqdRow-sqd8">
+                    <td class="font-medium text-slate-900 sqd-col-statement">
+                      <div class="font-bold">SQD8. Outcome</div>
+                      <div class="text-[11px] text-slate-700">I got what I needed from the government office or (if denied) denial of request was sufficiently explained to me.</div>
+                    </td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd8" value="1" required aria-label="SQD8 Strongly Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd8" value="2" required aria-label="SQD8 Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd8" value="3" required aria-label="SQD8 Neither Agree nor Disagree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd8" value="4" required aria-label="SQD8 Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd8" value="5" required aria-label="SQD8 Strongly Agree"></td>
+                    <td class="sqd-cell-center"><input type="radio" name="sqd8" value="6" required aria-label="SQD8 Not Applicable"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 7. COMMENTS & COMMENDATIONS SECTION ──────────────────────────── -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- COMMENTS / SUGGESTIONS -->
+          <div class="paper-box">
+            <div class="paper-box-header">Comments / Suggestions <span class="font-normal lowercase">(Komento at Mungkahi)</span></div>
+            <div class="p-3 bg-white">
+              <textarea id="commentsSuggestions" name="comments_suggestions" rows="4" maxlength="1000" placeholder="Write any comments or suggestions for improvement..." class="csm-paper-input resize-y"></textarea>
+            </div>
+          </div>
+
+          <!-- COMMENDATION -->
+          <div class="paper-box">
+            <div class="paper-box-header">Commendation <span class="font-normal lowercase">(Papuri para Staff o Opisina)</span></div>
+            <div class="p-3 bg-white">
+              <textarea id="commendation" name="commendation" rows="4" maxlength="1000" placeholder="Name specific staff members or express appreciation..." class="csm-paper-input resize-y"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 8. CONSENT & SUBMIT FOOTER ───────────────────────────────────── -->
+        <div class="paper-box p-4 bg-[#f8fafc] space-y-4">
+          <div id="group-privacyConsent">
+            <div class="flex items-start gap-2.5">
+              <input type="checkbox" id="privacyConsent" required class="mt-0.5 accent-emerald-600 w-4 h-4 cursor-pointer">
+              <label for="privacyConsent" class="text-xs text-slate-800 leading-relaxed cursor-pointer font-medium">
+                By submitting this form, I am providing PhilHealth my consent to collect and process my personal information in accordance with the Data Privacy Act of 2012 (RA 10173).
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btnSubmitCSM" class="btn-submit-csm w-full h-12 rounded-[5px] bg-[#14532d] hover:bg-[#0f4022] active:bg-[#0a3019] text-white text-xs font-bold tracking-widest uppercase cursor-pointer flex items-center justify-center gap-2 transition-colors duration-150 border border-[#14532d] shadow-sm relative">
+            <span class="loader" id="submitLoader" aria-hidden="true"></span>
+            <span class="material-icons-round text-base" id="submitIcon" aria-hidden="true">send</span>
+            <span id="submitText">Submit CSM Form</span>
+          </button>
+        </div>
+
+      </form>
+      {% endif %}
+    </div>
+
+  </main>
+
+  <!-- SUCCESS MODAL -->
+  <div id="successWrap" role="dialog" aria-modal="true" aria-labelledby="successTitle"
+    class="fixed inset-0 z-[100] items-center justify-center p-4 sm:p-6"
+    style="background: rgba(15, 23, 42, 0.6);"
+    onclick="handleBackdropClick(event)">
+    <div class="success-card" onclick="event.stopPropagation()">
+      <div class="success-icon" aria-hidden="true">
+        <span class="material-icons-round">task_alt</span>
+      </div>
+      <h2 class="success-title" id="successTitle">Thank You!</h2>
+      <p class="success-sub">Your feedback has been recorded successfully.</p>
+      
+      <button type="button" class="success-reset-btn" id="successResetBtn" onclick="resetCSMForm()">
+        <span class="material-icons-round" aria-hidden="true">check</span>
+        <span id="resetBtnText">Done</span>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    window.FEEDBACK_SUBMIT_URL = "{% url 'feedback-submit' %}";
+  </script>
+  <script src="{% static 'feedback/js/feedback.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,53 @@
+======================================================================
+PHILIPPINE HEALTH INSURANCE CORPORATION
+LHIO CAUAYAN CITY - CLIENT SATISFACTION MEASUREMENT (CSM)
+DAILY FEEDBACK & SATISFACTION PULSE
+======================================================================
+Summary Date: {{ metrics.date_str }}
+
+1. OPERATIONAL PERFORMANCE INDICATORS
+----------------------------------------------------------------------
+* Total Responses:             {{ metrics.total_count }}
+* Overall Satisfaction (SQD0): {{ metrics.satisfaction_rate }}%
+{% if metrics.trend_diff is not None %}* Trend vs Previous Day:       {% if metrics.trend_diff > 0 %}+{% endif %}{{ metrics.trend_diff }}%
+{% endif %}* Positive Sentiment:          {{ metrics.pos_pct }}% ({{ metrics.pos_count }} of {{ metrics.total_count }})
+* Attention Required:          {{ metrics.total_flagged_count }} Flagged Issues
+
+2. CITIZEN SENTIMENT & FEEDBACK CLASSIFICATION
+----------------------------------------------------------------------
+* Positive:    {{ metrics.pos_count }} ({{ metrics.pos_pct }}%)
+* Neutral:     {{ metrics.neu_count }} ({{ metrics.neu_pct }}%)
+* Negative:    {{ metrics.neg_count }} ({{ metrics.neg_pct }}%)
+
+Categories Breakdown:
+* Compliments:        {{ metrics.categories.compliments }}
+* Suggestions:        {{ metrics.categories.suggestions }}
+* Complaints:         {{ metrics.categories.complaints }}
+* Inquiries/Concerns: {{ metrics.categories.concerns }}
+{% if metrics.total_flagged_count > 0 %}
+
+3. URGENT SUPERVISOR TRIAGE ({{ metrics.total_flagged_count }} SUBMISSIONS FLAGGED)
+----------------------------------------------------------------------
+The following entries were flagged for negative sentiment, complaint, or low satisfaction:
+{% for item in metrics.flagged_items %}
+- Entry #{{ item.id }} ({{ item.time }}) - {{ item.category }}
+  Client: {{ item.client }} ({{ item.client_type }})
+  "{{ item.comment }}"
+{% endfor %}
+{% else %}
+
+3. AUDIT STATUS
+----------------------------------------------------------------------
+[OK] Clean Audit Status: No critical complaints, dissatisfaction marks, or negative sentiment flags recorded for this date.
+{% endif %}
+
+4. ADMINISTRATIVE PORTAL
+----------------------------------------------------------------------
+Open filtered records in Admin Portal:
+{{ responses_url }}
+
+======================================================================
+Philippine Health Insurance Corporation
+Local Health Insurance Office - Cauayan City, Isabela - Region II
+Official Client Satisfaction Measurement (CSM) Automated Service Digest
+Mandated under RA 11032

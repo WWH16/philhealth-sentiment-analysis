@@ -1,0 +1,601 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login | PhilHealth Cauayan City</title>
+  <meta name="description" content="PhilHealth LHIO Cauayan City — Admin login. Authorized personnel only.">
+  <link rel="icon" type="image/png" href="{% static 'img/philhealth_logo.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <script>
+    document.documentElement.setAttribute('data-theme', 'light');
+  </script>
+  <style>
+/* ── DESIGN TOKENS ── */
+:root {
+  --g-primary:  #23A455;
+  --g-deep:     #1F964B;
+  --g-forest:   #0f5a2b;
+  --g-dark:     #174d2a;
+  --g-light:    #d4f0e1;
+  --g-xlight:   #f0faf5;
+
+  --ink:        #1c1e22;
+  --ink3:       #484c53;
+  --ink4:       #525866;
+  --ink5:       #73787f;
+  --ink6:       #c9cdd3;
+  --ink7:       #e4e7eb;
+  --ink8:       #f2f4f6;
+  --ink9:       #fafbfc;
+  --white:      #ffffff;
+
+  --red:        #c0001a;
+  --red-bg:     #fff0f2;
+
+  --font: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* ── BASE ── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--ink8);
+  min-height: 100vh;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── LAYOUT ── */
+.login-shell {
+  display: flex;
+  flex: 1;
+  min-height: 100vh;
+}
+
+/* ── LEFT PANEL — brand column ── */
+.brand-panel {
+  background: var(--g-dark);
+  width: 420px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* subtle grid texture */
+.brand-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(35,164,85,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35,164,85,0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+.brand-center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+}
+
+.brand-logo {
+  height: 96px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 24px;
+}
+
+.brand-name {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.brand-city {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--g-primary);
+  margin-bottom: 32px;
+}
+
+.brand-divider {
+  width: 40px;
+  height: 2px;
+  background: rgba(255,255,255,0.12);
+  margin-bottom: 28px;
+  position: relative;
+}
+.brand-divider::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 16px; height: 2px;
+  background: var(--g-primary);
+}
+
+.brand-tagline {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--white);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+.brand-tagline em {
+  font-style: normal;
+  color: var(--g-primary);
+}
+
+/* ── RIGHT PANEL — form column ── */
+.form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: var(--ink9);
+}
+.login-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.card-inner {
+  background: var(--white);
+  border: 1px solid var(--ink7);
+  padding: 36px 32px 32px;
+}
+
+/* mobile brand block */
+.mobile-brand {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--ink7);
+}
+.mobile-brand img {
+  height: 56px;
+  width: auto;
+  margin-bottom: 12px;
+}
+.mobile-brand-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.mobile-brand-city {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--g-primary);
+  margin-bottom: 10px;
+}
+/* Fixed: was Times New Roman serif -- no brand basis. IBM Plex Sans italic stays on-system. */
+.mobile-brand-tagline {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink4);
+  font-family: var(--font);
+}
+
+.card-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  line-height: 1.1;
+  margin-bottom: 28px;
+}
+
+/* ── FORM ELEMENTS ── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.form-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.form-label .material-icons-round { font-size: 13px; color: var(--ink5); }
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.form-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px 0 40px;
+  font-size: 14px;
+  font-family: var(--font);
+  border: 1.5px solid var(--ink6);
+  background: var(--ink9);
+  color: var(--ink);
+  outline: none;
+  border-radius: 0;
+  transition: border-color 120ms, background 120ms;
+  letter-spacing: -0.005em;
+}
+.form-input:focus {
+  border-color: var(--g-primary);
+  background: var(--white);
+}
+/* Fixed: ink5 (#73787f) on ink9 (#fafbfc) = ~4.1:1, below 4.5:1 WCAG AA.
+   ink4 (#525866) on ink9 (#fafbfc) = ~5.8:1 -- passes. */
+.form-input::placeholder { color: var(--ink4); }
+.input-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 18px !important;
+  color: var(--ink6);
+  pointer-events: none;
+  transition: color 120ms;
+}
+.input-wrap:focus-within .input-icon { color: var(--g-primary); }
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink5);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color 120ms;
+  border-radius: 0;
+}
+.password-toggle:hover { color: var(--ink3); }
+.password-toggle .material-icons-round { font-size: 18px; }
+
+.alert-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--red-bg);
+  border: 1.5px solid var(--red);
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #7a0011;
+  font-weight: 600;
+  line-height: 1.55;
+}
+.alert-error .material-icons-round { font-size: 16px; color: var(--red); flex-shrink: 0; margin-top: 1px; }
+
+.alert-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--g-xlight);
+  border: 1.5px solid var(--g-primary);
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--g-forest);
+  font-weight: 600;
+  line-height: 1.55;
+}
+.alert-success .material-icons-round { font-size: 16px; color: var(--g-primary); flex-shrink: 0; margin-top: 1px; }
+
+/* ── SUBMIT BUTTON ── */
+.btn-login {
+  width: 100%;
+  height: 48px;
+  background: var(--g-forest);
+  border: none;
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 120ms, opacity 120ms;
+  border-radius: 0;
+  margin-top: 8px;
+  position: relative;
+}
+.btn-login:hover { background: var(--g-deep); }
+.btn-login:active { opacity: 0.9; }
+.btn-login .material-icons-round { font-size: 18px; }
+
+/* ── LOADING STATE ── */
+.btn-login.is-loading {
+  pointer-events: none;
+  color: transparent;
+}
+.btn-login.is-loading .material-icons-round {
+  visibility: hidden;
+}
+
+.btn-login .loader {
+  display: none;
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+.btn-login.is-loading .loader {
+  display: block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── DIVIDER ── */
+.form-divider {
+  height: 1px;
+  background: var(--ink7);
+  margin: 24px 0;
+}
+
+/* ── FOOTER NOTE ── */
+.card-note {
+  font-size: 11px;
+  /* Fixed: ink5 on white = ~4.3:1 (below 4.5:1). ink4 on white = ~5.8:1 -- WCAG AA. */
+  color: var(--ink4);
+  text-align: center;
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.card-note .material-icons-round { font-size: 13px; color: var(--g-primary); flex-shrink: 0; }
+
+/* ── RESPONSIVE — collapse left panel ── */
+@media (max-width: 900px) {
+  .brand-panel { display: none; }
+  .mobile-brand { display: flex; }
+  .form-panel {
+    background: var(--ink8);
+    align-items: flex-start;
+    padding-top: 60px;
+  }
+  .login-shell { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+  .form-panel { padding: 32px 16px; }
+  .card-inner { padding: 28px 20px 24px; }
+  .card-note { gap: 8px; flex-direction: column; }
+}
+
+/* ── REDUCED MOTION ── */
+/* Fixed: was only "transition: none" -- left animation: spin running for users who need no motion.
+   Now suppresses both transitions and animations per WCAG 2.3.3. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+  </style>
+</head>
+<body>
+
+<div class="login-shell">
+
+  <!-- ── LEFT: BRAND PANEL ── -->
+  <aside class="brand-panel" aria-hidden="true">
+    <div class="brand-center">
+      <!-- Explicit width/height: 250x250 source at 96px display height. Prevents CLS. -->
+      <img
+        src="{% static 'img/philhealth_logo.png' %}"
+        alt="PhilHealth Logo"
+        width="96"
+        height="96"
+        class="brand-logo"
+        loading="eager"
+        onerror="this.style.display='none'"
+      >
+      <div class="brand-name">PhilHealth</div>
+      <div class="brand-city">Cauayan City</div>
+
+      <div class="brand-divider"></div>
+
+      <h2 class="brand-tagline">
+        Your Partner<br>
+        in <em>Health</em>
+      </h2>
+    </div>
+  </aside>
+
+  <!-- ── RIGHT: FORM PANEL ── -->
+  <main class="form-panel" role="main">
+    <div class="login-card">
+      <div class="card-inner">
+
+        <!-- mobile brand (shown only when left panel is hidden) -->
+        <div class="mobile-brand">
+          <!-- Explicit width/height: 250x250 source at 56px display height. Prevents CLS. -->
+          <img
+            src="{% static 'img/philhealth_logo.png' %}"
+            alt="PhilHealth Logo"
+            width="56"
+            height="56"
+            loading="eager"
+            onerror="this.style.display='none'"
+          >
+          <div class="mobile-brand-name">PhilHealth</div>
+          <div class="mobile-brand-tagline">Your Partner in Health</div>
+            <div class="mobile-brand-city">Cauayan City</div>
+        </div>
+
+        <h1 class="card-title">Admin Login</h1>
+
+        {% if messages %}
+          {% for message in messages %}
+          <div class="{% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
+            <span class="material-icons-round">{% if message.tags == 'success' %}check_circle{% else %}error{% endif %}</span>
+            <span>{{ message }}</span>
+          </div>
+          {% endfor %}
+        {% elif form.errors %}
+        <div class="alert-error" role="alert">
+          <span class="material-icons-round">error</span>
+          <span>Invalid username or password. Please check your credentials and try again.</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="" novalidate>
+          {% csrf_token %}
+
+          {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+          {% endif %}
+
+          <div class="form-group">
+            <label class="form-label" for="id_username">
+              <span class="material-icons-round">person</span>
+              Username
+            </label>
+            <div class="input-wrap">
+              <span class="material-icons-round input-icon">person_outline</span>
+              <input
+                class="form-input"
+                type="text"
+                id="id_username"
+                name="username"
+                placeholder="Enter your username"
+                autocomplete="username"
+                autofocus
+                required
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="id_password">
+              <span class="material-icons-round">lock</span>
+              Password
+            </label>
+            <div class="input-wrap">
+              <span class="material-icons-round input-icon">lock_outline</span>
+              <input
+                class="form-input"
+                type="password"
+                id="id_password"
+                name="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+                style="padding-right: 44px;"
+              >
+              <button
+                type="button"
+                class="password-toggle"
+                onclick="togglePassword()"
+                aria-label="Show or hide password"
+              >
+                <span class="material-icons-round" id="toggleIcon">visibility</span>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login" id="loginBtn">
+            <span class="loader"></span>
+            <span class="material-icons-round">login</span>
+            Sign In
+          </button>
+        </form>
+
+        <div class="form-divider"></div>
+
+        <p class="card-note">
+          <span class="material-icons-round">shield</span>
+          Authorized personnel only. Unauthorized access is prohibited.
+        </p>
+
+      </div><!-- /card-inner -->
+    </div><!-- /login-card -->
+  </main>
+
+</div><!-- /login-shell -->
+
+<script>
+function togglePassword() {
+  const input = document.getElementById('id_password');
+  const icon  = document.getElementById('toggleIcon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.textContent = 'visibility_off';
+  } else {
+    input.type = 'password';
+    icon.textContent = 'visibility';
+  }
+}
+
+// Keyboard navigation: Enter on username -> Password focus
+document.getElementById('id_username').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const pw = document.getElementById('id_password');
+    if (!pw.value) {
+      e.preventDefault();
+      pw.focus();
+    }
+  }
+});
+
+// Form submission loader
+document.querySelector('form').addEventListener('submit', function(e) {
+  const btn = document.getElementById('loginBtn');
+  btn.classList.add('is-loading');
+});
+</script>
+</body>
+</html>

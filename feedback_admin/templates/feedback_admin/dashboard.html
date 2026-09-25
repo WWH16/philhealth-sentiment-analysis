@@ -1,0 +1,732 @@
+{% extends 'feedback_admin/base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard | PhilHealth Cauayan City{% endblock %}
+
+{% block head_scripts %}{% endblock %}
+
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .card-block, .stat-card {
+    contain: content;
+  }
+  /* mini-stat-bar: transform-origin for scaleX animation only.
+     will-change removed — static promotion wastes GPU memory for rarely-animated elements.
+     The browser auto-promotes during the transition via the transition property. */
+  .mini-stat-bar {
+    width: 100% !important;
+    transform-origin: left center;
+    transition: transform 300ms cubic-bezier(.4, 0, .2, 1);
+  }
+  .mini-stat-bar-wrap {
+    contain: layout style;
+  }
+  .chart-type-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-surface, #ffffff);
+  }
+  .btn-chart-toggle {
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #475569);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: background 150ms ease, color 150ms ease;
+  }
+  .btn-chart-toggle:hover {
+    color: var(--text-primary, #0f172a);
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .btn-chart-toggle.active {
+    background: var(--g-primary, #169651);
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .chart-type-toggle {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: #1e293b;
+  }
+  [data-theme="dark"] .btn-chart-toggle {
+    color: #94a3b8;
+  }
+  [data-theme="dark"] .btn-chart-toggle:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mini-stat-bar { transition: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header-row">
+      <h1 class="page-title">Admin Dashboard</h1>
+      <div class="date-badge">
+        <span class="material-icons-round">today</span>
+        <span id="currentDate">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER TABS -->
+  <div style="margin-bottom:20px;">
+    <div class="filter-tabs" role="tablist" aria-label="Dashboard time period filter" style="display:inline-flex;max-width:480px;width:100%">
+      <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="dashboard-stats" class="filter-tab" onclick="setFilter(this,'today')">Today</button>
+      <button type="button" role="tab" id="tab-week" aria-selected="false" aria-controls="dashboard-stats" class="filter-tab" onclick="setFilter(this,'week')">This Week</button>
+      <button type="button" role="tab" id="tab-month" aria-selected="false" aria-controls="dashboard-stats" class="filter-tab" onclick="setFilter(this,'month')">This Month</button>
+      <button type="button" role="tab" id="tab-all" aria-selected="true" aria-controls="dashboard-stats" class="filter-tab active" onclick="setFilter(this,'all')">All Time</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <div class="stat-card card-sat h-100">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:var(--g-primary);background:var(--g-xlight)">forum</span></div>
+        <div class="stat-value" id="totalVal">{{ total }}</div>
+        <div class="stat-label">Total Responses</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span>Live database total</span>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">forum</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-4">
+      <div class="stat-card card-sa h-100">
+        <div class="stat-card-icon" style="background:#ecfdf5"><span class="material-icons-round" style="color:#169651">sentiment_very_satisfied</span></div>
+        <div class="stat-value" id="saVal">{{ strongly_agree }}</div>
+        <div class="stat-label">😃 Strongly Agree</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="saPct">{{ strongly_agree_pct }}%</span> of total</span>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-4">
+      <div class="stat-card card-a h-100">
+        <div class="stat-card-icon" style="background:#ecfdf5"><span class="material-icons-round" style="color:#10b981">sentiment_satisfied</span></div>
+        <div class="stat-value" id="aVal">{{ agree }}</div>
+        <div class="stat-label">🙂 Agree</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="aPct">{{ agree_pct }}%</span> of total</span>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-3">
+      <div class="stat-card card-nad h-100">
+        <div class="stat-card-icon" style="background:#fffbe6"><span class="material-icons-round" style="color:#d97706">sentiment_neutral</span></div>
+        <div class="stat-value" id="nadVal">{{ neither }}</div>
+        <div class="stat-label">😐 Neither Agree/Disagree</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="nadPct">{{ neither_pct }}%</span> of total</span>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-3">
+      <div class="stat-card card-d h-100">
+        <div class="stat-card-icon" style="background:#fff7ed"><span class="material-icons-round" style="color:#f97316">sentiment_dissatisfied</span></div>
+        <div class="stat-value" id="dVal">{{ disagree }}</div>
+        <div class="stat-label">🙁 Disagree</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="dPct">{{ disagree_pct }}%</span> of total</span>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-3">
+      <div class="stat-card card-sd h-100">
+        <div class="stat-card-icon" style="background:#fff0f2"><span class="material-icons-round" style="color:#dc2626">sentiment_very_dissatisfied</span></div>
+        <div class="stat-value" id="sdVal">{{ strongly_disagree }}</div>
+        <div class="stat-label">😠 Strongly Disagree</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="sdPct">{{ strongly_disagree_pct }}%</span> of total</span>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-3">
+      <div class="stat-card card-na h-100">
+        <div class="stat-card-icon" style="background:#f1f5f9"><span class="material-icons-round" style="color:#64748b">block</span></div>
+        <div class="stat-value" id="naVal">{{ na }}</div>
+        <div class="stat-label">N/A Not Applicable</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="naPct">{{ na_pct }}%</span> of total</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-5">
+      <div class="card-block h-100">
+        <div class="card-block-head">
+          <h2 class="card-block-title">
+            <span class="material-icons-round">donut_large</span>
+            SQD Rating Distribution
+          </h2>
+        </div>
+        <div class="card-block-body">
+          <div class="pie-chart-layout">
+            <div class="pie-chart-col">
+              <div class="chart-wrap" style="height:200px;">
+                <canvas id="pieChart" aria-label="SQD Distribution pie chart" role="img"></canvas>
+              </div>
+            </div>
+            <div class="pie-legend-col">
+              <div class="pie-legend" style="gap:8px;">
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#169651"></div>
+                  <span class="pie-legend-label">😃 Strongly Agree</span>
+                  <span class="pie-legend-value" id="legendSaVal">{{ strongly_agree }}</span>
+                  <span class="pie-legend-pct" id="legendSaPct">{{ strongly_agree_pct }}%</span>
+                </div>
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#10b981"></div>
+                  <span class="pie-legend-label">🙂 Agree</span>
+                  <span class="pie-legend-value" id="legendAVal">{{ agree }}</span>
+                  <span class="pie-legend-pct" id="legendAPct">{{ agree_pct }}%</span>
+                </div>
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#d97706"></div>
+                  <span class="pie-legend-label">😐 Neither</span>
+                  <span class="pie-legend-value" id="legendNadVal">{{ neither }}</span>
+                  <span class="pie-legend-pct" id="legendNadPct">{{ neither_pct }}%</span>
+                </div>
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#f97316"></div>
+                  <span class="pie-legend-label">🙁 Disagree</span>
+                  <span class="pie-legend-value" id="legendDVal">{{ disagree }}</span>
+                  <span class="pie-legend-pct" id="legendDPct">{{ disagree_pct }}%</span>
+                </div>
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#dc2626"></div>
+                  <span class="pie-legend-label">😠 Strongly Dis.</span>
+                  <span class="pie-legend-value" id="legendSdVal">{{ strongly_disagree }}</span>
+                  <span class="pie-legend-pct" id="legendSdPct">{{ strongly_disagree_pct }}%</span>
+                </div>
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#64748b"></div>
+                  <span class="pie-legend-label">N/A Not Applicable</span>
+                  <span class="pie-legend-value" id="legendNaVal">{{ na }}</span>
+                  <span class="pie-legend-pct" id="legendNaPct">{{ na_pct }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-7">
+      <div class="card-block h-100">
+        <div class="card-block-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <h2 class="card-block-title" style="margin:0;">
+            <span class="material-icons-round">show_chart</span>
+            Daily SQD Feedback Trend
+          </h2>
+          <div class="chart-type-toggle" role="group" aria-label="Chart display type">
+            <button type="button" class="btn-chart-toggle active" id="btnStackedBar" onclick="setTrendChartType('bar')">
+              <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:3px;">bar_chart</span>Stacked
+            </button>
+            <button type="button" class="btn-chart-toggle" id="btnLineTrend" onclick="setTrendChartType('line')">
+              <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:3px;">show_chart</span>Lines
+            </button>
+          </div>
+        </div>
+        <div class="card-block-body">
+          <div id="trendEmptyState" class="chart-empty-state d-none" style="height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;color:var(--text-muted,#64748b);">
+            <span class="material-icons-round" style="font-size:36px;opacity:0.6;">query_stats</span>
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary,#0f172a);">No feedback recorded for this period</div>
+            <div style="font-size:11px;max-width:280px;">Select "This Week", "This Month", or "All Time" to view feedback volume and satisfaction trends.</div>
+          </div>
+          <div class="chart-wrap" id="trendChartWrap" style="height:260px;">
+            <canvas id="lineChart" aria-label="Daily SQD feedback trend chart" role="img"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECENT RESPONSES TABLE -->
+  <div class="section-head">
+    <h2 class="section-title">Recent Responses</h2>
+    <div class="section-actions">
+      <a href="{% url 'responses' %}" class="btn-ph btn-ph-primary">
+        <span class="material-icons-round">open_in_new</span> View All
+      </a>
+    </div>
+  </div>
+
+  <div class="card-block">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="ph-table" aria-label="Recent feedback responses">
+        <thead>
+          <tr>
+            <th style="min-width:100px">Date &amp; Time</th>
+            <th style="min-width:160px">SQD Rating</th>
+            <th style="min-width:120px">Category</th>
+            <th>Feedback / Comment</th>
+          </tr>
+        </thead>
+        <tbody id="recentTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block page_scripts %}
+{{ recent_entries_data|json_script:"recent-entries-data" }}
+{{ filter_data|json_script:"filter-data" }}
+<!-- Chart.js loaded here (end of body) — non-render-blocking. Initializes via pageInit() on DOMContentLoaded. -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+const RATING_CONFIG = {
+  'Strongly Agree':             { cls: 'chip-sa',  icon: 'sentiment_very_satisfied' },
+  'Agree':                      { cls: 'chip-a',   icon: 'sentiment_satisfied' },
+  'Neither Agree nor Disagree': { cls: 'chip-nad', icon: 'sentiment_neutral' },
+  'Disagree':                   { cls: 'chip-d',   icon: 'sentiment_dissatisfied' },
+  'Strongly Disagree':          { cls: 'chip-sd',  icon: 'sentiment_very_dissatisfied' },
+  'Not Applicable':             { cls: 'chip-na',  icon: 'block' },
+};
+
+const RECENT_DATA = JSON.parse(document.getElementById('recent-entries-data').textContent);
+const FILTER_DATA = JSON.parse(document.getElementById('filter-data').textContent);
+const TREND_LABELS = {{ trend_labels|safe }};
+const TREND_DATES  = {{ trend_dates|safe }};
+const TREND_SA     = {{ trend_strongly_agree|default:"[]"|safe }};
+const TREND_A      = {{ trend_agree|default:"[]"|safe }};
+const TREND_NAD    = {{ trend_neither|default:"[]"|safe }};
+const TREND_D      = {{ trend_disagree|default:"[]"|safe }};
+const TREND_SD     = {{ trend_strongly_disagree|default:"[]"|safe }};
+const TREND_NA     = {{ trend_na|default:"[]"|safe }};
+
+const CHART_ANIM_DURATION = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300;
+
+let currentFilterPeriod = 'all';
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderRecent() {
+  const body = document.getElementById('recentTableBody');
+  body.innerHTML = RECENT_DATA.map(r => {
+    const cfg     = RATING_CONFIG[r.experience] || RATING_CONFIG['Agree'];
+    const dateStr = new Date(r.date).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
+    const comment = r.comment
+      ? `<div class="comment-text">${escHtml(r.comment)}</div>`
+      : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment provided</span>`;
+    return `<tr>
+      <td class="datetime-cell">
+        <div class="datetime-date">${dateStr}</div>
+        <div class="datetime-time">${r.time}</div>
+      </td>
+      <td><span class="rating-chip ${cfg.cls}"><span class="material-icons-round">${cfg.icon}</span>${r.experience}</span></td>
+      <td>
+        <span style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">
+          ${escHtml(r.category || '—')}
+        </span>
+      </td>
+      <td class="comment-cell">${comment}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── CHARTS ── */
+let pieChart, lineChart;
+
+function pctOf(value, total) { return total ? Math.round((value / total) * 100) : 0; }
+
+function updatePieChart(data, forceRecreate = false) {
+  const canvas = document.getElementById('pieChart');
+  if (!canvas) return;
+  const ctx    = canvas.getContext('2d');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const sa  = data.strongly_agree || data.vsat || 0;
+  const a   = data.agree || data.sat || 0;
+  const nad = data.neither || 0;
+  const d   = data.disagree || 0;
+  const sd  = data.strongly_disagree || data.unsat || 0;
+  const na  = data.na || 0;
+  const datasetData = [sa, a, nad, d, sd, na];
+
+  if (pieChart && !forceRecreate) {
+    pieChart.data.datasets[0].data = datasetData;
+    pieChart.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
+    pieChart.update();
+    return;
+  }
+
+  if (pieChart) pieChart.destroy();
+
+  const centerTextPlugin = {
+    id: 'centerText',
+    beforeDraw(chart) {
+      const { width, height, ctx } = chart;
+      const dataset = chart.data.datasets[0];
+      const t = dataset.data.reduce((acc, b) => acc + b, 0);
+      const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      ctx.font = '700 22px "IBM Plex Sans", sans-serif';
+      ctx.fillStyle = isDarkMode ? '#f8fafc' : '#0f172a';
+      ctx.fillText(t.toLocaleString(), centerX, centerY - 8);
+
+      ctx.font = '600 10px "IBM Plex Sans", sans-serif';
+      ctx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
+      ctx.fillText('Total Responses', centerX, centerY + 12);
+      ctx.restore();
+    }
+  };
+
+  pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Strongly Agree', 'Agree', 'Neither Agree nor Disagree', 'Disagree', 'Strongly Disagree', 'Not Applicable'],
+      datasets: [{
+        data: datasetData,
+        backgroundColor: [
+          '#169651',
+          '#10b981',
+          '#d97706',
+          '#f97316',
+          '#dc2626',
+          '#64748b'
+        ],
+        borderColor: isDark ? '#1e293b' : '#ffffff',
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    plugins: [centerTextPlugin],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      animation: {
+        duration: CHART_ANIM_DURATION,
+        animateRotate: true,
+        animateScale: true
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#0f172a' : '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#f1f5f9',
+          padding: 10,
+          cornerRadius: 4,
+          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+          bodyFont: { family: "'IBM Plex Sans'", size: 12 },
+          callbacks: {
+            label: function(ctx) {
+              const t = ctx.dataset.data.reduce((acc, b) => acc + b, 0);
+              const pct = t ? Math.round((ctx.parsed / t) * 100) : 0;
+              return `  ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function updatePieAndLegend(data, forceRecreate = false) {
+  const total = data.total || 0;
+  const sa  = data.strongly_agree || data.vsat || 0;
+  const a   = data.agree || data.sat || 0;
+  const nad = data.neither || 0;
+  const d   = data.disagree || 0;
+  const sd  = data.strongly_disagree || data.unsat || 0;
+  const na  = data.na || 0;
+
+  const saPct  = pctOf(sa, total);
+  const aPct   = pctOf(a, total);
+  const nadPct = pctOf(nad, total);
+  const dPct   = pctOf(d, total);
+  const sdPct  = pctOf(sd, total);
+  const naPct  = pctOf(na, total);
+
+  updatePieChart(data, forceRecreate);
+
+  const setElemText = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+
+  setElemText('legendSaVal', sa);
+  setElemText('legendSaPct', saPct + '%');
+  setElemText('legendAVal', a);
+  setElemText('legendAPct', aPct + '%');
+  setElemText('legendNadVal', nad);
+  setElemText('legendNadPct', nadPct + '%');
+  setElemText('legendDVal', d);
+  setElemText('legendDPct', dPct + '%');
+  setElemText('legendSdVal', sd);
+  setElemText('legendSdPct', sdPct + '%');
+  setElemText('legendNaVal', na);
+  setElemText('legendNaPct', naPct + '%');
+}
+
+let currentTrendChartType = 'bar';
+
+function setTrendChartType(type) {
+  if (currentTrendChartType === type) return;
+  currentTrendChartType = type;
+  const btnBar = document.getElementById('btnStackedBar');
+  const btnLine = document.getElementById('btnLineTrend');
+  if (btnBar) btnBar.classList.toggle('active', type === 'bar');
+  if (btnLine) btnLine.classList.toggle('active', type === 'line');
+  renderTrendForPeriod(currentFilterPeriod, true);
+}
+
+function updateLineChart(labels, sa, a, nad, d, sd, na, forceRecreate = false) {
+  const canvas = document.getElementById('lineChart');
+  const emptyEl = document.getElementById('trendEmptyState');
+  const wrapEl = document.getElementById('trendChartWrap');
+  if (!canvas) return;
+
+  const totalSum = sa.reduce((acc, v) => acc + v, 0) +
+                   a.reduce((acc, v) => acc + v, 0) +
+                   nad.reduce((acc, v) => acc + v, 0) +
+                   d.reduce((acc, v) => acc + v, 0) +
+                   sd.reduce((acc, v) => acc + v, 0) +
+                   na.reduce((acc, v) => acc + v, 0);
+
+  if (labels.length === 0 || totalSum === 0) {
+    if (emptyEl) emptyEl.classList.remove('d-none');
+    if (wrapEl) wrapEl.classList.add('d-none');
+    return;
+  } else {
+    if (emptyEl) emptyEl.classList.add('d-none');
+    if (wrapEl) wrapEl.classList.remove('d-none');
+  }
+
+  const ctx       = canvas.getContext('2d');
+  const isDark    = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+  const textColor = isDark ? '#cbd5e1' : '#475569';
+  const isBar     = currentTrendChartType === 'bar';
+
+  if (lineChart && !forceRecreate && lineChart.config.type === (isBar ? 'bar' : 'line')) {
+    lineChart.data.labels = labels;
+    lineChart.data.datasets[0].data = sa;
+    lineChart.data.datasets[1].data = a;
+    lineChart.data.datasets[2].data = nad;
+    lineChart.data.datasets[3].data = d;
+    lineChart.data.datasets[4].data = sd;
+    lineChart.data.datasets[5].data = na;
+    lineChart.update();
+    return;
+  }
+
+  if (lineChart) lineChart.destroy();
+
+  const datasets = isBar ? [
+    { label: 'Strongly Agree', data: sa, backgroundColor: '#169651', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
+    { label: 'Agree', data: a, backgroundColor: '#10b981', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
+    { label: 'Neither', data: nad, backgroundColor: '#d97706', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
+    { label: 'Disagree', data: d, backgroundColor: '#f97316', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
+    { label: 'Strongly Disagree', data: sd, backgroundColor: '#dc2626', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
+    { label: 'Not Applicable', data: na, backgroundColor: '#64748b', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
+  ] : [
+    { label: 'Strongly Agree', data: sa, borderColor: '#169651', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#169651', borderWidth: 2 },
+    { label: 'Agree', data: a, borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#10b981', borderWidth: 2 },
+    { label: 'Neither', data: nad, borderColor: '#d97706', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#d97706', borderWidth: 2 },
+    { label: 'Disagree', data: d, borderColor: '#f97316', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#f97316', borderWidth: 2 },
+    { label: 'Strongly Disagree', data: sd, borderColor: '#dc2626', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#dc2626', borderWidth: 2 },
+    { label: 'Not Applicable', data: na, borderColor: '#64748b', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#64748b', borderWidth: 2 },
+  ];
+
+  lineChart = new Chart(ctx, {
+    type: isBar ? 'bar' : 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: CHART_ANIM_DURATION },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          stacked: isBar,
+          grid: { color: gridColor, drawTicks: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, maxTicksLimit: 10 },
+          border: { display: false }
+        },
+        y: {
+          stacked: isBar,
+          beginAtZero: true,
+          grid: { color: gridColor, drawTicks: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, precision: 0 },
+          border: { display: false }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: textColor,
+            font: { family: "'IBM Plex Sans'", size: 10, weight: '600' },
+            boxWidth: 8,
+            boxHeight: 8,
+            padding: 8,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
+        },
+        tooltip: {
+          backgroundColor: isDark ? '#0f172a' : '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#f1f5f9',
+          padding: 10,
+          cornerRadius: 4,
+          callbacks: {
+            footer: function(items) {
+              if (isBar) {
+                const dayTotal = items.reduce((acc, curr) => acc + (curr.parsed.y || 0), 0);
+                return `Total Responses: ${dayTotal}`;
+              }
+              return '';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function filterTrendByPeriod(period) {
+  if (period === 'all' || TREND_DATES.length === 0) {
+    return { labels: TREND_LABELS, sa: TREND_SA, a: TREND_A, nad: TREND_NAD, d: TREND_D, sd: TREND_SD, na: TREND_NA };
+  }
+
+  if (period === 'today') {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const idx = TREND_DATES.reduce((acc, d, i) => { if (d === todayStr) acc.push(i); return acc; }, []);
+    if (idx.length === 0) {
+      return { labels: [], sa: [], a: [], nad: [], d: [], sd: [], na: [] };
+    }
+    return {
+      labels: ['Today (' + TREND_LABELS[idx[0]] + ')'],
+      sa:  [TREND_SA[idx[0]] || 0],
+      a:   [TREND_A[idx[0]] || 0],
+      nad: [TREND_NAD[idx[0]] || 0],
+      d:   [TREND_D[idx[0]] || 0],
+      sd:  [TREND_SD[idx[0]] || 0],
+      na:  [TREND_NA[idx[0]] || 0],
+    };
+  }
+
+  const days   = period === 'week' ? 7 : 30;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const idx    = TREND_DATES.reduce((acc, d, i) => { if (new Date(d + 'T00:00:00').getTime() >= cutoff) acc.push(i); return acc; }, []);
+  return {
+    labels: idx.map(i => TREND_LABELS[i]),
+    sa:  idx.map(i => TREND_SA[i] || 0),
+    a:   idx.map(i => TREND_A[i] || 0),
+    nad: idx.map(i => TREND_NAD[i] || 0),
+    d:   idx.map(i => TREND_D[i] || 0),
+    sd:  idx.map(i => TREND_SD[i] || 0),
+    na:  idx.map(i => TREND_NA[i] || 0),
+  };
+}
+
+function renderTrendForPeriod(period, forceRecreate = false) {
+  const f = filterTrendByPeriod(period);
+  updateLineChart(f.labels, f.sa, f.a, f.nad, f.d, f.sd, f.na, forceRecreate);
+}
+
+function setFilter(btn, period) {
+  document.querySelectorAll('.filter-tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+  currentFilterPeriod = period;
+
+  const d = FILTER_DATA[period];
+  animateCount('totalVal', d.total || 0);
+  animateCount('saVal',  d.strongly_agree || d.vsat || 0);
+  animateCount('aVal',   d.agree || d.sat || 0);
+  animateCount('nadVal', d.neither || 0);
+  animateCount('dVal',   d.disagree || 0);
+  animateCount('sdVal',  d.strongly_disagree || d.unsat || 0);
+  animateCount('naVal',  d.na || 0);
+
+  const saPct  = pctOf(d.strongly_agree || d.vsat || 0, d.total || 0);
+  const aPct   = pctOf(d.agree || d.sat || 0, d.total || 0);
+  const nadPct = pctOf(d.neither || 0, d.total || 0);
+  const dPct   = pctOf(d.disagree || 0, d.total || 0);
+  const sdPct  = pctOf(d.strongly_disagree || d.unsat || 0, d.total || 0);
+  const naPct  = pctOf(d.na || 0, d.total || 0);
+
+  const setElemText = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+  setElemText('saPct', saPct + '%');
+  setElemText('aPct', aPct + '%');
+  setElemText('nadPct', nadPct + '%');
+  setElemText('dPct', dPct + '%');
+  setElemText('sdPct', sdPct + '%');
+  setElemText('naPct', naPct + '%');
+
+  updatePieAndLegend(d);
+  renderTrendForPeriod(period);
+}
+
+function onThemeChange() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (pieChart) {
+    pieChart.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
+    if (pieChart.options && pieChart.options.plugins && pieChart.options.plugins.tooltip) {
+      pieChart.options.plugins.tooltip.backgroundColor = isDark ? '#0f172a' : '#1e293b';
+    }
+    pieChart.update('none');
+  }
+  if (lineChart) {
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+    const textColor = isDark ? '#cbd5e1' : '#475569';
+    if (lineChart.options && lineChart.options.scales) {
+      if (lineChart.options.scales.x) {
+        lineChart.options.scales.x.grid.color = gridColor;
+        lineChart.options.scales.x.ticks.color = textColor;
+      }
+      if (lineChart.options.scales.y) {
+        lineChart.options.scales.y.grid.color = gridColor;
+        lineChart.options.scales.y.ticks.color = textColor;
+      }
+    }
+    if (lineChart.options && lineChart.options.plugins && lineChart.options.plugins.tooltip) {
+      lineChart.options.plugins.tooltip.backgroundColor = isDark ? '#0f172a' : '#1e293b';
+    }
+    lineChart.update('none');
+  }
+}
+
+function onResize() {
+  // Chart.js automatically handles container resize events smoothly
+}
+
+// Cache Intl formatters — creating new Date format objects every second is expensive.
+const _clockFmt = new Intl.DateTimeFormat('en-PH', {
+  timeZone: 'Asia/Manila', weekday: 'short', year: 'numeric',
+  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  second: '2-digit', hour12: true
+});
+function tickClock() {
+  const dateBadge = document.getElementById('currentDate');
+  if (dateBadge) dateBadge.textContent = _clockFmt.format(new Date());
+}
+
+function pageInit() {
+  tickClock();
+  setInterval(tickClock, 1000);
+  updatePieAndLegend(FILTER_DATA.all);
+  renderTrendForPeriod('all');
+  renderRecent();
+}
+</script>
+{% endblock %}

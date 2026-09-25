@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "philhealth_feedback/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "excludeFiles": "{**/tests/**,**/*.dist-info/**,**/nltk_data/**}"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "philhealth_feedback/wsgi.py"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-summary/",
+      "schedule": "30 8 * * *"
+    }
+  ]
+}

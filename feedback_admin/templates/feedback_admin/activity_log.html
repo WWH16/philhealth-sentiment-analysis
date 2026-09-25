@@ -1,0 +1,336 @@
+{% extends 'feedback_admin/base.html' %}
+{% load static %}
+
+{% block title %}Activity Logs | PhilHealth Cauayan City{% endblock %}
+
+{% block nav_activity_log %}active{% endblock %}
+
+{% block extra_styles %}
+.filter-panel, .card-block {
+  contain: content;
+}
+.filter-panel {
+  background: var(--surface-card); border: 1px solid var(--border);
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.filter-panel-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.date-range-inputs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.date-input {
+  height: 34px; padding: 0 10px; font-size: 12px; font-family: var(--font);
+  border: 1.5px solid var(--border); background: var(--surface-page);
+  color: var(--text-primary); outline: none; border-radius: 0;
+  transition: border-color 120ms;
+}
+.date-input:focus { border-color: var(--g-primary); }
+.filter-sep { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+.act-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; padding: 3px 8px; white-space: nowrap;
+}
+.act-chip .material-icons-round { font-size: 12px; }
+.act-status { background: #eff6ff; color: #1d4ed8; }
+.act-note   { background: var(--g-xlight); color: var(--g-forest); }
+.act-event  { background: var(--ink8); color: var(--ink4); }
+[data-theme="dark"] .act-status { background: rgba(59,130,246,0.12); color: #93c5fd; }
+[data-theme="dark"] .act-note   { background: rgba(35,164,85,0.12); color: #5fcf8a; }
+[data-theme="dark"] .act-event  { background: rgba(255,255,255,0.06); color: var(--ink5); }
+
+.detail-status-flow { display: flex; align-items: center; gap: 6px; font-size: 12px; flex-wrap: wrap; }
+.detail-status-flow .material-icons-round { font-size: 14px; color: var(--text-muted); }
+.detail-status-pill {
+  font-size: 10px; font-weight: 700; padding: 2px 7px; text-transform: uppercase;
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.pill-pending  { background: var(--gold-light); color: #7a5500; }
+.pill-reviewed { background: var(--g-xlight); color: var(--g-forest); }
+.pill-resolved { background: #eff6ff; color: #1d4ed8; }
+[data-theme="dark"] .pill-pending  { background: rgba(184,147,58,0.15); color: #d4a840; }
+[data-theme="dark"] .pill-reviewed { background: rgba(35,164,85,0.15); color: #5fcf8a; }
+[data-theme="dark"] .pill-resolved { background: rgba(59,130,246,0.15); color: #93c5fd; }
+
+.detail-note-text {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; max-width: 360px;
+}
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; padding: 64px 20px;
+  color: var(--text-muted);
+}
+.empty-state .material-icons-round { font-size: 48px; opacity: 0.25; }
+.empty-state-title { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.empty-state-sub   { font-size: 12px; }
+
+@media (max-width: 575px) {
+  .filter-panel-row { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .search-box { max-width: 100%; width: 100%; height: 38px; }
+  .date-range-inputs { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .filter-sep { display: none; }
+  .date-input { width: 100%; min-width: 0; font-size: 11px; }
+  #actionTypeFilter, #adminFilter { width: 100%; }
+}
+{% endblock %}
+
+{% block page_content %}
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-eyebrow">
+          <span class="material-icons-round">verified_user</span>
+          Accountability &amp; Transparency
+        </div>
+        <h1 class="page-title">Activity Logs</h1>
+        <p class="page-subtitle">A permanent record of every admin login, logout, setting change, and feedback action, by admin and timestamp.</p>
+      </div>
+      <button type="button" class="btn-ph btn-ph-primary" onclick="exportActivityCSV()">
+        <span class="material-icons-round" aria-hidden="true">download</span> Export CSV
+      </button>
+    </div>
+  </div>
+
+  <div class="filter-panel">
+    <div class="filter-panel-row">
+      <div class="search-box">
+        <span class="material-icons-round search-icon">search</span>
+        <input type="text" id="actSearch" placeholder="Search user, action, object, or details…" oninput="onActSearchInput()" aria-label="Search audit logs">
+      </div>
+      <div class="date-range-inputs">
+        <span class="filter-sep">From</span>
+        <input type="date" class="date-input" id="actDateFrom" onchange="applyActFilters()" aria-label="From date">
+        <span class="filter-sep">to</span>
+        <input type="date" class="date-input" id="actDateTo" onchange="applyActFilters()" aria-label="To date">
+      </div>
+      <select class="btn-ph" id="actionTypeFilter" onchange="applyActFilters()" aria-label="Filter by action type">
+        <option value="">All Actions</option>
+        <option value="login">Logins</option>
+        <option value="logout">Logouts</option>
+        <option value="create">Creates</option>
+        <option value="update">Updates</option>
+        <option value="delete">Deletes</option>
+        <option value="profile">Profile Changes</option>
+        <option value="settings">Settings</option>
+        <option value="status">Status Updates</option>
+        <option value="category">Category Updates</option>
+        <option value="note">Notes / Replies</option>
+        <option value="event">Other Events</option>
+        <option value="backup">Backups</option>
+      </select>
+      <select class="btn-ph" id="adminFilter" onchange="applyActFilters()" aria-label="Filter by username">
+        <option value="">All Users</option>
+      </select>
+      <span class="table-info" id="actInfo" style="margin-left:auto;">—</span>
+    </div>
+  </div>
+
+  <div class="card-block">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="ph-table" id="actTable" aria-label="Activity logs of feedback actions">
+        <thead>
+          <tr>
+            <th style="min-width:120px">Date &amp; Time</th>
+            <th style="min-width:150px">Username</th>
+            <th style="min-width:140px">Action</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="actTableBody"></tbody>
+      </table>
+      <div id="actEmptyState" class="empty-state" style="display:none;">
+        <span class="material-icons-round">history_toggle_off</span>
+        <div class="empty-state-title">No actions found</div>
+        <div class="empty-state-sub">Try adjusting your search or filters.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pagination-row" id="actPaginationRow" style="background:var(--surface-card);border:1px solid var(--border);border-top:none;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span class="table-info" id="actPageInfo">—</span>
+      <select class="btn-ph btn-ph-sm" id="actPageSize" onchange="actChangePageSize(this.value)" aria-label="Rows per page">
+        <option value="15">15 / page</option>
+        <option value="25">25 / page</option>
+        <option value="50">50 / page</option>
+        <option value="100">100 / page</option>
+      </select>
+    </div>
+    <div class="pg-btns" id="actPgBtns"></div>
+  </div>
+
+{% endblock %}
+
+{% block page_scripts %}
+{{ logs_data|json_script:"logs-data" }}
+<script>
+const ALL_LOGS = JSON.parse(document.getElementById('logs-data').textContent);
+
+const STATUS_PILL_CLASS = { 'Pending':'pill-pending', 'Reviewed':'pill-reviewed', 'Resolved':'pill-resolved' };
+const ACTION_META = {
+  status:   { label: 'Status Update',   icon: 'sync_alt',   cls: 'act-status' },
+  category: { label: 'Category Update', icon: 'sell',       cls: 'act-status' },
+  note:     { label: 'Note / Reply',    icon: 'edit_note',  cls: 'act-note' },
+  login:    { label: 'Login',           icon: 'login',      cls: 'act-event' },
+  logout:   { label: 'Logout',          icon: 'logout',     cls: 'act-event' },
+  create:   { label: 'Created',         icon: 'add_circle', cls: 'act-note' },
+  update:   { label: 'Updated',         icon: 'edit',       cls: 'act-status' },
+  delete:   { label: 'Deleted',         icon: 'delete',     cls: 'act-event' },
+  profile:  { label: 'Profile Change',  icon: 'badge',      cls: 'act-status' },
+  settings: { label: 'Settings',        icon: 'tune',       cls: 'act-status' },
+  event:    { label: 'Event',           icon: 'info',       cls: 'act-event' },
+  backup:   { label: 'Backup',          icon: 'backup',     cls: 'act-status' },
+};
+
+let filteredLogs = [...ALL_LOGS];
+let actPage = 1;
+let actPageSize = 15;
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function populateAdminFilter() {
+  const admins = [...new Set(ALL_LOGS.map(l => l.admin))].sort();
+  const sel = document.getElementById('adminFilter');
+  admins.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    sel.appendChild(opt);
+  });
+}
+
+let actSearchDebounce = null;
+function onActSearchInput() {
+  clearTimeout(actSearchDebounce);
+  actSearchDebounce = setTimeout(applyActFilters, 150);
+}
+
+function applyActFilters() {
+  const q     = document.getElementById('actSearch').value.toLowerCase();
+  const from  = document.getElementById('actDateFrom').value;
+  const to    = document.getElementById('actDateTo').value;
+  const type  = document.getElementById('actionTypeFilter').value;
+  const admin = document.getElementById('adminFilter').value;
+
+  filteredLogs = ALL_LOGS.filter(l => {
+    const haystack = [l.admin, l.summary, l.search_text, l.old_status, l.new_status].join(' ').toLowerCase();
+    const matchQ     = !q || haystack.includes(q);
+    const matchType  = !type  || l.action_type === type;
+    const matchAdmin = !admin || l.admin === admin;
+    const matchFrom  = !from  || l.date >= from;
+    const matchTo    = !to    || l.date <= to;
+    return matchQ && matchType && matchAdmin && matchFrom && matchTo;
+  });
+
+  actPage = 1;
+  renderActTable();
+}
+
+function actChangePageSize(val) { actPageSize = parseInt(val); actPage = 1; renderActTable(); }
+
+function renderActTable() {
+  const start = (actPage - 1) * actPageSize;
+  const end   = Math.min(start + actPageSize, filteredLogs.length);
+  const rows  = filteredLogs.slice(start, end);
+  const body  = document.getElementById('actTableBody');
+  const empty = document.getElementById('actEmptyState');
+  const pagination = document.getElementById('actPaginationRow');
+
+  document.getElementById('actInfo').textContent =
+    filteredLogs.length === 0 ? 'No results' : `${start + 1}–${end} of ${filteredLogs.length}`;
+
+  if (rows.length === 0) {
+    body.innerHTML = '';
+    empty.style.display = 'flex';
+    pagination.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  pagination.style.display = 'flex';
+
+  body.innerHTML = rows.map(l => {
+    const dateStr = new Date(l.date + 'T00:00:00').toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
+    const meta = ACTION_META[l.action_type] || ACTION_META.event;
+    const actionChip = `<span class="act-chip ${meta.cls}"><span class="material-icons-round" aria-hidden="true">${meta.icon}</span>${meta.label}</span>`;
+
+    const details = l.action_type === 'status'
+      ? `<div class="detail-status-flow">
+          <span class="detail-status-pill ${STATUS_PILL_CLASS[l.old_status] || ''}">${escHtml(l.old_status)}</span>
+          <span class="material-icons-round" aria-hidden="true">arrow_forward</span>
+          <span class="detail-status-pill ${STATUS_PILL_CLASS[l.new_status] || ''}">${escHtml(l.new_status)}</span>
+        </div>`
+      : `<div class="detail-note-text">${escHtml(l.summary || '—')}</div>`;
+
+    return `<tr>
+      <td class="datetime-cell">
+        <div class="datetime-date">${dateStr}</div>
+        <div class="datetime-time">${l.time}</div>
+      </td>
+      <td><span style="font-size:12px;font-weight:600;color:var(--text-primary)" title="${escHtml(l.full_name ? l.full_name + ' (' + l.admin + ')' : l.admin)}">${escHtml(l.admin)}</span></td>
+      <td>${actionChip}</td>
+      <td>${details}</td>
+    </tr>`;
+  }).join('');
+
+  renderActPagination();
+}
+
+function renderActPagination() {
+  const total = Math.ceil(filteredLogs.length / actPageSize);
+  document.getElementById('actPageInfo').textContent = `Page ${actPage} of ${Math.max(total, 1)}`;
+
+  const cont = document.getElementById('actPgBtns');
+  let html = `<button type="button" class="pg-btn" onclick="actGoPage(${actPage - 1})" ${actPage <= 1 ? 'disabled' : ''} aria-label="Previous page">
+    <span class="material-icons-round" style="font-size:16px" aria-hidden="true">chevron_left</span></button>`;
+
+  const pages = [];
+  if (total <= 7) { for (let i = 1; i <= total; i++) pages.push(i); }
+  else {
+    pages.push(1);
+    if (actPage > 3) pages.push('…');
+    for (let i = Math.max(2, actPage - 1); i <= Math.min(total - 1, actPage + 1); i++) pages.push(i);
+    if (actPage < total - 2) pages.push('…');
+    pages.push(total);
+  }
+  pages.forEach(p => {
+    html += p === '…'
+      ? `<button type="button" class="pg-btn" disabled style="cursor:default">…</button>`
+      : `<button type="button" class="pg-btn ${p === actPage ? 'active' : ''}" onclick="actGoPage(${p})" aria-label="Page ${p}">${p}</button>`;
+  });
+  html += `<button type="button" class="pg-btn" onclick="actGoPage(${actPage + 1})" ${actPage >= total ? 'disabled' : ''} aria-label="Next page">
+    <span class="material-icons-round" style="font-size:16px" aria-hidden="true">chevron_right</span></button>`;
+  cont.innerHTML = html;
+}
+
+function actGoPage(p) {
+  const total = Math.ceil(filteredLogs.length / actPageSize);
+  if (p < 1 || p > total) return;
+  actPage = p;
+  renderActTable();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function exportActivityCSV() {
+  const header = ['Date','Time','Username','Action Type','Summary','Old Status','New Status'];
+  const rows = [header, ...filteredLogs.map(l => [
+    l.date, l.time, l.admin,
+    (ACTION_META[l.action_type] || ACTION_META.event).label,
+    `"${(l.summary || '').replace(/"/g,'""')}"`,
+    l.old_status || '',
+    l.new_status || '',
+  ])];
+  const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+  Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: 'philhealth-activity-logs.csv'
+  }).click();
+}
+
+function pageInit() {
+  populateAdminFilter();
+  applyActFilters();
+}
+</script>
+{% endblock %}

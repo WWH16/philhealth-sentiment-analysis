@@ -1,0 +1,696 @@
+{% extends 'feedback_admin/base.html' %}
+{% load static %}
+
+{% block title %}AI Sentiment Analytics | PhilHealth Cauayan City{% endblock %}
+
+{% block head_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block nav_sentiment %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .card-block, .stat-card {
+    contain: content;
+  }
+  .chart-type-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-surface, #ffffff);
+  }
+  .btn-chart-toggle {
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #475569);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: background 150ms ease, color 150ms ease;
+  }
+  .btn-chart-toggle:hover {
+    color: var(--text-primary, #0f172a);
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .btn-chart-toggle.active {
+    background: var(--g-primary, #169651);
+    color: #ffffff !important;
+  }
+  [data-theme="dark"] .chart-type-toggle {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: #1e293b;
+  }
+  [data-theme="dark"] .btn-chart-toggle {
+    color: #94a3b8;
+  }
+  [data-theme="dark"] .btn-chart-toggle:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
+  }
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-eyebrow">
+          <span class="material-icons-round">psychology</span>
+          Automated Sentiment Intelligence
+        </div>
+        <h1 class="page-title">AI Sentiment Analytics</h1>
+        <p class="page-subtitle">Feedback automatically categorized as Positive, Neutral, or Negative using NLP analysis.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER TABS -->
+  <div style="margin-bottom:20px;">
+    <div class="filter-tabs" role="tablist" aria-label="Sentiment time period filter" style="display:inline-flex;max-width:480px;width:100%">
+      <button type="button" role="tab" id="tab-today" aria-selected="false" class="filter-tab" onclick="setSentimentFilter(this,'today')">Today</button>
+      <button type="button" role="tab" id="tab-week" aria-selected="false" class="filter-tab" onclick="setSentimentFilter(this,'week')">This Week</button>
+      <button type="button" role="tab" id="tab-month" aria-selected="false" class="filter-tab" onclick="setSentimentFilter(this,'month')">This Month</button>
+      <button type="button" role="tab" id="tab-all" aria-selected="true" class="filter-tab active" onclick="setSentimentFilter(this,'all')">All Time</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="stat-card card-vsat h-100">
+        <div class="stat-card-icon"><span class="material-icons-round">sentiment_satisfied_alt</span></div>
+        <div class="stat-value" id="statPosVal">{{ positive }}</div>
+        <div class="stat-label">Total Positive Feedback</div>
+        <span class="stat-delta up" id="statPosDelta"><span class="material-icons-round" aria-hidden="true">arrow_upward</span><span id="statPosPct">{{ positive_pct }}%</span> of total</span>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">sentiment_satisfied_alt</span></div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="stat-card card-neu h-100">
+        <div class="stat-card-icon"><span class="material-icons-round">sentiment_neutral</span></div>
+        <div class="stat-value" id="statNeuVal">{{ neutral }}</div>
+        <div class="stat-label">Total Neutral Feedback</div>
+        <span class="stat-delta flat" id="statNeuDelta"><span class="material-icons-round" aria-hidden="true">remove</span><span id="statNeuPct">{{ neutral_pct }}%</span> of total</span>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">sentiment_neutral</span></div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="stat-card card-neg h-100">
+        <div class="stat-card-icon"><span class="material-icons-round">sentiment_dissatisfied</span></div>
+        <div class="stat-value" id="statNegVal">{{ negative }}</div>
+        <div class="stat-label">Total Negative Feedback</div>
+        <span class="stat-delta down" id="statNegDelta"><span class="material-icons-round" aria-hidden="true">arrow_downward</span><span id="statNegPct">{{ negative_pct }}%</span> of total</span>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">sentiment_dissatisfied</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIE CHART + BAR GRAPH -->
+  <div class="row g-3 mb-4">
+
+    <!-- PIE CHART -->
+    <div class="col-12 col-lg-5">
+      <div class="card-block h-100">
+        <div class="card-block-head">
+          <h2 class="card-block-title">
+            <span class="material-icons-round" aria-hidden="true">donut_large</span>
+            Sentiment Distribution
+          </h2>
+        </div>
+        <div class="card-block-body">
+          <div class="pie-chart-layout">
+            <div class="pie-chart-col">
+              <div class="chart-wrap" style="height:200px;">
+                <canvas id="sentimentPieChart" aria-label="Sentiment distribution pie chart" role="img"></canvas>
+              </div>
+            </div>
+            <div class="pie-legend-col">
+              <div class="pie-legend">
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#169651"></div>
+                  <span class="pie-legend-label">Positive</span>
+                  <span class="pie-legend-value" id="legendPosVal">{{ positive }}</span>
+                  <span class="pie-legend-pct" id="legendPosPct">{{ positive_pct }}%</span>
+                </div>
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#d97706"></div>
+                  <span class="pie-legend-label">Neutral</span>
+                  <span class="pie-legend-value" id="legendNeuVal">{{ neutral }}</span>
+                  <span class="pie-legend-pct" id="legendNeuPct">{{ neutral_pct }}%</span>
+                </div>
+                <div class="pie-legend-item">
+                  <div class="pie-legend-dot" style="background:#dc2626"></div>
+                  <span class="pie-legend-label">Negative</span>
+                  <span class="pie-legend-value" id="legendNegVal">{{ negative }}</span>
+                  <span class="pie-legend-pct" id="legendNegPct">{{ negative_pct }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAR GRAPH -->
+    <div class="col-12 col-lg-7">
+      <div class="card-block h-100">
+        <div class="card-block-head">
+          <h2 class="card-block-title">
+            <span class="material-icons-round" aria-hidden="true">bar_chart</span>
+            Sentiment Totals
+          </h2>
+        </div>
+        <div class="card-block-body">
+          <div class="chart-wrap" style="height:260px;">
+            <canvas id="sentimentBarChart" aria-label="Sentiment totals bar chart" role="img"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SENTIMENT TRENDS -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card-block">
+        <div class="card-block-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <h2 class="card-block-title" style="margin:0;">
+            <span class="material-icons-round" aria-hidden="true">show_chart</span>
+            Sentiment Trends Over Time
+          </h2>
+          <div class="chart-type-toggle" role="group" aria-label="Sentiment chart display type">
+            <button type="button" class="btn-chart-toggle active" id="btnSentLines" onclick="setSentimentChartType('line')">
+              <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:3px;">show_chart</span>Lines
+            </button>
+            <button type="button" class="btn-chart-toggle" id="btnSentBars" onclick="setSentimentChartType('bar')">
+              <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:3px;">bar_chart</span>Stacked
+            </button>
+          </div>
+        </div>
+        <div class="card-block-body">
+          <div id="sentimentEmptyState" class="chart-empty-state d-none" style="height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;color:var(--text-muted,#64748b);">
+            <span class="material-icons-round" style="font-size:36px;opacity:0.6;">query_stats</span>
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary,#0f172a);">No analyzed sentiment recorded for this period</div>
+            <div style="font-size:11px;max-width:280px;">Select "This Week", "This Month", or "All Time" to view citizen sentiment trends.</div>
+          </div>
+          <div class="chart-wrap" id="sentimentChartWrap" style="height:280px;">
+            <canvas id="sentimentTrendChart" aria-label="Sentiment trends over time" role="img"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block page_scripts %}
+{{ filter_data|json_script:"sentiment-filter-data" }}
+<script>
+const FILTER_DATA    = JSON.parse(document.getElementById('sentiment-filter-data').textContent);
+const TREND_LABELS   = {{ trend_labels|safe }};
+const TREND_DATES    = {{ trend_dates|default:"[]"|safe }};
+const TREND_POSITIVE = {{ trend_positive|safe }};
+const TREND_NEUTRAL  = {{ trend_neutral|safe }};
+const TREND_NEGATIVE = {{ trend_negative|safe }};
+
+const CHART_ANIM_DURATION = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300;
+
+let currentSentimentFilterPeriod = 'all';
+let currentSentimentChartType = 'line';
+let sentimentPieChart, sentimentBarChart, sentimentTrendChart;
+
+function animateCount(elemId, target) {
+  const el = document.getElementById(elemId);
+  if (!el) return;
+  const start = parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
+  if (start === target) { el.textContent = target; return; }
+  const duration = 400;
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(start + (target - start) * ease);
+    if (progress < 1) requestAnimationFrame(update);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(update);
+}
+
+function setSentimentChartType(type) {
+  if (currentSentimentChartType === type) return;
+  currentSentimentChartType = type;
+  const btnLine = document.getElementById('btnSentLines');
+  const btnBar  = document.getElementById('btnSentBars');
+  if (btnLine) btnLine.classList.toggle('active', type === 'line');
+  if (btnBar)  btnBar.classList.toggle('active', type === 'bar');
+  renderSentimentTrendForPeriod(currentSentimentFilterPeriod, true);
+}
+
+function updatePieAndLegend(data, forceRecreate = false) {
+  const canvas = document.getElementById('sentimentPieChart');
+  if (!canvas) return;
+  const ctx    = canvas.getContext('2d');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const pos    = data.positive || 0;
+  const neu    = data.neutral || 0;
+  const neg    = data.negative || 0;
+  const total  = pos + neu + neg;
+  const posPct = data.positive_pct !== undefined ? data.positive_pct : (total ? Math.round((pos / total) * 100) : 0);
+  const neuPct = data.neutral_pct !== undefined ? data.neutral_pct : (total ? Math.round((neu / total) * 100) : 0);
+  const negPct = data.negative_pct !== undefined ? data.negative_pct : (total ? Math.round((neg / total) * 100) : 0);
+
+  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setTxt('legendPosVal', pos);
+  setTxt('legendPosPct', posPct + '%');
+  setTxt('legendNeuVal', neu);
+  setTxt('legendNeuPct', neuPct + '%');
+  setTxt('legendNegVal', neg);
+  setTxt('legendNegPct', negPct + '%');
+
+  if (sentimentPieChart && !forceRecreate) {
+    sentimentPieChart.data.datasets[0].data = [pos, neu, neg];
+    sentimentPieChart.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
+    sentimentPieChart.update();
+    return;
+  }
+
+  if (sentimentPieChart) sentimentPieChart.destroy();
+
+  const centerTextPlugin = {
+    id: 'centerSentimentText',
+    afterDraw(chart) {
+      if (!chart.chartArea) return;
+      const cCtx = chart.ctx;
+      cCtx.save();
+      cCtx.textAlign = 'center';
+      cCtx.textBaseline = 'middle';
+      const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+      const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+
+      cCtx.font = '700 22px "IBM Plex Sans", sans-serif';
+      cCtx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+      cCtx.fillText(`${posPct}%`, centerX, centerY - 8);
+
+      cCtx.font = '600 10px "IBM Plex Sans", sans-serif';
+      cCtx.fillStyle = isDark ? '#cbd5e1' : '#64748b';
+      cCtx.fillText('Positive', centerX, centerY + 12);
+      cCtx.restore();
+    }
+  };
+
+  sentimentPieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Positive', 'Neutral', 'Negative'],
+      datasets: [{
+        data: [pos, neu, neg],
+        backgroundColor: ['#169651', '#d97706', '#dc2626'],
+        borderColor: isDark ? '#1e293b' : '#ffffff',
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    plugins: [centerTextPlugin],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      animation: { duration: CHART_ANIM_DURATION, animateRotate: true, animateScale: true },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#0f172a' : '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#f1f5f9',
+          padding: 10,
+          cornerRadius: 4,
+          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+          bodyFont: { family: "'IBM Plex Sans'", size: 12 },
+          callbacks: {
+            label: function(c) {
+              const t = c.dataset.data.reduce((a, b) => a + b, 0);
+              const p = t ? Math.round((c.parsed / t) * 100) : 0;
+              return `  ${c.label}: ${c.parsed} (${p}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateSentimentBar(data, forceRecreate = false) {
+  const canvas = document.getElementById('sentimentBarChart');
+  if (!canvas) return;
+  const ctx       = canvas.getContext('2d');
+  const isDark    = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+  const textColor = isDark ? '#cbd5e1' : '#475569';
+  const pos       = data.positive || 0;
+  const neu       = data.neutral || 0;
+  const neg       = data.negative || 0;
+  const maxVal    = Math.max(pos, neu, neg, 1);
+
+  if (sentimentBarChart && !forceRecreate) {
+    sentimentBarChart.data.datasets[0].data = [pos, neu, neg];
+    sentimentBarChart.options.scales.y.suggestedMax = Math.ceil(maxVal * 1.15);
+    sentimentBarChart.update();
+    return;
+  }
+
+  if (sentimentBarChart) sentimentBarChart.destroy();
+
+  sentimentBarChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Positive', 'Neutral', 'Negative'],
+      datasets: [{
+        label: 'Feedback Count',
+        data: [pos, neu, neg],
+        backgroundColor: ['#169651', '#d97706', '#dc2626'],
+        borderRadius: 4,
+        barPercentage: 0.55
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: CHART_ANIM_DURATION },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' } },
+          border: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: gridColor, borderDash: [], drawTicks: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, precision: 0 },
+          border: { display: false },
+          suggestedMax: Math.ceil(maxVal * 1.15)
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#0f172a' : '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#f1f5f9',
+          padding: 12,
+          cornerRadius: 4,
+          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+          bodyFont: { family: "'IBM Plex Sans'", size: 12 }
+        }
+      }
+    }
+  });
+}
+
+function updateSentimentTrend(labels, pos, neu, neg, forceRecreate = false) {
+  const canvas  = document.getElementById('sentimentTrendChart');
+  const emptyEl = document.getElementById('sentimentEmptyState');
+  const wrapEl  = document.getElementById('sentimentChartWrap');
+  if (!canvas) return;
+
+  const totalSum = pos.reduce((acc, v) => acc + v, 0) +
+                   neu.reduce((acc, v) => acc + v, 0) +
+                   neg.reduce((acc, v) => acc + v, 0);
+
+  if (labels.length === 0 || totalSum === 0) {
+    if (emptyEl) emptyEl.classList.remove('d-none');
+    if (wrapEl) wrapEl.classList.add('d-none');
+    return;
+  } else {
+    if (emptyEl) emptyEl.classList.add('d-none');
+    if (wrapEl) wrapEl.classList.remove('d-none');
+  }
+
+  const ctx       = canvas.getContext('2d');
+  const isDark    = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+  const textColor = isDark ? '#cbd5e1' : '#475569';
+  const ptBgColor = isDark ? '#0f172a' : '#ffffff';
+  const isBar     = currentSentimentChartType === 'bar';
+
+  if (sentimentTrendChart && !forceRecreate && sentimentTrendChart.config.type === (isBar ? 'bar' : 'line')) {
+    sentimentTrendChart.data.labels = labels;
+    sentimentTrendChart.data.datasets[0].data = pos;
+    sentimentTrendChart.data.datasets[1].data = neu;
+    sentimentTrendChart.data.datasets[2].data = neg;
+    sentimentTrendChart.update();
+    return;
+  }
+
+  if (sentimentTrendChart) sentimentTrendChart.destroy();
+
+  const posColor = isDark ? '#22c55e' : '#169651';
+
+  let datasets;
+  if (isBar) {
+    datasets = [
+      { label: 'Positive', data: pos, backgroundColor: posColor, borderRadius: 2, stack: 'sent', maxBarThickness: 56 },
+      { label: 'Neutral', data: neu, backgroundColor: '#d97706', borderRadius: 2, stack: 'sent', maxBarThickness: 56 },
+      { label: 'Negative', data: neg, backgroundColor: '#dc2626', borderRadius: 2, stack: 'sent', maxBarThickness: 56 }
+    ];
+  } else {
+    const gradPos = ctx.createLinearGradient(0, 0, 0, 240);
+    gradPos.addColorStop(0, isDark ? 'rgba(34, 197, 94, 0.25)' : 'rgba(22, 150, 81, 0.20)');
+    gradPos.addColorStop(1, 'rgba(22, 150, 81, 0.0)');
+
+    const gradNeu = ctx.createLinearGradient(0, 0, 0, 240);
+    gradNeu.addColorStop(0, 'rgba(217, 119, 6, 0.20)');
+    gradNeu.addColorStop(1, 'rgba(217, 119, 6, 0.0)');
+
+    const gradNeg = ctx.createLinearGradient(0, 0, 0, 240);
+    gradNeg.addColorStop(0, 'rgba(220, 38, 38, 0.20)');
+    gradNeg.addColorStop(1, 'rgba(220, 38, 38, 0.0)');
+
+    datasets = [
+      {
+        label: 'Positive',
+        data: pos,
+        borderColor: posColor,
+        backgroundColor: gradPos,
+        tension: 0.25,
+        fill: true,
+        pointBackgroundColor: posColor,
+        pointBorderColor: ptBgColor,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHitRadius: 10,
+        pointHoverRadius: 6,
+        borderWidth: 2.5
+      },
+      {
+        label: 'Neutral',
+        data: neu,
+        borderColor: '#d97706',
+        backgroundColor: gradNeu,
+        tension: 0.25,
+        fill: true,
+        pointBackgroundColor: '#d97706',
+        pointBorderColor: ptBgColor,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHitRadius: 10,
+        pointHoverRadius: 6,
+        borderWidth: 2.5
+      },
+      {
+        label: 'Negative',
+        data: neg,
+        borderColor: '#dc2626',
+        backgroundColor: gradNeg,
+        tension: 0.25,
+        fill: true,
+        pointBackgroundColor: '#dc2626',
+        pointBorderColor: ptBgColor,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHitRadius: 10,
+        pointHoverRadius: 6,
+        borderWidth: 2.5
+      }
+    ];
+  }
+
+  sentimentTrendChart = new Chart(ctx, {
+    type: isBar ? 'bar' : 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: {
+        padding: { right: 28, left: 8, top: 4, bottom: 4 }
+      },
+      animation: { duration: CHART_ANIM_DURATION },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          stacked: isBar,
+          grid: { color: gridColor, borderDash: [], drawTicks: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, maxTicksLimit: 10 },
+          border: { display: false }
+        },
+        y: {
+          stacked: isBar,
+          beginAtZero: true,
+          grid: { color: gridColor, borderDash: [], drawTicks: false },
+          ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, precision: 0 },
+          border: { display: false }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: textColor,
+            font: { family: "'IBM Plex Sans'", size: 11, weight: '600' },
+            boxWidth: 8,
+            boxHeight: 8,
+            padding: 12,
+            usePointStyle: true,
+            pointStyle: 'circle',
+            generateLabels(chart) {
+              const original = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+              return original.map(item => {
+                item.strokeStyle = item.fillStyle;
+                item.lineWidth = 0;
+                return item;
+              });
+            }
+          }
+        },
+        tooltip: {
+          backgroundColor: isDark ? '#0f172a' : '#1e293b',
+          titleColor: '#ffffff',
+          bodyColor: '#f1f5f9',
+          padding: 12,
+          cornerRadius: 4,
+          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+          bodyFont: { family: "'IBM Plex Sans'", size: 12 },
+          callbacks: {
+            footer: function(items) {
+              if (isBar) {
+                const dayTotal = items.reduce((acc, curr) => acc + (curr.parsed.y || 0), 0);
+                return `Total Sentiments: ${dayTotal}`;
+              }
+              return '';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function filterSentimentTrendByPeriod(period) {
+  if (period === 'all' || TREND_DATES.length === 0) {
+    return { labels: TREND_LABELS, pos: TREND_POSITIVE, neu: TREND_NEUTRAL, neg: TREND_NEGATIVE };
+  }
+
+  if (period === 'today') {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const idx = TREND_DATES.reduce((acc, d, i) => { if (d === todayStr) acc.push(i); return acc; }, []);
+    if (idx.length === 0) {
+      return { labels: [], pos: [], neu: [], neg: [] };
+    }
+    return {
+      labels: ['Today (' + TREND_LABELS[idx[0]] + ')'],
+      pos: [TREND_POSITIVE[idx[0]] || 0],
+      neu: [TREND_NEUTRAL[idx[0]] || 0],
+      neg: [TREND_NEGATIVE[idx[0]] || 0]
+    };
+  }
+
+  const days   = period === 'week' ? 7 : 30;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const idx    = TREND_DATES.reduce((acc, d, i) => { if (new Date(d + 'T00:00:00').getTime() >= cutoff) acc.push(i); return acc; }, []);
+  return {
+    labels: idx.map(i => TREND_LABELS[i]),
+    pos: idx.map(i => TREND_POSITIVE[i] || 0),
+    neu: idx.map(i => TREND_NEUTRAL[i] || 0),
+    neg: idx.map(i => TREND_NEGATIVE[i] || 0)
+  };
+}
+
+function renderSentimentTrendForPeriod(period, forceRecreate = false) {
+  const f = filterSentimentTrendByPeriod(period);
+  updateSentimentTrend(f.labels, f.pos, f.neu, f.neg, forceRecreate);
+}
+
+function setSentimentFilter(btn, period) {
+  document.querySelectorAll('.filter-tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+  currentSentimentFilterPeriod = period;
+
+  const d = FILTER_DATA[period] || { positive: 0, neutral: 0, negative: 0, total: 0, positive_pct: 0, neutral_pct: 0, negative_pct: 0 };
+  animateCount('statPosVal', d.positive || 0);
+  animateCount('statNeuVal', d.neutral || 0);
+  animateCount('statNegVal', d.negative || 0);
+
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  setTxt('statPosPct', (d.positive_pct || 0) + '%');
+  setTxt('statNeuPct', (d.neutral_pct || 0) + '%');
+  setTxt('statNegPct', (d.negative_pct || 0) + '%');
+
+  updatePieAndLegend(d);
+  updateSentimentBar(d);
+  renderSentimentTrendForPeriod(period);
+}
+
+function onThemeChange() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  updatePieAndLegend(FILTER_DATA[currentSentimentFilterPeriod], true);
+  updateSentimentBar(FILTER_DATA[currentSentimentFilterPeriod], true);
+  renderSentimentTrendForPeriod(currentSentimentFilterPeriod, true);
+}
+
+function onResize() {
+  if (sentimentTrendChart) sentimentTrendChart.resize();
+  if (sentimentPieChart) sentimentPieChart.resize();
+  if (sentimentBarChart) sentimentBarChart.resize();
+}
+
+function pageInit() {
+  const initialData = FILTER_DATA.all || { positive: 0, neutral: 0, negative: 0, total: 0 };
+  updatePieAndLegend(initialData);
+  updateSentimentBar(initialData);
+  renderSentimentTrendForPeriod('all');
+
+  // Stabilize chart layout once scrollbars and layout geometry settle
+  requestAnimationFrame(() => {
+    if (sentimentTrendChart) sentimentTrendChart.resize();
+    if (sentimentPieChart) sentimentPieChart.resize();
+    if (sentimentBarChart) sentimentBarChart.resize();
+  });
+  setTimeout(() => {
+    if (sentimentTrendChart) sentimentTrendChart.resize();
+  }, 100);
+
+  // Redraw when custom web fonts finish loading so legend width measurements are exact
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      if (sentimentTrendChart) sentimentTrendChart.update('none');
+      if (sentimentPieChart) sentimentPieChart.update('none');
+      if (sentimentBarChart) sentimentBarChart.update('none');
+    });
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,1103 @@
+{% extends 'feedback_admin/base.html' %}
+{% load static %}
+
+{% block title %}Responses | PhilHealth Cauayan City{% endblock %}
+
+{% block nav_responses %}active{% endblock %}
+
+{% block extra_styles %}
+.card-block, .stat-card {
+  contain: content;
+}
+.expand-btn {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--text-muted); transition: color 120ms; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+}
+.expand-btn:hover { color: var(--g-primary); background: var(--surface-page); }
+.expand-btn .material-icons-round { font-size: 18px; }
+
+.table-controls-right {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+.detail-row td {
+  padding: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--surface-page);
+}
+.detail-inner {
+  padding: 20px 24px 24px 24px;
+  font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+  margin: 12px 16px 16px 16px;
+}
+[data-theme="dark"] .detail-inner { background: rgba(255,255,255,0.02); }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 28px;
+}
+@media (max-width: 768px) {
+  .detail-grid { grid-template-columns: 1fr; gap: 20px; }
+}
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; padding: 64px 20px;
+  color: var(--text-muted);
+}
+.empty-state .material-icons-round { font-size: 48px; opacity: 0.25; }
+.empty-state-title { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.empty-state-sub   { font-size: 12px; }
+
+.bulk-bar {
+  display: none; align-items: center; gap: 10px; padding: 10px 16px;
+  background: var(--g-xlight); border-bottom: 1px solid var(--g-light);
+  font-size: 12px; font-weight: 600; color: var(--g-forest);
+  flex-wrap: wrap;
+}
+[data-theme="dark"] .bulk-bar { background: rgba(35,164,85,0.08); border-color: rgba(35,164,85,0.15); color: #5fcf8a; }
+.bulk-bar.visible { display: flex; }
+.bulk-bar .material-icons-round { font-size: 16px; }
+
+/* ── BULK ACTION DROPDOWN ── */
+.bulk-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+.bulk-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+.bulk-dropdown-btn .chevron {
+  font-size: 15px;
+  transition: transform 150ms ease;
+}
+.bulk-dropdown.open .bulk-dropdown-btn .chevron {
+  transform: rotate(180deg);
+}
+.bulk-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 150;
+  min-width: 195px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.16);
+  padding: 4px 0;
+  border-radius: 2px;
+}
+.bulk-dropdown.open .bulk-dropdown-menu {
+  display: block;
+}
+.bulk-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+  transition: background 120ms, color 120ms;
+}
+.bulk-dropdown-item:hover {
+  background: var(--surface-page);
+  color: var(--g-primary);
+}
+.bulk-dropdown-item .material-icons-round {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+.bulk-dropdown-item:hover .material-icons-round {
+  color: var(--g-primary);
+}
+.bulk-dropdown-item.item-danger {
+  color: var(--red) !important;
+}
+.bulk-dropdown-item.item-danger .material-icons-round {
+  color: var(--red) !important;
+}
+.bulk-dropdown-item.item-danger:hover {
+  background: var(--red-bg) !important;
+  color: var(--red) !important;
+}
+.bulk-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ── CONFIRMATION MODALS (deletion) ── */
+.confirm-modal-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 600;
+  background: rgba(10,26,4,0.52); backdrop-filter: blur(3px);
+  align-items: center; justify-content: center; padding: 16px;
+}
+.confirm-modal-backdrop.open { display: flex; }
+.confirm-modal-card {
+  background: var(--surface-card); border: 1px solid var(--border);
+  width: 100%; max-width: 420px; position: relative;
+}
+.confirm-modal-head {
+  padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.confirm-modal-icon {
+  width: 36px; height: 36px; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0;
+}
+.confirm-modal-icon .material-icons-round { font-size: 20px; }
+.confirm-modal-icon.danger { background: var(--red-bg); }
+.confirm-modal-icon.danger .material-icons-round { color: var(--red); }
+.confirm-modal-title { font-size: 13px; font-weight: 800; color: var(--text-primary); }
+.confirm-modal-close {
+  margin-left: auto; width: 28px; height: 28px; display: flex; align-items: center;
+  justify-content: center; border: 1px solid var(--border); background: transparent;
+  color: var(--text-muted); cursor: pointer; transition: all 120ms; flex-shrink: 0;
+}
+.confirm-modal-close:hover { border-color: var(--red); color: var(--red); }
+.confirm-modal-close .material-icons-round { font-size: 15px; }
+.confirm-modal-body { padding: 18px 22px 20px; }
+.confirm-modal-body p { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin: 0; }
+.confirm-modal-footer {
+  padding: 0 22px 18px; display: flex; align-items: center;
+  justify-content: flex-end; gap: 8px;
+}
+.confirm-target-box {
+  margin: 12px 0; padding: 10px 14px;
+  background: var(--surface-page); border: 1px solid var(--border);
+  font-family: var(--mono); font-size: 12px; color: var(--text-primary);
+  max-height: 100px; overflow-y: auto; word-break: break-all;
+}
+
+.status-select {
+  font-size: 11px; font-weight: 700; padding: 3px 7px;
+  border: 1.5px solid var(--border); background: var(--surface-page);
+  color: var(--text-secondary); cursor: pointer; font-family: var(--font);
+  border-radius: 0; outline: none; transition: border-color 120ms;
+}
+.status-select:focus { border-color: var(--g-primary); }
+.status-select.s-pending  { border-color: var(--badge-sat-border);  color: var(--badge-sat-text);  background: var(--badge-sat-bg); }
+.status-select.s-reviewed { border-color: var(--badge-vsat-border); color: var(--badge-vsat-text); background: var(--badge-vsat-bg); }
+.status-select.s-resolved { border-color: var(--badge-blue-border); color: var(--badge-blue-text); background: var(--badge-blue-bg); }
+{% endblock %}
+
+{% block page_content %}
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-eyebrow">
+          <span class="material-icons-round">inbox</span>
+          All Submissions
+        </div>
+        <h1 class="page-title">Responses</h1>
+        <p class="page-subtitle">Browse, search, and filter every feedback submission.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card card-sat">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:var(--g-primary);background:var(--g-xlight)">forum</span></div>
+        <div class="stat-value" id="totalVal">{{ total }}</div>
+        <div class="stat-label">Total</div>
+        <div class="stat-card-bg-icon"><span class="material-icons-round">forum</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-md">
+      <div class="stat-card card-vsat">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:#15803d;background:#f0fdf4">sentiment_very_satisfied</span></div>
+        <div class="stat-value" id="saVal">{{ strongly_agree }}</div>
+        <div class="stat-label">Strongly Agree</div>
+        <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_very_satisfied</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-md">
+      <div class="stat-card card-sat">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:#16a34a;background:#f0fdf4">sentiment_satisfied</span></div>
+        <div class="stat-value" id="aVal">{{ agree }}</div>
+        <div class="stat-label">Agree</div>
+        <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_satisfied</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-md">
+      <div class="stat-card card-neu">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:#ca8a04;background:#fefce8">sentiment_neutral</span></div>
+        <div class="stat-value" id="nadVal">{{ neither }}</div>
+        <div class="stat-label">Neither</div>
+        <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_neutral</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-md">
+      <div class="stat-card card-neg">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:#dc2626;background:#fef2f2">sentiment_dissatisfied</span></div>
+        <div class="stat-value" id="dVal">{{ disagree }}</div>
+        <div class="stat-label">Disagree</div>
+        <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_dissatisfied</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-md">
+      <div class="stat-card card-neg">
+        <div class="stat-card-icon"><span class="material-icons-round" style="color:#991b1b;background:#fef2f2">sentiment_very_dissatisfied</span></div>
+        <div class="stat-value" id="sdVal">{{ strongly_disagree }}</div>
+        <div class="stat-label">Strongly Disagree</div>
+        <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_very_dissatisfied</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-block">
+
+    <div class="table-controls">
+      <div class="search-box">
+        <span class="material-icons-round">search</span>
+        <input type="text" id="tableSearch" placeholder="Search responses…" oninput="onSearchInput()" aria-label="Search responses">
+      </div>
+      <div class="table-controls-right">
+        <span class="table-info" id="tableInfo">—</span>
+        <select class="btn-ph" id="ratingFilter" onchange="applyFilters()" aria-label="Filter by rating" style="cursor:pointer">
+          <option value="">All SQD Ratings</option>
+          <option value="Strongly Agree">😃 Strongly Agree</option>
+          <option value="Agree">🙂 Agree</option>
+          <option value="Neither Agree nor Disagree">😐 Neither Agree/Disagree</option>
+          <option value="Disagree">🙁 Disagree</option>
+          <option value="Strongly Disagree">😠 Strongly Disagree</option>
+          <option value="Not Applicable">N/A Not Applicable</option>
+        </select>
+        <select class="btn-ph" id="categoryFilter" onchange="applyFilters()" aria-label="Filter by category" style="cursor:pointer">
+          <option value="">All Categories</option>
+          <option value="Complaint">Complaint</option>
+          <option value="Suggestion">Suggestion</option>
+          <option value="Compliment">Compliment</option>
+          <option value="Concern">Concern</option>
+        </select>
+        <select class="btn-ph" id="sentimentFilter" onchange="applyFilters()" aria-label="Filter by sentiment" style="cursor:pointer">
+          <option value="">All Sentiments</option>
+          <option value="Positive">Positive</option>
+          <option value="Neutral">Neutral</option>
+          <option value="Negative">Negative</option>
+          <option value="Pending">Pending (Unanalyzed)</option>
+          <option value="N/A">N/A (No Comment)</option>
+        </select>
+        <select class="btn-ph" id="statusFilter" onchange="applyFilters()" aria-label="Filter by status" style="cursor:pointer">
+          <option value="">All Statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Reviewed">Reviewed</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+        <select class="btn-ph" id="staffFilter" onchange="applyFilters()" aria-label="Filter by attending staff" style="cursor:pointer">
+          <option value="">All Staff</option>
+        </select>
+        <select class="btn-ph" id="dateRangeFilter" onchange="applyFilters()" aria-label="Filter by date range" style="cursor:pointer">
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+        <button type="button" class="btn-ph btn-ph-primary" onclick="exportCSV()">
+          <span class="material-icons-round" aria-hidden="true">download</span> Export CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="bulk-bar" id="bulkBar">
+      <span class="material-icons-round" aria-hidden="true">check_box</span>
+      <span id="bulkCount">0 selected</span>
+      <button type="button" class="btn-ph btn-ph-sm" onclick="clearSelection()">
+        <span class="material-icons-round" aria-hidden="true">close</span> Deselect
+      </button>
+
+      <div class="bulk-dropdown" id="bulkDropdown">
+        <button type="button" class="btn-ph btn-ph-sm btn-ph-primary bulk-dropdown-btn" id="bulkDropdownBtn"
+                onclick="toggleBulkDropdown(event)" aria-haspopup="true" aria-expanded="false" aria-label="Choose bulk action for selected responses">
+          <span>Choose Action</span>
+          <span class="material-icons-round chevron" aria-hidden="true">expand_more</span>
+        </button>
+        <div class="bulk-dropdown-menu" id="bulkDropdownMenu" role="menu" aria-label="Bulk actions">
+          <button type="button" class="bulk-dropdown-item" role="menuitem" onclick="exportSelected(); closeBulkDropdown();">
+            <span class="material-icons-round" aria-hidden="true">download</span>
+            <span>Export selected (CSV)</span>
+          </button>
+          <div class="bulk-dropdown-divider" role="separator"></div>
+          <button type="button" class="bulk-dropdown-item item-danger" id="bulkDeleteBtn" role="menuitem" onclick="openDeleteResponsesModal(); closeBulkDropdown();">
+            <span class="material-icons-round" aria-hidden="true">delete_forever</span>
+            <span>Delete selected</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="ph-table" id="responseTable" aria-label="All feedback responses">
+        <thead>
+          <tr>
+            <th style="width:36px;padding:10px 8px 10px 16px;">
+              <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" aria-label="Select all rows" style="cursor:pointer;accent-color:var(--g-primary)">
+            </th>
+            <th style="width:60px">ID</th>
+            <th style="min-width:110px">Date &amp; Time</th>
+            <th style="min-width:160px">SQD Rating</th>
+            <th style="min-width:140px">Attending Staff</th>
+            <th style="min-width:120px">Category</th>
+            <th style="min-width:100px">Sentiment</th>
+            <th style="min-width:110px">Status</th>
+            <th>Feedback / Comment</th>
+            <th style="width:44px"></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="pagination-row">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span class="table-info" id="pageInfo">—</span>
+        <select class="btn-ph btn-ph-sm" id="pageSizeSelect" onchange="changePageSize(this.value)" aria-label="Rows per page" style="cursor:pointer">
+          <option value="10">10 / page</option>
+          <option value="25">25 / page</option>
+          <option value="50">50 / page</option>
+          <option value="100">100 / page</option>
+        </select>
+      </div>
+      <div class="pg-btns" id="paginationBtns" role="navigation" aria-label="Table pagination"></div>
+    </div>
+
+  </div>
+
+  <!-- DELETE RESPONSES CONFIRMATION MODAL -->
+  <div class="confirm-modal-backdrop" id="deleteResponsesModal"
+    role="dialog" aria-modal="true" aria-labelledby="deleteResponsesModalTitle"
+    onclick="if(event.target===this && !isDeletingResponses) closeDeleteResponsesModal()">
+    <div class="confirm-modal-card" onclick="event.stopPropagation()">
+      <div class="confirm-modal-head">
+        <div class="confirm-modal-icon danger">
+          <span class="material-icons-round">delete_forever</span>
+        </div>
+        <div class="confirm-modal-title" id="deleteResponsesModalTitle">Delete Feedback Response?</div>
+        <button class="confirm-modal-close" id="deleteResponsesCloseBtn" onclick="if(!isDeletingResponses) closeDeleteResponsesModal()" aria-label="Close">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="confirm-modal-body">
+        <div id="deleteTargetCount" style="font-size:13px;font-weight:700;color:var(--text-primary);line-height:1.5;">
+          Permanently delete selected responses?
+        </div>
+        <div class="confirm-target-box" id="deleteTargetList">—</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.4;">
+          This action cannot be undone. All response ratings, feedback comments, and internal notes will be permanently removed.
+        </div>
+      </div>
+      <div class="confirm-modal-footer">
+        <button type="button" class="btn-ph" id="cancelDeleteResponsesBtn" onclick="if(!isDeletingResponses) closeDeleteResponsesModal()">
+          <span class="material-icons-round">close</span> Cancel
+        </button>
+        <button type="button" class="btn-ph" id="confirmDeleteResponsesBtn"
+          style="background:var(--red);border-color:var(--red);color:var(--white);"
+          onclick="executeDeleteResponses()">
+          <span class="ph-loader"></span>
+          <span class="material-icons-round">delete_forever</span> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block page_scripts %}
+{{ entries_data|json_script:"entries-data" }}
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+const ALL_DATA = JSON.parse(document.getElementById('entries-data').textContent);
+
+const RATING_CONFIG = {
+  'Strongly Agree':             { cls:'chip-sa',  icon:'sentiment_very_satisfied' },
+  'Agree':                      { cls:'chip-a',   icon:'sentiment_satisfied' },
+  'Neither Agree nor Disagree': { cls:'chip-nad', icon:'sentiment_neutral' },
+  'Disagree':                   { cls:'chip-d',   icon:'sentiment_dissatisfied' },
+  'Strongly Disagree':          { cls:'chip-sd',  icon:'sentiment_very_dissatisfied' },
+  'Not Applicable':             { cls:'chip-na',  icon:'block' },
+};
+
+const SENTIMENT_CONFIG = {
+  'Positive': { cls:'chip-pos',     icon:'thumb_up' },
+  'Neutral':  { cls:'chip-neu',     icon:'sentiment_neutral' },
+  'Negative': { cls:'chip-neg',     icon:'thumb_down' },
+  'Pending':  { cls:'chip-pending', icon:'schedule' },
+  'N/A':      { cls:'chip-na',      icon:'' },
+};
+
+const STATUS_CLS = {
+  'Pending':  's-pending',
+  'Reviewed': 's-reviewed',
+  'Resolved': 's-resolved',
+  'pending':  's-pending',
+  'reviewed': 's-reviewed',
+  'resolved': 's-resolved',
+};
+
+const CAT_CLS = {
+  'complaint': 's-pending',
+  'suggestion': 's-reviewed',
+  'compliment': 's-reviewed',
+  'concern': 's-pending',
+};
+
+/* ── STATE ── */
+let filteredRows    = [...ALL_DATA];
+let currentPage     = 1;
+let pageSize        = 10;
+let selectedIds     = new Set();
+let expandedIds     = new Set();
+let activeDateRange = 'all';
+
+/* ── UTILS ── */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function dateOf(r) { return new Date(r.date + 'T' + r.time); }
+
+function inDateRange(r) {
+  const d = dateOf(r), now = new Date();
+  if (activeDateRange === 'today') return d.toDateString() === now.toDateString();
+  if (activeDateRange === 'week')  { const w = new Date(now); w.setDate(now.getDate()-7); return d >= w; }
+  if (activeDateRange === 'month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  return true;
+}
+
+let searchDebounceTimer = null;
+function onSearchInput() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(applyFilters, 150);
+}
+
+/* ── FILTER ── */
+function applyFilters(keepPage = false) {
+  const q          = document.getElementById('tableSearch').value.toLowerCase();
+  const experience = document.getElementById('ratingFilter').value;
+  const category   = document.getElementById('categoryFilter').value;
+  const sentiment  = document.getElementById('sentimentFilter').value;
+  const status     = document.getElementById('statusFilter').value;
+  const staffFilter = (document.getElementById('staffFilter') || {}).value || '';
+  activeDateRange  = document.getElementById('dateRangeFilter').value;
+
+  filteredRows = ALL_DATA.filter(r => {
+    const matchQ    = !q || (r.comment||'').toLowerCase().includes(q)
+                         || r.id.toString().includes(q)
+                         || r.experience.toLowerCase().includes(q)
+                         || (r.category||'').toLowerCase().includes(q)
+                         || r.date.includes(q)
+                         || (r.sentiment||'').toLowerCase().includes(q)
+                         || (r.staff||'').toLowerCase().includes(q)
+                         || (r.name_of_client||'').toLowerCase().includes(q);
+    const matchE    = !experience || r.experience === experience;
+    const matchC    = !category   || r.category   === category;
+    const matchS    = !sentiment  || r.sentiment  === sentiment;
+    const matchSt   = !status     || r.status     === status;
+    const matchStaff = !staffFilter || r.staff === staffFilter;
+    return matchQ && matchE && matchC && matchS && matchSt && matchStaff && inDateRange(r);
+  });
+  const maxPage = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  if (keepPage) {
+    if (currentPage > maxPage) currentPage = maxPage;
+  } else {
+    currentPage = 1;
+  }
+  renderTable();
+}
+
+function changePageSize(val) { pageSize = parseInt(val); currentPage = 1; renderTable(); }
+
+/* ── STATUS INLINE UPDATE ── */
+function updateStatus(id, newStatus) {
+  fetch(`/dashboard/responses/${id}/status/`, {
+    method:'POST',
+    headers:{'X-CSRFToken': CSRF_TOKEN, 'Content-Type':'application/json'},
+    body: JSON.stringify({status: newStatus})
+  })
+  .then(response => response.json().then(data => {
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to update status.');
+    return data;
+  }))
+  .then(data => {
+    const row = ALL_DATA.find(r => r.id === id);
+    if (row) {
+      row.status = data.status;
+      row.status_value = data.status_value;
+      if (data.history_entry) {
+        if (!row.status_history) row.status_history = [];
+        row.status_history.push(data.history_entry);
+      }
+    }
+    renderTable();
+  })
+  .catch(err => {
+    alert(err.message);
+    renderTable();
+  });
+}
+
+function updateCategory(id, newCat) {
+  fetch(`/dashboard/responses/${id}/category/`, {
+    method:'POST',
+    headers:{'X-CSRFToken': CSRF_TOKEN, 'Content-Type':'application/json'},
+    body: JSON.stringify({category: newCat})
+  })
+  .then(response => response.json().then(data => {
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to update category.');
+    return data;
+  }))
+  .then(data => {
+    const row = ALL_DATA.find(r => r.id === id);
+    if (row) {
+      row.category = data.category;
+      row.category_value = data.category_value;
+    }
+    renderTable();
+  })
+  .catch(err => {
+    alert(err.message);
+    renderTable();
+  });
+}
+
+/* ── NOTES ── */
+function addNote(id) {
+  const input = document.getElementById('note-input-' + id);
+  const body = input.value.trim();
+  if (!body) return;
+
+  fetch(`/dashboard/responses/${id}/notes/add/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body: body })
+  })
+  .then(response => response.json().then(data => {
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to add note.');
+    return data;
+  }))
+  .then(data => {
+    const row = ALL_DATA.find(r => r.id === id);
+    if (row) {
+      if (!row.notes) row.notes = [];
+      row.notes.push(data.note);
+    }
+    input.value = '';
+    renderTable();
+  })
+  .catch(err => alert(err.message));
+}
+
+/* ── SELECTION ── */
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(id); else selectedIds.delete(id);
+  updateBulkBar(); updateSelectAll();
+}
+function toggleSelectAll(cb) {
+  getPageRows().forEach(r => { if (cb.checked) selectedIds.add(r.id); else selectedIds.delete(r.id); });
+  updateBulkBar(); renderTable();
+}
+function clearSelection() {
+  selectedIds.clear();
+  closeBulkDropdown();
+  updateBulkBar();
+  document.getElementById('selectAll').checked = false;
+  renderTable();
+}
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  bar.classList.toggle('visible', selectedIds.size > 0);
+  if (selectedIds.size > 0) {
+    document.getElementById('bulkCount').textContent = `${selectedIds.size} selected`;
+  } else {
+    closeBulkDropdown();
+  }
+}
+function updateSelectAll() {
+  const page = getPageRows(), cb = document.getElementById('selectAll');
+  if (!page.length) { cb.checked = false; cb.indeterminate = false; return; }
+  const n = page.filter(r => selectedIds.has(r.id)).length;
+  cb.indeterminate = n > 0 && n < page.length;
+  cb.checked       = n === page.length;
+}
+
+/* ── EXPAND ── */
+function toggleExpand(id) {
+  if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+  renderTable();
+}
+
+/* ── RENDER ── */
+function getPageRows() {
+  const start = (currentPage - 1) * pageSize;
+  return filteredRows.slice(start, start + pageSize);
+}
+
+function renderTable() {
+  const body  = document.getElementById('tableBody');
+  const start = (currentPage - 1) * pageSize;
+  const end   = Math.min(start + pageSize, filteredRows.length);
+  const rows  = filteredRows.slice(start, end);
+
+  const COLS = 10; /* checkbox + id + date + rating + staff + category + sentiment + status + comment + expand */
+
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="${COLS}">
+      <div class="empty-state">
+        <span class="material-icons-round">inbox</span>
+        <div class="empty-state-title">No responses found</div>
+        <div class="empty-state-sub">Try adjusting your search or filters.</div>
+      </div></td></tr>`;
+  } else {
+    body.innerHTML = rows.flatMap(r => {
+      const rCfg      = RATING_CONFIG[r.rating]    || RATING_CONFIG['Strongly Agree'] || { cls:'chip-sa', icon:'sentiment_very_satisfied' };
+      const sCfg      = SENTIMENT_CONFIG[r.sentiment] || { cls:'chip-na', icon:'' };
+      const statusVal = r.status_value || String(r.status || 'Pending').toLowerCase();
+      const stCls     = STATUS_CLS[statusVal] || STATUS_CLS[r.status] || 's-pending';
+      const catVal    = r.category_value || '';
+      const dateStr   = new Date(r.date).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
+      const checked   = selectedIds.has(r.id) ? 'checked' : '';
+      const expanded  = expandedIds.has(r.id);
+      const hasComment = !!r.comment;
+      const preview   = hasComment
+        ? `<div class="comment-text">${escHtml(r.comment)}</div>`
+        : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment</span>`;
+
+      const mainRow = `<tr data-id="${r.id}">
+        <td style="padding:13px 8px 13px 16px;">
+          <input type="checkbox" ${checked} onchange="toggleSelect(${r.id}, this.checked)"
+            aria-label="Select response ${r.id}" style="cursor:pointer;accent-color:var(--g-primary)">
+        </td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">#${r.id}</td>
+        <td class="datetime-cell">
+          <div class="datetime-date">${dateStr}</div>
+          <div class="datetime-time">${r.time}</div>
+        </td>
+        <td>
+          <span class="rating-chip ${rCfg.cls}">
+            <span class="material-icons-round">${rCfg.icon}</span>${r.rating}
+          </span>
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;">
+            <span class="material-icons-round" style="font-size:15px;color:var(--g-primary);" aria-hidden="true">badge</span>
+            <span>${escHtml(r.staff || '—')}</span>
+          </div>
+        </td>
+        <td>
+          <select id="cat-sel-${r.id}"
+            class="status-select"
+            style="font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:0.04em;"
+            onchange="updateCategory(${r.id}, this.value)"
+            aria-label="Category for response ${r.id}">
+            <option value="">— Unset —</option>
+            <option value="complaint"  ${catVal==='complaint'  ? 'selected':''}>Complaint</option>
+            <option value="suggestion" ${catVal==='suggestion' ? 'selected':''}>Suggestion</option>
+            <option value="compliment" ${catVal==='compliment' ? 'selected':''}>Compliment</option>
+            <option value="concern"    ${catVal==='concern'    ? 'selected':''}>Concern</option>
+          </select>
+        </td>
+        <td>
+          <span class="rating-chip ${sCfg.cls}">
+            ${sCfg.icon ? `<span class="material-icons-round">${sCfg.icon}</span>` : ''}${r.sentiment || '—'}
+          </span>
+        </td>
+        <td>
+          <select id="status-sel-${r.id}"
+            class="status-select ${stCls}"
+            onchange="updateStatus(${r.id}, this.value)"
+            aria-label="Status for response ${r.id}">
+            <option value="pending"  ${statusVal==='pending'  ? 'selected':''}>Pending</option>
+            <option value="reviewed" ${statusVal==='reviewed' ? 'selected':''}>Reviewed</option>
+            <option value="resolved" ${statusVal==='resolved' ? 'selected':''}>Resolved</option>
+          </select>
+        </td>
+        <td class="comment-cell">${preview}</td>
+        <td style="padding:13px 12px 13px 4px;text-align:center;">
+          <button type="button" class="expand-btn" onclick="toggleExpand(${r.id})"
+            title="${expanded ? 'Collapse' : 'Expand'}" aria-label="${expanded ? 'Collapse details for response #' + r.id : 'Expand details for response #' + r.id}" aria-expanded="${expanded}">
+            <span class="material-icons-round" aria-hidden="true">${expanded ? 'expand_less' : 'expand_more'}</span>
+          </button>
+        </td>
+      </tr>`;
+
+      const detailRow = expanded
+        ? `<tr class="detail-row" data-detail="${r.id}">
+            <td colspan="${COLS}">
+              <div class="detail-inner">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:11px;display:flex;align-items:center;gap:6px;">
+                    <span class="material-icons-round" style="font-size:15px;color:var(--g-primary)" aria-hidden="true">badge</span>
+                    <span style="font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.05em;">Attending Staff:</span>
+                    <span style="font-weight:700;color:var(--g-primary);">${escHtml(r.staff || 'Not specified')}</span>
+                  </div>
+                  <div style="font-size:11px;display:flex;align-items:center;gap:6px;">
+                    <span class="material-icons-round" style="font-size:15px;color:var(--text-muted)" aria-hidden="true">person</span>
+                    <span style="font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.05em;">Client:</span>
+                    <span style="font-weight:600;color:var(--text-primary);">${escHtml(r.name_of_client || 'Anonymous')}</span>
+                  </div>
+                  ${r.client_type ? `
+                  <div style="font-size:11px;display:flex;align-items:center;gap:6px;">
+                    <span class="material-icons-round" style="font-size:15px;color:var(--text-muted)" aria-hidden="true">category</span>
+                    <span style="font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.05em;">Type:</span>
+                    <span style="color:var(--text-secondary);">${escHtml(r.client_type)}</span>
+                  </div>` : ''}
+                </div>
+                <div class="detail-grid">
+                  <div>
+                    <div style="font-weight:700;margin-bottom:8px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;">Original Feedback</div>
+                    <div style="font-size:13px;color:var(--text-primary);white-space:pre-wrap;margin-bottom:20px;line-height:1.6;">${escHtml(r.comment || 'No additional comment provided.')}</div>
+                    
+                    <div style="font-weight:700;margin-bottom:12px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
+                      <span class="material-icons-round" style="font-size:14px" aria-hidden="true">description</span>
+                      Internal Administrative Notes
+                    </div>
+                    <div id="notes-list-${r.id}" style="margin-bottom:16px;">
+                      ${(r.notes||[]).map(n => `
+                        <div style="padding:10px 12px;background:var(--surface-page);border:1.5px solid var(--border);margin-bottom:6px;">
+                          <div style="font-size:11px;font-weight:700;margin-bottom:4px;display:flex;justify-content:space-between;">
+                            <span>${escHtml(n.author)}</span>
+                            <span style="font-weight:400;color:var(--text-muted);">${n.created_at}</span>
+                          </div>
+                          <div style="font-size:12px;color:var(--text-secondary);">${escHtml(n.body)}</div>
+                        </div>
+                      `).join('') || '<div style="font-size:12px;font-style:italic;color:var(--text-muted);margin-bottom:12px;">No internal notes yet.</div>'}
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                      <input type="text" id="note-input-${r.id}" placeholder="Type administrative note..." aria-label="Type administrative note for response #${r.id}" style="flex:1;font-size:12px;padding:8px 12px;border:1.5px solid var(--border);background:var(--surface-page);outline:none;border-radius:0;">
+                      <button type="button" class="btn-ph btn-ph-sm btn-ph-primary" onclick="addNote(${r.id})">Add Note</button>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-weight:700;margin-bottom:12px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
+                      <span class="material-icons-round" style="font-size:14px" aria-hidden="true">history</span>
+                      Status History
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;padding-right:4px;">
+                      ${(r.status_history||[]).map(h => `
+                        <div style="font-size:11px;padding:10px;border:1px solid var(--border);background:var(--surface-page);margin-bottom:4px;">
+                          <div style="font-weight:700;margin-bottom:4px;color:var(--text-primary);">${h.at}</div>
+                          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                            <span class="status-select s-${h.old.toLowerCase()}" style="padding:1px 5px;font-size:9px;pointer-events:none;">${h.old}</span>
+                            <span class="material-icons-round" style="font-size:14px;color:var(--text-muted)" aria-hidden="true">arrow_forward</span>
+                            <span class="status-select s-${h.new.toLowerCase()}" style="padding:1px 5px;font-size:9px;pointer-events:none;">${h.new}</span>
+                          </div>
+                          <div style="color:var(--text-muted);font-size:10px;">Changed by <strong>${h.by}</strong></div>
+                        </div>
+                      `).join('') || '<div style="font-size:11px;font-style:italic;color:var(--text-muted);">Initial submission status: Pending</div>'}
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;align-items:center;">
+                  <button type="button" class="btn-ph btn-ph-sm" style="color:var(--red);border-color:var(--red);" onclick="openSingleDeleteModal(${r.id})">
+                    <span class="material-icons-round" aria-hidden="true" style="font-size:15px">delete_forever</span> Delete Response
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>`
+        : '';
+
+      return [mainRow, detailRow];
+    }).join('');
+  }
+
+  document.getElementById('tableInfo').textContent =
+    filteredRows.length === 0 ? 'No results' : `Showing ${start+1}–${end} of ${filteredRows.length}`;
+
+  updateSelectAll();
+  renderPagination();
+}
+
+function renderPagination() {
+  const total     = Math.ceil(filteredRows.length / pageSize);
+  const container = document.getElementById('paginationBtns');
+  document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${Math.max(total,1)}`;
+
+  let html = `<button type="button" class="pg-btn" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''} aria-label="Previous page">
+    <span class="material-icons-round" style="font-size:16px" aria-hidden="true">chevron_left</span></button>`;
+
+  const pages = [];
+  if (total <= 7) { for (let i=1;i<=total;i++) pages.push(i); }
+  else {
+    pages.push(1);
+    if (currentPage > 3) pages.push('…');
+    for (let i=Math.max(2,currentPage-1); i<=Math.min(total-1,currentPage+1); i++) pages.push(i);
+    if (currentPage < total-2) pages.push('…');
+    pages.push(total);
+  }
+  pages.forEach(p => {
+    html += p==='…'
+      ? `<button type="button" class="pg-btn" disabled style="cursor:default">…</button>`
+      : `<button type="button" class="pg-btn ${p===currentPage?'active':''}" onclick="goPage(${p})" aria-label="Page ${p}">${p}</button>`;
+  });
+  html += `<button type="button" class="pg-btn" onclick="goPage(${currentPage+1})" ${currentPage>=total?'disabled':''} aria-label="Next page">
+    <span class="material-icons-round" style="font-size:16px" aria-hidden="true">chevron_right</span></button>`;
+  container.innerHTML = html;
+}
+
+function goPage(p) {
+  const total = Math.ceil(filteredRows.length / pageSize);
+  if (p<1||p>total) return;
+  currentPage = p; renderTable();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* ── EXPORT ── */
+function buildCSVRows(data) {
+  const header = ['ID','Date','Time','SQD Rating','Category','Sentiment','Status','Staff Assisted','Client Name','Comment'];
+  const body   = data.map(r => [
+    r.id, r.date, r.time, r.rating,
+    r.category || '',
+    r.sentiment || '',
+    r.status    || '',
+    `"${(r.staff||'').replace(/"/g,'""')}"`,
+    `"${(r.name_of_client||'').replace(/"/g,'""')}"`,
+    `"${(r.comment||'').replace(/"/g,'""')}"`
+  ]);
+  return [header, ...body].map(r => r.join(',')).join('\n');
+}
+function exportCSV() {
+  const blob = new Blob([buildCSVRows(filteredRows)], { type:'text/csv' });
+  Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: 'philhealth-responses.csv'
+  }).click();
+}
+function exportSelected() {
+  const blob = new Blob([buildCSVRows(ALL_DATA.filter(r => selectedIds.has(r.id)))], { type:'text/csv' });
+  Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: 'philhealth-responses-selected.csv'
+  }).click();
+}
+
+/* ── BULK DROPDOWN ── */
+function toggleBulkDropdown(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('bulkDropdown');
+  const btn = document.getElementById('bulkDropdownBtn');
+  if (!dropdown) return;
+  const willOpen = !dropdown.classList.contains('open');
+  dropdown.classList.toggle('open', willOpen);
+  if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+
+function closeBulkDropdown() {
+  const dropdown = document.getElementById('bulkDropdown');
+  const btn = document.getElementById('bulkDropdownBtn');
+  if (dropdown) dropdown.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('bulkDropdown');
+  if (dropdown && !dropdown.contains(e.target)) {
+    closeBulkDropdown();
+  }
+});
+
+/* ── DELETION ── */
+let pendingDeleteIds = [];
+let isDeletingResponses = false;
+
+function updateStatCards(counts) {
+  if (!counts) return;
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && v !== undefined) el.textContent = v;
+  };
+  setVal('totalVal', counts.total);
+  setVal('saVal', counts.strongly_agree);
+  setVal('aVal', counts.agree);
+  setVal('nadVal', counts.neither);
+  setVal('dVal', counts.disagree);
+  setVal('sdVal', counts.strongly_disagree);
+  setVal('nav-badge-count', counts.total);
+  if (typeof window.updateResponsesCount === 'function') {
+    window.updateResponsesCount(counts.total);
+  }
+}
+
+function openDeleteResponsesModal() {
+  const ids = Array.from(selectedIds);
+  if (!ids.length) return;
+  pendingDeleteIds = ids;
+  setupDeleteModal(ids);
+}
+
+function openSingleDeleteModal(id) {
+  pendingDeleteIds = [id];
+  setupDeleteModal([id]);
+}
+
+function setupDeleteModal(ids) {
+  const isSingle = ids.length === 1;
+  const titleEl = document.getElementById('deleteResponsesModalTitle');
+  const countEl = document.getElementById('deleteTargetCount');
+  const listEl = document.getElementById('deleteTargetList');
+  const confirmBtn = document.getElementById('confirmDeleteResponsesBtn');
+  const cancelBtn = document.getElementById('cancelDeleteResponsesBtn');
+  const closeBtn = document.getElementById('deleteResponsesCloseBtn');
+
+  if (titleEl) {
+    titleEl.textContent = isSingle ? 'Delete Feedback Response?' : 'Delete Feedback Responses?';
+  }
+  if (countEl) {
+    countEl.textContent = isSingle
+      ? `Permanently delete response #${ids[0]}?`
+      : `Permanently delete ${ids.length} selected responses?`;
+  }
+  if (listEl) {
+    listEl.textContent = ids.map(id => `#${id}`).join(', ');
+  }
+  if (confirmBtn) {
+    confirmBtn.classList.remove('is-loading');
+    confirmBtn.disabled = false;
+  }
+  if (cancelBtn) cancelBtn.disabled = false;
+  if (closeBtn) closeBtn.disabled = false;
+
+  document.getElementById('deleteResponsesModal').classList.add('open');
+}
+
+function closeDeleteResponsesModal() {
+  const modal = document.getElementById('deleteResponsesModal');
+  if (modal) modal.classList.remove('open');
+  closeBulkDropdown();
+  pendingDeleteIds = [];
+}
+
+function executeDeleteResponses() {
+  if (isDeletingResponses || !pendingDeleteIds.length) return;
+  isDeletingResponses = true;
+
+  const confirmBtn = document.getElementById('confirmDeleteResponsesBtn');
+  const cancelBtn = document.getElementById('cancelDeleteResponsesBtn');
+  const closeBtn = document.getElementById('deleteResponsesCloseBtn');
+
+  if (confirmBtn) {
+    confirmBtn.classList.add('is-loading');
+    confirmBtn.disabled = true;
+  }
+  if (cancelBtn) cancelBtn.disabled = true;
+  if (closeBtn) closeBtn.disabled = true;
+
+  const idsToDelete = [...pendingDeleteIds];
+
+  fetch('/dashboard/responses/delete/', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': CSRF_TOKEN,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ids: idsToDelete })
+  })
+  .then(res => res.json().then(data => {
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || 'Failed to delete response(s).');
+    }
+    return data;
+  }))
+  .then(data => {
+    // 1. Close modal
+    closeDeleteResponsesModal();
+
+    // 2. Remove deleted IDs from local datasets and active selection sets
+    const deletedSet = new Set(data.deleted_ids || idsToDelete);
+    for (let i = ALL_DATA.length - 1; i >= 0; i--) {
+      if (deletedSet.has(ALL_DATA[i].id)) {
+        ALL_DATA.splice(i, 1);
+      }
+    }
+    deletedSet.forEach(id => {
+      selectedIds.delete(id);
+      expandedIds.delete(id);
+    });
+
+    // 3. Update summary stat cards
+    if (data.counts) {
+      updateStatCards(data.counts);
+    }
+
+    // 4. Update table, bulk bar and pagination BEFORE the toast shows up
+    populateStaffFilter();
+    applyFilters(true);
+    updateBulkBar();
+
+    // 5. Trigger success toast
+    if (typeof window.showToast === 'function') {
+      window.showToast(data.message || 'Responses deleted successfully.', 'success', false);
+    }
+  })
+  .catch(err => {
+    if (typeof window.showToast === 'function') {
+      window.showToast(err.message || 'An error occurred while deleting.', 'error', false);
+    } else {
+      alert(err.message || 'An error occurred while deleting.');
+    }
+  })
+  .finally(() => {
+    isDeletingResponses = false;
+    if (confirmBtn) {
+      confirmBtn.classList.remove('is-loading');
+      confirmBtn.disabled = false;
+    }
+    if (cancelBtn) cancelBtn.disabled = false;
+    if (closeBtn) closeBtn.disabled = false;
+  });
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeBulkDropdown();
+    if (!isDeletingResponses) {
+      closeDeleteResponsesModal();
+    }
+  }
+});
+
+function populateStaffFilter() {
+  const staffSelect = document.getElementById('staffFilter');
+  if (!staffSelect) return;
+  const staffSet = new Set();
+  ALL_DATA.forEach(r => {
+    if (r.staff && r.staff.trim()) {
+      staffSet.add(r.staff.trim());
+    }
+  });
+  const currentVal = staffSelect.value;
+  staffSelect.innerHTML = '<option value="">All Staff</option>';
+  Array.from(staffSet).sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    staffSelect.appendChild(opt);
+  });
+  staffSelect.value = currentVal;
+}
+
+/* ── INIT ── */
+function pageInit() {
+  populateStaffFilter();
+  renderTable();
+}
+</script>
+{% endblock %}
