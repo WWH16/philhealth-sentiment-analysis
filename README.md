@@ -113,7 +113,7 @@ The screenshots below showcase the user interfaces and administrative tools of t
 ### 1. Clone the Repository and Configure Directory
 ```bash
 git clone <your-repo-url>
-cd city-feedback
+cd philhealth-sentiment-analysis
 ```
 
 ### 2. Set Up Virtual Environment and Dependencies
@@ -164,7 +164,7 @@ Visit the application:
 
 ## Project Structure
 ```
-city-feedback/
+philhealth-sentiment-analysis/
 │
 ├── assets/                  # Portfolio screenshots and images
 │   └── .gitkeep             # Preserves directory in git

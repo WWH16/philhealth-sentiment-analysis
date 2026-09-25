@@ -308,7 +308,7 @@ class DailySummaryEmailTests(TestCase):
         from .email_service import send_daily_summary_email
         from django.core import mail
 
-        os.environ['VERCEL_URL'] = 'city-feedback.vercel.app'
+        os.environ['VERCEL_URL'] = 'philhealth-sentiment-analysis.vercel.app'
         try:
             result = send_daily_summary_email(
                 target_date=self.today,
@@ -320,7 +320,7 @@ class DailySummaryEmailTests(TestCase):
             sent_email = mail.outbox[0]
             # Check html content has vercel https url
             html_content = sent_email.alternatives[0][0]
-            self.assertIn('https://city-feedback.vercel.app/dashboard/', html_content)
+            self.assertIn('https://philhealth-sentiment-analysis.vercel.app/dashboard/', html_content)
         finally:
             os.environ.pop('VERCEL_URL', None)
 
