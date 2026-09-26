@@ -93,7 +93,7 @@
 
   <!-- STAT CARDS -->
   <div class="row g-3 mb-4">
-    <div class="col-12 col-sm-6 col-lg-4">
+    <div class="col-6 col-lg-3">
       <div class="stat-card card-sat h-100">
         <div class="stat-card-icon"><span class="material-icons-round" style="color:var(--g-primary);background:var(--g-xlight)">forum</span></div>
         <div class="stat-value" id="totalVal">{{ total }}</div>
@@ -102,52 +102,28 @@
         <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">forum</span></div>
       </div>
     </div>
-    <div class="col-6 col-sm-4 col-lg-4">
-      <div class="stat-card card-sa h-100">
+    <div class="col-6 col-lg-3">
+      <div class="stat-card h-100">
         <div class="stat-card-icon" style="background:#ecfdf5"><span class="material-icons-round" style="color:#169651">sentiment_very_satisfied</span></div>
-        <div class="stat-value" id="saVal">{{ strongly_agree }}</div>
-        <div class="stat-label">😃 Strongly Agree</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="saPct">{{ strongly_agree_pct }}%</span> of total</span>
+        <div class="stat-value" id="vsVal">{{ very_satisfactory }}</div>
+        <div class="stat-label">Very Satisfactory</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="vsPct">{{ very_satisfactory_pct }}%</span> of total</span>
       </div>
     </div>
-    <div class="col-6 col-sm-4 col-lg-4">
-      <div class="stat-card card-a h-100">
+    <div class="col-6 col-lg-3">
+      <div class="stat-card h-100">
         <div class="stat-card-icon" style="background:#ecfdf5"><span class="material-icons-round" style="color:#10b981">sentiment_satisfied</span></div>
-        <div class="stat-value" id="aVal">{{ agree }}</div>
-        <div class="stat-label">🙂 Agree</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="aPct">{{ agree_pct }}%</span> of total</span>
+        <div class="stat-value" id="satVal">{{ satisfactory }}</div>
+        <div class="stat-label">Satisfactory</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="satPct">{{ satisfactory_pct }}%</span> of total</span>
       </div>
     </div>
-    <div class="col-6 col-sm-4 col-lg-3">
-      <div class="stat-card card-nad h-100">
-        <div class="stat-card-icon" style="background:#fffbe6"><span class="material-icons-round" style="color:#d97706">sentiment_neutral</span></div>
-        <div class="stat-value" id="nadVal">{{ neither }}</div>
-        <div class="stat-label">😐 Neither Agree/Disagree</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="nadPct">{{ neither_pct }}%</span> of total</span>
-      </div>
-    </div>
-    <div class="col-6 col-sm-4 col-lg-3">
-      <div class="stat-card card-d h-100">
-        <div class="stat-card-icon" style="background:#fff7ed"><span class="material-icons-round" style="color:#f97316">sentiment_dissatisfied</span></div>
-        <div class="stat-value" id="dVal">{{ disagree }}</div>
-        <div class="stat-label">🙁 Disagree</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="dPct">{{ disagree_pct }}%</span> of total</span>
-      </div>
-    </div>
-    <div class="col-6 col-sm-4 col-lg-3">
-      <div class="stat-card card-sd h-100">
-        <div class="stat-card-icon" style="background:#fff0f2"><span class="material-icons-round" style="color:#dc2626">sentiment_very_dissatisfied</span></div>
-        <div class="stat-value" id="sdVal">{{ strongly_disagree }}</div>
-        <div class="stat-label">😠 Strongly Disagree</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="sdPct">{{ strongly_disagree_pct }}%</span> of total</span>
-      </div>
-    </div>
-    <div class="col-6 col-sm-4 col-lg-3">
-      <div class="stat-card card-na h-100">
-        <div class="stat-card-icon" style="background:#f1f5f9"><span class="material-icons-round" style="color:#64748b">block</span></div>
-        <div class="stat-value" id="naVal">{{ na }}</div>
-        <div class="stat-label">N/A Not Applicable</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="naPct">{{ na_pct }}%</span> of total</span>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card h-100">
+        <div class="stat-card-icon" style="background:#fff0f2"><span class="material-icons-round" style="color:#dc2626">sentiment_dissatisfied</span></div>
+        <div class="stat-value" id="unsatVal">{{ unsatisfactory }}</div>
+        <div class="stat-label">Unsatisfactory</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="unsatPct">{{ unsatisfactory_pct }}%</span> of total</span>
       </div>
     </div>
   </div>
@@ -173,39 +149,21 @@
               <div class="pie-legend" style="gap:8px;">
                 <div class="pie-legend-item">
                   <div class="pie-legend-dot" style="background:#169651"></div>
-                  <span class="pie-legend-label">😃 Strongly Agree</span>
-                  <span class="pie-legend-value" id="legendSaVal">{{ strongly_agree }}</span>
-                  <span class="pie-legend-pct" id="legendSaPct">{{ strongly_agree_pct }}%</span>
+                  <span class="pie-legend-label">Very Satisfactory</span>
+                  <span class="pie-legend-value" id="legendVsVal">{{ very_satisfactory }}</span>
+                  <span class="pie-legend-pct" id="legendVsPct">{{ very_satisfactory_pct }}%</span>
                 </div>
                 <div class="pie-legend-item">
                   <div class="pie-legend-dot" style="background:#10b981"></div>
-                  <span class="pie-legend-label">🙂 Agree</span>
-                  <span class="pie-legend-value" id="legendAVal">{{ agree }}</span>
-                  <span class="pie-legend-pct" id="legendAPct">{{ agree_pct }}%</span>
-                </div>
-                <div class="pie-legend-item">
-                  <div class="pie-legend-dot" style="background:#d97706"></div>
-                  <span class="pie-legend-label">😐 Neither</span>
-                  <span class="pie-legend-value" id="legendNadVal">{{ neither }}</span>
-                  <span class="pie-legend-pct" id="legendNadPct">{{ neither_pct }}%</span>
-                </div>
-                <div class="pie-legend-item">
-                  <div class="pie-legend-dot" style="background:#f97316"></div>
-                  <span class="pie-legend-label">🙁 Disagree</span>
-                  <span class="pie-legend-value" id="legendDVal">{{ disagree }}</span>
-                  <span class="pie-legend-pct" id="legendDPct">{{ disagree_pct }}%</span>
+                  <span class="pie-legend-label">Satisfactory</span>
+                  <span class="pie-legend-value" id="legendSatVal">{{ satisfactory }}</span>
+                  <span class="pie-legend-pct" id="legendSatPct">{{ satisfactory_pct }}%</span>
                 </div>
                 <div class="pie-legend-item">
                   <div class="pie-legend-dot" style="background:#dc2626"></div>
-                  <span class="pie-legend-label">😠 Strongly Dis.</span>
-                  <span class="pie-legend-value" id="legendSdVal">{{ strongly_disagree }}</span>
-                  <span class="pie-legend-pct" id="legendSdPct">{{ strongly_disagree_pct }}%</span>
-                </div>
-                <div class="pie-legend-item">
-                  <div class="pie-legend-dot" style="background:#64748b"></div>
-                  <span class="pie-legend-label">N/A Not Applicable</span>
-                  <span class="pie-legend-value" id="legendNaVal">{{ na }}</span>
-                  <span class="pie-legend-pct" id="legendNaPct">{{ na_pct }}%</span>
+                  <span class="pie-legend-label">Unsatisfactory</span>
+                  <span class="pie-legend-value" id="legendUnsatVal">{{ unsatisfactory }}</span>
+                  <span class="pie-legend-pct" id="legendUnsatPct">{{ unsatisfactory_pct }}%</span>
                 </div>
               </div>
             </div>
@@ -279,24 +237,19 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 const RATING_CONFIG = {
-  'Strongly Agree':             { cls: 'chip-sa',  icon: 'sentiment_very_satisfied' },
-  'Agree':                      { cls: 'chip-a',   icon: 'sentiment_satisfied' },
-  'Neither Agree nor Disagree': { cls: 'chip-nad', icon: 'sentiment_neutral' },
-  'Disagree':                   { cls: 'chip-d',   icon: 'sentiment_dissatisfied' },
-  'Strongly Disagree':          { cls: 'chip-sd',  icon: 'sentiment_very_dissatisfied' },
-  'Not Applicable':             { cls: 'chip-na',  icon: 'block' },
+  'Very Satisfactory': { cls: 'chip-vs',    icon: 'sentiment_very_satisfied' },
+  'Satisfactory':      { cls: 'chip-sat',   icon: 'sentiment_satisfied' },
+  'Unsatisfactory':    { cls: 'chip-unsat', icon: 'sentiment_dissatisfied' },
 };
+const RATING_FALLBACK = { cls: 'chip-na', icon: 'help_outline' };
 
 const RECENT_DATA = JSON.parse(document.getElementById('recent-entries-data').textContent);
 const FILTER_DATA = JSON.parse(document.getElementById('filter-data').textContent);
 const TREND_LABELS = {{ trend_labels|safe }};
 const TREND_DATES  = {{ trend_dates|safe }};
-const TREND_SA     = {{ trend_strongly_agree|default:"[]"|safe }};
-const TREND_A      = {{ trend_agree|default:"[]"|safe }};
-const TREND_NAD    = {{ trend_neither|default:"[]"|safe }};
-const TREND_D      = {{ trend_disagree|default:"[]"|safe }};
-const TREND_SD     = {{ trend_strongly_disagree|default:"[]"|safe }};
-const TREND_NA     = {{ trend_na|default:"[]"|safe }};
+const TREND_VS     = {{ trend_very_satisfactory|default:"[]"|safe }};
+const TREND_SAT    = {{ trend_satisfactory|default:"[]"|safe }};
+const TREND_UNSAT  = {{ trend_unsatisfactory|default:"[]"|safe }};
 
 const CHART_ANIM_DURATION = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300;
 
@@ -307,7 +260,7 @@ function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 function renderRecent() {
   const body = document.getElementById('recentTableBody');
   body.innerHTML = RECENT_DATA.map(r => {
-    const cfg     = RATING_CONFIG[r.experience] || RATING_CONFIG['Agree'];
+    const cfg     = RATING_CONFIG[r.experience] || RATING_FALLBACK;
     const dateStr = new Date(r.date).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
     const comment = r.comment
       ? `<div class="comment-text">${escHtml(r.comment)}</div>`
@@ -338,13 +291,7 @@ function updatePieChart(data, forceRecreate = false) {
   if (!canvas) return;
   const ctx    = canvas.getContext('2d');
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const sa  = data.strongly_agree || data.vsat || 0;
-  const a   = data.agree || data.sat || 0;
-  const nad = data.neither || 0;
-  const d   = data.disagree || 0;
-  const sd  = data.strongly_disagree || data.unsat || 0;
-  const na  = data.na || 0;
-  const datasetData = [sa, a, nad, d, sd, na];
+  const datasetData = [data.very_satisfactory || 0, data.satisfactory || 0, data.unsatisfactory || 0];
 
   if (pieChart && !forceRecreate) {
     pieChart.data.datasets[0].data = datasetData;
@@ -382,17 +329,10 @@ function updatePieChart(data, forceRecreate = false) {
   pieChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Strongly Agree', 'Agree', 'Neither Agree nor Disagree', 'Disagree', 'Strongly Disagree', 'Not Applicable'],
+      labels: ['Very Satisfactory', 'Satisfactory', 'Unsatisfactory'],
       datasets: [{
         data: datasetData,
-        backgroundColor: [
-          '#169651',
-          '#10b981',
-          '#d97706',
-          '#f97316',
-          '#dc2626',
-          '#64748b'
-        ],
+        backgroundColor: ['#169651', '#10b981', '#dc2626'],
         borderColor: isDark ? '#1e293b' : '#ffffff',
         borderWidth: 2,
         hoverOffset: 6
@@ -433,19 +373,9 @@ function updatePieChart(data, forceRecreate = false) {
 
 function updatePieAndLegend(data, forceRecreate = false) {
   const total = data.total || 0;
-  const sa  = data.strongly_agree || data.vsat || 0;
-  const a   = data.agree || data.sat || 0;
-  const nad = data.neither || 0;
-  const d   = data.disagree || 0;
-  const sd  = data.strongly_disagree || data.unsat || 0;
-  const na  = data.na || 0;
-
-  const saPct  = pctOf(sa, total);
-  const aPct   = pctOf(a, total);
-  const nadPct = pctOf(nad, total);
-  const dPct   = pctOf(d, total);
-  const sdPct  = pctOf(sd, total);
-  const naPct  = pctOf(na, total);
+  const vs    = data.very_satisfactory || 0;
+  const sat   = data.satisfactory || 0;
+  const unsat = data.unsatisfactory || 0;
 
   updatePieChart(data, forceRecreate);
 
@@ -454,18 +384,12 @@ function updatePieAndLegend(data, forceRecreate = false) {
     if (el) el.textContent = txt;
   };
 
-  setElemText('legendSaVal', sa);
-  setElemText('legendSaPct', saPct + '%');
-  setElemText('legendAVal', a);
-  setElemText('legendAPct', aPct + '%');
-  setElemText('legendNadVal', nad);
-  setElemText('legendNadPct', nadPct + '%');
-  setElemText('legendDVal', d);
-  setElemText('legendDPct', dPct + '%');
-  setElemText('legendSdVal', sd);
-  setElemText('legendSdPct', sdPct + '%');
-  setElemText('legendNaVal', na);
-  setElemText('legendNaPct', naPct + '%');
+  setElemText('legendVsVal', vs);
+  setElemText('legendVsPct', pctOf(vs, total) + '%');
+  setElemText('legendSatVal', sat);
+  setElemText('legendSatPct', pctOf(sat, total) + '%');
+  setElemText('legendUnsatVal', unsat);
+  setElemText('legendUnsatPct', pctOf(unsat, total) + '%');
 }
 
 let currentTrendChartType = 'bar';
@@ -480,18 +404,13 @@ function setTrendChartType(type) {
   renderTrendForPeriod(currentFilterPeriod, true);
 }
 
-function updateLineChart(labels, sa, a, nad, d, sd, na, forceRecreate = false) {
+function updateLineChart(labels, vs, sat, unsat, forceRecreate = false) {
   const canvas = document.getElementById('lineChart');
   const emptyEl = document.getElementById('trendEmptyState');
   const wrapEl = document.getElementById('trendChartWrap');
   if (!canvas) return;
 
-  const totalSum = sa.reduce((acc, v) => acc + v, 0) +
-                   a.reduce((acc, v) => acc + v, 0) +
-                   nad.reduce((acc, v) => acc + v, 0) +
-                   d.reduce((acc, v) => acc + v, 0) +
-                   sd.reduce((acc, v) => acc + v, 0) +
-                   na.reduce((acc, v) => acc + v, 0);
+  const totalSum = [...vs, ...sat, ...unsat].reduce((acc, v) => acc + v, 0);
 
   if (labels.length === 0 || totalSum === 0) {
     if (emptyEl) emptyEl.classList.remove('d-none');
@@ -510,33 +429,23 @@ function updateLineChart(labels, sa, a, nad, d, sd, na, forceRecreate = false) {
 
   if (lineChart && !forceRecreate && lineChart.config.type === (isBar ? 'bar' : 'line')) {
     lineChart.data.labels = labels;
-    lineChart.data.datasets[0].data = sa;
-    lineChart.data.datasets[1].data = a;
-    lineChart.data.datasets[2].data = nad;
-    lineChart.data.datasets[3].data = d;
-    lineChart.data.datasets[4].data = sd;
-    lineChart.data.datasets[5].data = na;
+    lineChart.data.datasets[0].data = vs;
+    lineChart.data.datasets[1].data = sat;
+    lineChart.data.datasets[2].data = unsat;
     lineChart.update();
     return;
   }
 
   if (lineChart) lineChart.destroy();
 
-  const datasets = isBar ? [
-    { label: 'Strongly Agree', data: sa, backgroundColor: '#169651', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
-    { label: 'Agree', data: a, backgroundColor: '#10b981', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
-    { label: 'Neither', data: nad, backgroundColor: '#d97706', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
-    { label: 'Disagree', data: d, backgroundColor: '#f97316', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
-    { label: 'Strongly Disagree', data: sd, backgroundColor: '#dc2626', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
-    { label: 'Not Applicable', data: na, backgroundColor: '#64748b', borderRadius: 2, stack: 'sqd', maxBarThickness: 56 },
-  ] : [
-    { label: 'Strongly Agree', data: sa, borderColor: '#169651', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#169651', borderWidth: 2 },
-    { label: 'Agree', data: a, borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#10b981', borderWidth: 2 },
-    { label: 'Neither', data: nad, borderColor: '#d97706', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#d97706', borderWidth: 2 },
-    { label: 'Disagree', data: d, borderColor: '#f97316', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#f97316', borderWidth: 2 },
-    { label: 'Strongly Disagree', data: sd, borderColor: '#dc2626', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#dc2626', borderWidth: 2 },
-    { label: 'Not Applicable', data: na, borderColor: '#64748b', backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#64748b', borderWidth: 2 },
+  const series = [
+    { label: 'Very Satisfactory', data: vs,    color: '#169651' },
+    { label: 'Satisfactory',      data: sat,   color: '#10b981' },
+    { label: 'Unsatisfactory',    data: unsat, color: '#dc2626' },
   ];
+  const datasets = series.map(s => isBar
+    ? { label: s.label, data: s.data, backgroundColor: s.color, borderRadius: 2, stack: 'sqd', maxBarThickness: 56 }
+    : { label: s.label, data: s.data, borderColor: s.color, backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: s.color, borderWidth: 2 });
 
   lineChart = new Chart(ctx, {
     type: isBar ? 'bar' : 'line',
@@ -598,23 +507,20 @@ function updateLineChart(labels, sa, a, nad, d, sd, na, forceRecreate = false) {
 
 function filterTrendByPeriod(period) {
   if (period === 'all' || TREND_DATES.length === 0) {
-    return { labels: TREND_LABELS, sa: TREND_SA, a: TREND_A, nad: TREND_NAD, d: TREND_D, sd: TREND_SD, na: TREND_NA };
+    return { labels: TREND_LABELS, vs: TREND_VS, sat: TREND_SAT, unsat: TREND_UNSAT };
   }
 
   if (period === 'today') {
     const todayStr = new Date().toLocaleDateString('en-CA');
-    const idx = TREND_DATES.reduce((acc, d, i) => { if (d === todayStr) acc.push(i); return acc; }, []);
-    if (idx.length === 0) {
-      return { labels: [], sa: [], a: [], nad: [], d: [], sd: [], na: [] };
+    const i = TREND_DATES.indexOf(todayStr);
+    if (i === -1) {
+      return { labels: [], vs: [], sat: [], unsat: [] };
     }
     return {
-      labels: ['Today (' + TREND_LABELS[idx[0]] + ')'],
-      sa:  [TREND_SA[idx[0]] || 0],
-      a:   [TREND_A[idx[0]] || 0],
-      nad: [TREND_NAD[idx[0]] || 0],
-      d:   [TREND_D[idx[0]] || 0],
-      sd:  [TREND_SD[idx[0]] || 0],
-      na:  [TREND_NA[idx[0]] || 0],
+      labels: ['Today (' + TREND_LABELS[i] + ')'],
+      vs:    [TREND_VS[i] || 0],
+      sat:   [TREND_SAT[i] || 0],
+      unsat: [TREND_UNSAT[i] || 0],
     };
   }
 
@@ -623,18 +529,15 @@ function filterTrendByPeriod(period) {
   const idx    = TREND_DATES.reduce((acc, d, i) => { if (new Date(d + 'T00:00:00').getTime() >= cutoff) acc.push(i); return acc; }, []);
   return {
     labels: idx.map(i => TREND_LABELS[i]),
-    sa:  idx.map(i => TREND_SA[i] || 0),
-    a:   idx.map(i => TREND_A[i] || 0),
-    nad: idx.map(i => TREND_NAD[i] || 0),
-    d:   idx.map(i => TREND_D[i] || 0),
-    sd:  idx.map(i => TREND_SD[i] || 0),
-    na:  idx.map(i => TREND_NA[i] || 0),
+    vs:    idx.map(i => TREND_VS[i] || 0),
+    sat:   idx.map(i => TREND_SAT[i] || 0),
+    unsat: idx.map(i => TREND_UNSAT[i] || 0),
   };
 }
 
 function renderTrendForPeriod(period, forceRecreate = false) {
   const f = filterTrendByPeriod(period);
-  updateLineChart(f.labels, f.sa, f.a, f.nad, f.d, f.sd, f.na, forceRecreate);
+  updateLineChart(f.labels, f.vs, f.sat, f.unsat, forceRecreate);
 }
 
 function setFilter(btn, period) {
@@ -648,30 +551,17 @@ function setFilter(btn, period) {
 
   const d = FILTER_DATA[period];
   animateCount('totalVal', d.total || 0);
-  animateCount('saVal',  d.strongly_agree || d.vsat || 0);
-  animateCount('aVal',   d.agree || d.sat || 0);
-  animateCount('nadVal', d.neither || 0);
-  animateCount('dVal',   d.disagree || 0);
-  animateCount('sdVal',  d.strongly_disagree || d.unsat || 0);
-  animateCount('naVal',  d.na || 0);
-
-  const saPct  = pctOf(d.strongly_agree || d.vsat || 0, d.total || 0);
-  const aPct   = pctOf(d.agree || d.sat || 0, d.total || 0);
-  const nadPct = pctOf(d.neither || 0, d.total || 0);
-  const dPct   = pctOf(d.disagree || 0, d.total || 0);
-  const sdPct  = pctOf(d.strongly_disagree || d.unsat || 0, d.total || 0);
-  const naPct  = pctOf(d.na || 0, d.total || 0);
+  animateCount('vsVal',    d.very_satisfactory || 0);
+  animateCount('satVal',   d.satisfactory || 0);
+  animateCount('unsatVal', d.unsatisfactory || 0);
 
   const setElemText = (id, txt) => {
     const el = document.getElementById(id);
     if (el) el.textContent = txt;
   };
-  setElemText('saPct', saPct + '%');
-  setElemText('aPct', aPct + '%');
-  setElemText('nadPct', nadPct + '%');
-  setElemText('dPct', dPct + '%');
-  setElemText('sdPct', sdPct + '%');
-  setElemText('naPct', naPct + '%');
+  setElemText('vsPct', pctOf(d.very_satisfactory || 0, d.total || 0) + '%');
+  setElemText('satPct', pctOf(d.satisfactory || 0, d.total || 0) + '%');
+  setElemText('unsatPct', pctOf(d.unsatisfactory || 0, d.total || 0) + '%');
 
   updatePieAndLegend(d);
   renderTrendForPeriod(period);

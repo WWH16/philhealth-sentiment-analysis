@@ -335,12 +335,9 @@ def dashboard(request):
     filter_data = _multi_period_experience_counts(qs, (today_start, today_end), week_start, month_start)
     all_counts = filter_data['all']
     total = all_counts['total']
-    sa = all_counts['strongly_agree']
-    a = all_counts['agree']
-    nad = all_counts['neither']
-    d = all_counts['disagree']
-    sd = all_counts['strongly_disagree']
-    na = all_counts['na']
+    vs = all_counts['very_satisfactory']
+    sat = all_counts['satisfactory']
+    unsat = all_counts['unsatisfactory']
 
     trend_counts = (
         qs.annotate(local_date=TruncDate('created_at'))
@@ -350,14 +347,7 @@ def dashboard(request):
     trend_data_map = defaultdict(lambda: defaultdict(int))
     for row in trend_counts:
         if row['local_date']:
-            exp = row['experience']
-            if exp == 'vsat':
-                exp = FeedbackEntry.STRONGLY_AGREE
-            elif exp == 'sat':
-                exp = FeedbackEntry.AGREE
-            elif exp == 'unsat':
-                exp = FeedbackEntry.STRONGLY_DISAGREE
-            trend_data_map[row['local_date']][exp] += row['count']
+            trend_data_map[row['local_date']][row['experience']] += row['count']
 
     if trend_data_map:
         earliest_date = min(trend_data_map.keys())
@@ -378,28 +368,19 @@ def dashboard(request):
 
     context = {
         'total': total,
-        'strongly_agree': sa,
-        'agree': a,
-        'neither': nad,
-        'disagree': d,
-        'strongly_disagree': sd,
-        'na': na,
-        'strongly_agree_pct': pct(sa),
-        'agree_pct': pct(a),
-        'neither_pct': pct(nad),
-        'disagree_pct': pct(d),
-        'strongly_disagree_pct': pct(sd),
-        'na_pct': pct(na),
+        'very_satisfactory': vs,
+        'satisfactory': sat,
+        'unsatisfactory': unsat,
+        'very_satisfactory_pct': pct(vs),
+        'satisfactory_pct': pct(sat),
+        'unsatisfactory_pct': pct(unsat),
         'recent_entries_data': [_entry_to_row(entry, recent_activity) for entry in recent_entries_data],
         'filter_data': filter_data,
         'trend_labels': [f'{day:%b} {day.day}' for day in trend_dates],
         'trend_dates': [day.isoformat() for day in trend_dates],
-        'trend_strongly_agree': trend_for(FeedbackEntry.STRONGLY_AGREE),
-        'trend_agree': trend_for(FeedbackEntry.AGREE),
-        'trend_neither': trend_for(FeedbackEntry.NEITHER),
-        'trend_disagree': trend_for(FeedbackEntry.DISAGREE),
-        'trend_strongly_disagree': trend_for(FeedbackEntry.STRONGLY_DISAGREE),
-        'trend_na': trend_for(FeedbackEntry.NOT_APPLICABLE),
+        'trend_very_satisfactory': trend_for(FeedbackEntry.VERY_SATISFACTORY),
+        'trend_satisfactory': trend_for(FeedbackEntry.SATISFACTORY),
+        'trend_unsatisfactory': trend_for(FeedbackEntry.UNSATISFACTORY),
     }
     return render(request, 'feedback_admin/dashboard.html', context)
 
@@ -413,12 +394,9 @@ def responses(request):
 
     context = {
         'total': counts['total'],
-        'strongly_agree': counts['strongly_agree'],
-        'agree': counts['agree'],
-        'neither': counts['neither'],
-        'disagree': counts['disagree'],
-        'strongly_disagree': counts['strongly_disagree'],
-        'na': counts['na'],
+        'very_satisfactory': counts['very_satisfactory'],
+        'satisfactory': counts['satisfactory'],
+        'unsatisfactory': counts['unsatisfactory'],
         'entries_data': [_entry_to_row(entry, activity_map) for entry in entries_data],
     }
     return render(request, 'feedback_admin/responses.html', context)
@@ -472,28 +450,15 @@ def _entry_to_row(entry, activity=None):
 def _experience_counts(qs):
     res = qs.aggregate(
         total=Count('id'),
-        sa=Count('id', filter=Q(experience__in=[FeedbackEntry.STRONGLY_AGREE, 'vsat'])),
-        a=Count('id', filter=Q(experience__in=[FeedbackEntry.AGREE, 'sat'])),
-        nad=Count('id', filter=Q(experience=FeedbackEntry.NEITHER)),
-        d=Count('id', filter=Q(experience=FeedbackEntry.DISAGREE)),
-        sd=Count('id', filter=Q(experience__in=[FeedbackEntry.STRONGLY_DISAGREE, 'unsat'])),
-        na=Count('id', filter=Q(experience=FeedbackEntry.NOT_APPLICABLE)),
+        vs=Count('id', filter=Q(experience=FeedbackEntry.VERY_SATISFACTORY)),
+        sat=Count('id', filter=Q(experience=FeedbackEntry.SATISFACTORY)),
+        unsat=Count('id', filter=Q(experience=FeedbackEntry.UNSATISFACTORY)),
     )
-    total = res['total'] or 0
-    sa = res['sa'] or 0
-    a = res['a'] or 0
-    nad = res['nad'] or 0
-    d = res['d'] or 0
-    sd = res['sd'] or 0
-    na_count = res['na'] or 0
     return {
-        'total': total,
-        'strongly_agree': sa,
-        'agree': a,
-        'neither': nad,
-        'disagree': d,
-        'strongly_disagree': sd,
-        'na': na_count,
+        'total': res['total'] or 0,
+        'very_satisfactory': res['vs'] or 0,
+        'satisfactory': res['sat'] or 0,
+        'unsatisfactory': res['unsat'] or 0,
     }
 
 
@@ -503,21 +468,12 @@ def _multi_period_experience_counts(qs, today_range, week_start, month_start):
         return Count('id', filter=(period_q & exp_q) if period_q is not None else exp_q)
 
     def _period_aggs(prefix, period_q):
-        sa_q = Q(experience__in=[FeedbackEntry.STRONGLY_AGREE, 'vsat'])
-        a_q = Q(experience__in=[FeedbackEntry.AGREE, 'sat'])
-        nad_q = Q(experience=FeedbackEntry.NEITHER)
-        d_q = Q(experience=FeedbackEntry.DISAGREE)
-        sd_q = Q(experience__in=[FeedbackEntry.STRONGLY_DISAGREE, 'unsat'])
-        na_q = Q(experience=FeedbackEntry.NOT_APPLICABLE)
         tot_q = Count('id', filter=period_q) if period_q is not None else Count('id')
         return {
             f'{prefix}_total': tot_q,
-            f'{prefix}_sa': _cond(period_q, sa_q),
-            f'{prefix}_a': _cond(period_q, a_q),
-            f'{prefix}_nad': _cond(period_q, nad_q),
-            f'{prefix}_d': _cond(period_q, d_q),
-            f'{prefix}_sd': _cond(period_q, sd_q),
-            f'{prefix}_na': _cond(period_q, na_q),
+            f'{prefix}_vs': _cond(period_q, Q(experience=FeedbackEntry.VERY_SATISFACTORY)),
+            f'{prefix}_sat': _cond(period_q, Q(experience=FeedbackEntry.SATISFACTORY)),
+            f'{prefix}_unsat': _cond(period_q, Q(experience=FeedbackEntry.UNSATISFACTORY)),
         }
 
     aggs = {}
@@ -531,12 +487,9 @@ def _multi_period_experience_counts(qs, today_range, week_start, month_start):
     def _extract(prefix):
         return {
             'total': res[f'{prefix}_total'] or 0,
-            'strongly_agree': res[f'{prefix}_sa'] or 0,
-            'agree': res[f'{prefix}_a'] or 0,
-            'neither': res[f'{prefix}_nad'] or 0,
-            'disagree': res[f'{prefix}_d'] or 0,
-            'strongly_disagree': res[f'{prefix}_sd'] or 0,
-            'na': res[f'{prefix}_na'] or 0,
+            'very_satisfactory': res[f'{prefix}_vs'] or 0,
+            'satisfactory': res[f'{prefix}_sat'] or 0,
+            'unsatisfactory': res[f'{prefix}_unsat'] or 0,
         }
 
     return {
@@ -598,12 +551,9 @@ def _multi_period_report_data(qs, periods_map):
     aggs = {}
     for prefix, period_q in periods_map.items():
         aggs[f'{prefix}_total'] = Count('id', filter=period_q)
-        aggs[f'{prefix}_sa'] = Count('id', filter=period_q & Q(experience__in=[FeedbackEntry.STRONGLY_AGREE, 'vsat']))
-        aggs[f'{prefix}_a'] = Count('id', filter=period_q & Q(experience__in=[FeedbackEntry.AGREE, 'sat']))
-        aggs[f'{prefix}_nad'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.NEITHER))
-        aggs[f'{prefix}_d'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.DISAGREE))
-        aggs[f'{prefix}_sd'] = Count('id', filter=period_q & Q(experience__in=[FeedbackEntry.STRONGLY_DISAGREE, 'unsat']))
-        aggs[f'{prefix}_na'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.NOT_APPLICABLE))
+        aggs[f'{prefix}_vs'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.VERY_SATISFACTORY))
+        aggs[f'{prefix}_sat'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.SATISFACTORY))
+        aggs[f'{prefix}_unsat'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.UNSATISFACTORY))
         aggs[f'{prefix}_compliment'] = Count('id', filter=period_q & Q(category='compliment'))
         aggs[f'{prefix}_suggestion'] = Count('id', filter=period_q & Q(category='suggestion'))
         aggs[f'{prefix}_complaint'] = Count('id', filter=period_q & Q(category='complaint'))
@@ -614,13 +564,10 @@ def _multi_period_report_data(qs, periods_map):
     result = {}
     for prefix in periods_map:
         total = res[f'{prefix}_total'] or 0
-        sa = res[f'{prefix}_sa'] or 0
-        a = res[f'{prefix}_a'] or 0
-        nad = res[f'{prefix}_nad'] or 0
-        d = res[f'{prefix}_d'] or 0
-        sd = res[f'{prefix}_sd'] or 0
-        na_count = res[f'{prefix}_na'] or 0
-        satisfaction = round((sa + a) / total * 100) if total else 0
+        vs = res[f'{prefix}_vs'] or 0
+        sat = res[f'{prefix}_sat'] or 0
+        unsat = res[f'{prefix}_unsat'] or 0
+        satisfaction = round((vs + sat) / total * 100) if total else 0
 
         cat_counts = {
             'compliment': res[f'{prefix}_compliment'] or 0,
@@ -632,15 +579,9 @@ def _multi_period_report_data(qs, periods_map):
 
         result[prefix] = {
             'total': total,
-            'strongly_agree': sa,
-            'agree': a,
-            'neither': nad,
-            'disagree': d,
-            'strongly_disagree': sd,
-            'na': na_count,
-            'vsat': sa,
-            'sat': a,
-            'neg': sd + d,
+            'very_satisfactory': vs,
+            'satisfactory': sat,
+            'unsatisfactory': unsat,
             'satisfaction': satisfaction,
             'categorized': categorized,
             'categories': cat_counts,
@@ -932,33 +873,33 @@ def reports(request):
     # For now, let's just use the basic stats in context
     context = {
         'daily_total': daily_data['total'],
-        'daily_vsat': daily_data['vsat'],
-        'daily_sat': daily_data['sat'],
-        'daily_neg': daily_data['neg'],
+        'daily_very_satisfactory': daily_data['very_satisfactory'],
+        'daily_satisfactory': daily_data['satisfactory'],
+        'daily_unsatisfactory': daily_data['unsatisfactory'],
         'daily_satisfaction': daily_data['satisfaction'],
 
         'weekly_total': weekly_data['total'],
-        'weekly_vsat': weekly_data['vsat'],
-        'weekly_sat': weekly_data['sat'],
-        'weekly_neg': weekly_data['neg'],
+        'weekly_very_satisfactory': weekly_data['very_satisfactory'],
+        'weekly_satisfactory': weekly_data['satisfactory'],
+        'weekly_unsatisfactory': weekly_data['unsatisfactory'],
         'weekly_satisfaction': weekly_data['satisfaction'],
 
         'monthly_total': monthly_data['total'],
-        'monthly_vsat': monthly_data['vsat'],
-        'monthly_sat': monthly_data['sat'],
-        'monthly_neg': monthly_data['neg'],
+        'monthly_very_satisfactory': monthly_data['very_satisfactory'],
+        'monthly_satisfactory': monthly_data['satisfactory'],
+        'monthly_unsatisfactory': monthly_data['unsatisfactory'],
         'monthly_satisfaction': monthly_data['satisfaction'],
 
         'quarterly_total': quarterly_data['total'],
-        'quarterly_vsat': quarterly_data['vsat'],
-        'quarterly_sat': quarterly_data['sat'],
-        'quarterly_neg': quarterly_data['neg'],
+        'quarterly_very_satisfactory': quarterly_data['very_satisfactory'],
+        'quarterly_satisfactory': quarterly_data['satisfactory'],
+        'quarterly_unsatisfactory': quarterly_data['unsatisfactory'],
         'quarterly_satisfaction': quarterly_data['satisfaction'],
 
         'annual_total': annual_data['total'],
-        'annual_vsat': annual_data['vsat'],
-        'annual_sat': annual_data['sat'],
-        'annual_neg': annual_data['neg'],
+        'annual_very_satisfactory': annual_data['very_satisfactory'],
+        'annual_satisfactory': annual_data['satisfactory'],
+        'annual_unsatisfactory': annual_data['unsatisfactory'],
         'annual_satisfaction': annual_data['satisfaction'],
 
         # Pass the whole structured object for JS
@@ -1040,13 +981,10 @@ def export_report_excel(request):
         ('Total Responses', stats['total']),
         ('Satisfaction Rate', f"{stats['satisfaction']}%"),
         ('', ''),
-        ('SQD Distribution', ''),
-        ('Strongly Agree', stats['strongly_agree']),
-        ('Agree', stats['agree']),
-        ('Neither Agree nor Disagree', stats['neither']),
-        ('Disagree', stats['disagree']),
-        ('Strongly Disagree', stats['strongly_disagree']),
-        ('Not Applicable', stats['na']),
+        ('Rating Distribution', ''),
+        ('Very Satisfactory', stats['very_satisfactory']),
+        ('Satisfactory', stats['satisfactory']),
+        ('Unsatisfactory', stats['unsatisfactory']),
         ('', ''),
         ('Feedback Categories', ''),
         ('Compliments', stats['categories']['compliment']),
@@ -1065,10 +1003,10 @@ def export_report_excel(request):
         for col in (1, 2):
             ws.cell(row=row_num, column=col).border = thin_border
 
-    # Section headers (SQD Distribution, Feedback Categories) get bold styling
+    # Section headers (Rating Distribution, Feedback Categories) get bold styling
     for row_idx in range(1, ws.max_row + 1):
         cell = ws.cell(row=row_idx, column=1)
-        if cell.value in ('SQD Distribution', 'Feedback Categories'):
+        if cell.value in ('Rating Distribution', 'Feedback Categories'):
             cell.font = Font(name='Calibri', bold=True, size=11, color='0F5A2B')
 
     ws.column_dimensions['A'].width = 32
@@ -1096,6 +1034,10 @@ def export_report_excel(request):
 
     # Write data rows
     EXPERIENCE_MAP = dict(FeedbackEntry.EXPERIENCE_CHOICES)
+    SQD_LABELS = {
+        score: EXPERIENCE_MAP[experience]
+        for score, experience in FeedbackEntry.SQD_SCORE_TO_EXPERIENCE.items()
+    }
     SENTIMENT_MAP = dict(FeedbackEntry.SENTIMENT_CHOICES)
     CATEGORY_MAP = dict(FeedbackEntry.CATEGORY_CHOICES)
     STATUS_MAP = dict(FeedbackEntry.STATUS_CHOICES)
@@ -1112,8 +1054,7 @@ def export_report_excel(request):
             entry.sex,
             entry.client_type,
             entry.cc1, entry.cc2, entry.cc3,
-            entry.sqd0, entry.sqd1, entry.sqd2, entry.sqd3,
-            entry.sqd4, entry.sqd5, entry.sqd6, entry.sqd7, entry.sqd8,
+            *[SQD_LABELS.get(getattr(entry, f'sqd{i}'), getattr(entry, f'sqd{i}')) for i in range(9)],
             EXPERIENCE_MAP.get(entry.experience, entry.experience),
             CATEGORY_MAP.get(entry.category, entry.category),
             SENTIMENT_MAP.get(entry.sentiment, entry.sentiment),

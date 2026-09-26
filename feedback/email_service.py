@@ -36,30 +36,23 @@ def get_daily_summary_metrics(target_date=None):
 
     total_count = qs.count()
 
-    # SQD0 Overall Satisfaction counts:
-    # 5: Strongly Agree, 4: Agree, 3: Neither, 2: Disagree, 1: Strongly Disagree
-    sqd0_res = qs.aggregate(
-        sa=Count('id', filter=Q(sqd0=5)),
-        a=Count('id', filter=Q(sqd0=4)),
-        neither=Count('id', filter=Q(sqd0=3)),
-        d=Count('id', filter=Q(sqd0=2)),
-        sd=Count('id', filter=Q(sqd0=1)),
+    # Overall satisfaction rating (SQD0): Very Satisfactory, Satisfactory, Unsatisfactory
+    satisfied = [FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.SATISFACTORY]
+    rating_res = qs.aggregate(
+        vs=Count('id', filter=Q(experience=FeedbackEntry.VERY_SATISFACTORY)),
+        sat=Count('id', filter=Q(experience=FeedbackEntry.SATISFACTORY)),
+        unsat=Count('id', filter=Q(experience=FeedbackEntry.UNSATISFACTORY)),
     )
-    sa = sqd0_res['sa'] or 0
-    a = sqd0_res['a'] or 0
-    neither = sqd0_res['neither'] or 0
-    d = sqd0_res['d'] or 0
-    sd = sqd0_res['sd'] or 0
+    vs = rating_res['vs'] or 0
+    sat = rating_res['sat'] or 0
+    unsat = rating_res['unsat'] or 0
 
-    satisfaction_rate = round(((sa + a) / total_count) * 100) if total_count > 0 else 0
+    satisfaction_rate = round(((vs + sat) / total_count) * 100) if total_count > 0 else 0
 
     # Yesterday satisfaction rate
     yest_total = yest_qs.count()
-    yest_sqd = yest_qs.aggregate(
-        sa=Count('id', filter=Q(sqd0=5)),
-        a=Count('id', filter=Q(sqd0=4))
-    )
-    yest_sat = round(((yest_sqd['sa'] or 0) + (yest_sqd['a'] or 0)) / yest_total * 100) if yest_total > 0 else 0
+    yest_satisfied = yest_qs.filter(experience__in=satisfied).count()
+    yest_sat = round(yest_satisfied / yest_total * 100) if yest_total > 0 else 0
 
     trend_diff = satisfaction_rate - yest_sat if (total_count > 0 and yest_total > 0) else None
 
@@ -88,12 +81,15 @@ def get_daily_summary_metrics(target_date=None):
     )
 
     # Flagged submissions requiring supervisor review
-    # Criteria: Negative sentiment, or Complaint category, or Disagree/Strongly Disagree on SQD0
-    flagged_qs = qs.filter(
+    # Criteria (each checked on its own): Negative comment sentiment, Complaint
+    # category, or an Unsatisfactory rating
+    flag_q = (
         Q(sentiment=FeedbackEntry.NEGATIVE) |
         Q(category=FeedbackEntry.COMPLAINT) |
-        Q(sqd0__in=[1, 2])
-    ).order_by('-created_at')[:5]
+        Q(experience=FeedbackEntry.UNSATISFACTORY)
+    )
+    total_flagged_count = qs.filter(flag_q).count()
+    flagged_qs = qs.filter(flag_q).order_by('-created_at')[:5]
 
     flagged_items = []
     for entry in flagged_qs:
@@ -113,7 +109,7 @@ def get_daily_summary_metrics(target_date=None):
             'client_type': entry.client_type or 'General Public',
             'category': entry.get_category_display() if entry.category else 'Uncategorized',
             'sentiment': entry.get_sentiment_display(),
-            'sqd0_score': entry.sqd0,
+            'rating': entry.get_experience_display(),
             'comment': comment_text,
             'status': entry.get_status_display(),
         })
@@ -126,11 +122,9 @@ def get_daily_summary_metrics(target_date=None):
         'satisfaction_rate': satisfaction_rate,
         'trend_diff': trend_diff,
         'yest_total': yest_total,
-        'sa_count': sa,
-        'a_count': a,
-        'neither_count': neither,
-        'd_count': d,
-        'sd_count': sd,
+        'very_satisfactory_count': vs,
+        'satisfactory_count': sat,
+        'unsatisfactory_count': unsat,
         'pos_count': pos_count,
         'neu_count': neu_count,
         'neg_count': neg_count,
@@ -146,16 +140,8 @@ def get_daily_summary_metrics(target_date=None):
         },
         'flagged_items': flagged_items,
         'flagged_count': len(flagged_items),
-        'total_flagged_count': qs.filter(
-            Q(sentiment=FeedbackEntry.NEGATIVE) |
-            Q(category=FeedbackEntry.COMPLAINT) |
-            Q(sqd0__in=[1, 2])
-        ).count(),
-        'additional_flagged_count': max(0, qs.filter(
-            Q(sentiment=FeedbackEntry.NEGATIVE) |
-            Q(category=FeedbackEntry.COMPLAINT) |
-            Q(sqd0__in=[1, 2])
-        ).count() - len(flagged_items)),
+        'total_flagged_count': total_flagged_count,
+        'additional_flagged_count': max(0, total_flagged_count - len(flagged_items)),
     }
 
 

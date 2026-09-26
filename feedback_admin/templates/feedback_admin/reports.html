@@ -132,13 +132,13 @@
   <div class="col-6 col-sm-3">
     <div class="metric-tile alt">
       <div class="metric-value" id="metricVsat">0</div>
-      <div class="metric-label">😃 Strongly Agree</div>
+      <div class="metric-label">Very Satisfactory</div>
     </div>
   </div>
   <div class="col-6 col-sm-3">
     <div class="metric-tile neg">
       <div class="metric-value" id="metricNeg">0</div>
-      <div class="metric-label">😠 Disagree / Strongly Disagree</div>
+      <div class="metric-label">Unsatisfactory</div>
     </div>
   </div>
 </div>
@@ -152,7 +152,7 @@
       <div class="card-block-head">
         <h2 class="card-block-title">
           <span class="material-icons-round">donut_large</span>
-          SQD Distribution
+          SQD Rating Distribution
         </h2>
       </div>
       <div class="card-block-body">
@@ -166,39 +166,21 @@
             <div class="pie-legend" style="gap:6px;">
               <div class="pie-legend-item">
                 <div class="pie-legend-dot" style="background: #169651"></div>
-                <span class="pie-legend-label">Strongly Agree</span>
-                <span class="pie-legend-value" id="legendSa">0</span>
-                <span class="pie-legend-pct" id="legendSaPct">0%</span>
+                <span class="pie-legend-label">Very Satisfactory</span>
+                <span class="pie-legend-value" id="legendVs">0</span>
+                <span class="pie-legend-pct" id="legendVsPct">0%</span>
               </div>
               <div class="pie-legend-item">
                 <div class="pie-legend-dot" style="background: #10b981"></div>
-                <span class="pie-legend-label">Agree</span>
-                <span class="pie-legend-value" id="legendA">0</span>
-                <span class="pie-legend-pct" id="legendAPct">0%</span>
-              </div>
-              <div class="pie-legend-item">
-                <div class="pie-legend-dot" style="background: #d97706"></div>
-                <span class="pie-legend-label">Neither</span>
-                <span class="pie-legend-value" id="legendNad">0</span>
-                <span class="pie-legend-pct" id="legendNadPct">0%</span>
-              </div>
-              <div class="pie-legend-item">
-                <div class="pie-legend-dot" style="background: #f97316"></div>
-                <span class="pie-legend-label">Disagree</span>
-                <span class="pie-legend-value" id="legendD">0</span>
-                <span class="pie-legend-pct" id="legendDPct">0%</span>
+                <span class="pie-legend-label">Satisfactory</span>
+                <span class="pie-legend-value" id="legendSat">0</span>
+                <span class="pie-legend-pct" id="legendSatPct">0%</span>
               </div>
               <div class="pie-legend-item">
                 <div class="pie-legend-dot" style="background: #dc2626"></div>
-                <span class="pie-legend-label">Strongly Dis.</span>
-                <span class="pie-legend-value" id="legendSd">0</span>
-                <span class="pie-legend-pct" id="legendSdPct">0%</span>
-              </div>
-              <div class="pie-legend-item">
-                <div class="pie-legend-dot" style="background: #64748b"></div>
-                <span class="pie-legend-label">N/A</span>
-                <span class="pie-legend-value" id="legendNa">0</span>
-                <span class="pie-legend-pct" id="legendNaPct">0%</span>
+                <span class="pie-legend-label">Unsatisfactory</span>
+                <span class="pie-legend-value" id="legendUnsat">0</span>
+                <span class="pie-legend-pct" id="legendUnsatPct">0%</span>
               </div>
             </div>
           </div>
@@ -287,36 +269,22 @@
         <div class="summary-item">
           <div class="summary-icon pos"><span class="material-icons-round">check_circle</span></div>
           <div class="summary-content">
-            <div class="summary-title">Strongly Agree</div>
-            <div class="summary-value" id="summarySa">0 responses</div>
+            <div class="summary-title">Very Satisfactory</div>
+            <div class="summary-value" id="summaryVs">0 responses</div>
           </div>
         </div>
         <div class="summary-item">
           <div class="summary-icon pos"><span class="material-icons-round">check_circle</span></div>
           <div class="summary-content">
-            <div class="summary-title">Agree</div>
-            <div class="summary-value" id="summaryA">0 responses</div>
-          </div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-icon neu"><span class="material-icons-round">circle</span></div>
-          <div class="summary-content">
-            <div class="summary-title">Neither</div>
-            <div class="summary-value" id="summaryNad">0 responses</div>
+            <div class="summary-title">Satisfactory</div>
+            <div class="summary-value" id="summarySat">0 responses</div>
           </div>
         </div>
         <div class="summary-item">
           <div class="summary-icon neg"><span class="material-icons-round">cancel</span></div>
           <div class="summary-content">
-            <div class="summary-title">Disagree</div>
-            <div class="summary-value" id="summaryD">0 responses</div>
-          </div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-icon neg"><span class="material-icons-round">cancel</span></div>
-          <div class="summary-content">
-            <div class="summary-title">Strongly Disagree</div>
-            <div class="summary-value" id="summarySd">0 responses</div>
+            <div class="summary-title">Unsatisfactory</div>
+            <div class="summary-value" id="summaryUnsat">0 responses</div>
           </div>
         </div>
         <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
@@ -362,24 +330,20 @@ function updateReport(forceRecreate = false) {
   const data = REPORT_DATA[currentPeriod];
   document.getElementById('trendRangeCaption').textContent = TREND_CAPTIONS[currentPeriod];
 
-  const sa  = data.strongly_agree || 0;
-  const a   = data.agree || 0;
-  const nad = data.neither || 0;
-  const d   = data.disagree || 0;
-  const sd  = data.strongly_disagree || 0;
-  const na  = data.na || 0;
-  const neg = d + sd;
+  const vs    = data.very_satisfactory || 0;
+  const sat   = data.satisfactory || 0;
+  const unsat = data.unsatisfactory || 0;
 
   if (typeof animateCount === 'function') {
     animateCount('metricTotal', data.total);
     animateCount('metricSatisfaction', data.satisfaction);
-    animateCount('metricVsat', sa);
-    animateCount('metricNeg', neg);
+    animateCount('metricVsat', vs);
+    animateCount('metricNeg', unsat);
   } else {
     document.getElementById('metricTotal').textContent = data.total.toLocaleString();
     document.getElementById('metricSatisfaction').textContent = data.satisfaction;
-    document.getElementById('metricVsat').textContent = sa.toLocaleString();
-    document.getElementById('metricNeg').textContent = neg.toLocaleString();
+    document.getElementById('metricVsat').textContent = vs.toLocaleString();
+    document.getElementById('metricNeg').textContent = unsat.toLocaleString();
   }
 
   const setLegend = (id, val) => {
@@ -392,28 +356,20 @@ function updateReport(forceRecreate = false) {
     if (el) el.textContent = pct + '%';
   };
 
-  setLegend('legendSa', sa);
-  setPct('legendSaPct', sa);
-  setLegend('legendA', a);
-  setPct('legendAPct', a);
-  setLegend('legendNad', nad);
-  setPct('legendNadPct', nad);
-  setLegend('legendD', d);
-  setPct('legendDPct', d);
-  setLegend('legendSd', sd);
-  setPct('legendSdPct', sd);
-  setLegend('legendNa', na);
-  setPct('legendNaPct', na);
+  setLegend('legendVs', vs);
+  setPct('legendVsPct', vs);
+  setLegend('legendSat', sat);
+  setPct('legendSatPct', sat);
+  setLegend('legendUnsat', unsat);
+  setPct('legendUnsatPct', unsat);
 
   const setSummary = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.textContent = val.toLocaleString() + ' responses';
   };
-  setSummary('summarySa', sa);
-  setSummary('summaryA', a);
-  setSummary('summaryNad', nad);
-  setSummary('summaryD', d);
-  setSummary('summarySd', sd);
+  setSummary('summaryVs', vs);
+  setSummary('summarySat', sat);
+  setSummary('summaryUnsat', unsat);
   document.getElementById('summaryScore').textContent = data.satisfaction + '/100';
 
   const cats = data.categories;
@@ -442,13 +398,7 @@ function updateReportPieChart(data, forceRecreate = false) {
   if (!canvas) return;
   const ctx    = canvas.getContext('2d');
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const sa  = data.strongly_agree || data.vsat || 0;
-  const a   = data.agree || data.sat || 0;
-  const nad = data.neither || 0;
-  const d   = data.disagree || 0;
-  const sd  = data.strongly_disagree || 0;
-  const na  = data.na || 0;
-  const datasetData = [sa, a, nad, d, sd, na];
+  const datasetData = [data.very_satisfactory || 0, data.satisfactory || 0, data.unsatisfactory || 0];
 
   if (reportPieChart && !forceRecreate) {
     reportPieChart.data.datasets[0].data = datasetData;
@@ -487,10 +437,10 @@ function updateReportPieChart(data, forceRecreate = false) {
   reportPieChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Strongly Agree', 'Agree', 'Neither Agree nor Disagree', 'Disagree', 'Strongly Disagree', 'Not Applicable'],
+      labels: ['Very Satisfactory', 'Satisfactory', 'Unsatisfactory'],
       datasets: [{
         data: datasetData,
-        backgroundColor: ['#169651', '#10b981', '#d97706', '#f97316', '#dc2626', '#64748b'],
+        backgroundColor: ['#169651', '#10b981', '#dc2626'],
         borderColor: isDark ? '#1e293b' : '#ffffff',
         borderWidth: 2,
         hoverOffset: 6

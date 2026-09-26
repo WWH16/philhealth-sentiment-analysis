@@ -223,44 +223,28 @@
         <div class="stat-card-bg-icon"><span class="material-icons-round">forum</span></div>
       </div>
     </div>
-    <div class="col-6 col-md">
+    <div class="col-6 col-md-3">
       <div class="stat-card card-vsat">
         <div class="stat-card-icon"><span class="material-icons-round" style="color:#15803d;background:#f0fdf4">sentiment_very_satisfied</span></div>
-        <div class="stat-value" id="saVal">{{ strongly_agree }}</div>
-        <div class="stat-label">Strongly Agree</div>
+        <div class="stat-value" id="vsVal">{{ very_satisfactory }}</div>
+        <div class="stat-label">Very Satisfactory</div>
         <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_very_satisfied</span></div>
       </div>
     </div>
-    <div class="col-6 col-md">
+    <div class="col-6 col-md-3">
       <div class="stat-card card-sat">
         <div class="stat-card-icon"><span class="material-icons-round" style="color:#16a34a;background:#f0fdf4">sentiment_satisfied</span></div>
-        <div class="stat-value" id="aVal">{{ agree }}</div>
-        <div class="stat-label">Agree</div>
+        <div class="stat-value" id="satVal">{{ satisfactory }}</div>
+        <div class="stat-label">Satisfactory</div>
         <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_satisfied</span></div>
       </div>
     </div>
-    <div class="col-6 col-md">
-      <div class="stat-card card-neu">
-        <div class="stat-card-icon"><span class="material-icons-round" style="color:#ca8a04;background:#fefce8">sentiment_neutral</span></div>
-        <div class="stat-value" id="nadVal">{{ neither }}</div>
-        <div class="stat-label">Neither</div>
-        <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_neutral</span></div>
-      </div>
-    </div>
-    <div class="col-6 col-md">
+    <div class="col-6 col-md-3">
       <div class="stat-card card-neg">
         <div class="stat-card-icon"><span class="material-icons-round" style="color:#dc2626;background:#fef2f2">sentiment_dissatisfied</span></div>
-        <div class="stat-value" id="dVal">{{ disagree }}</div>
-        <div class="stat-label">Disagree</div>
+        <div class="stat-value" id="unsatVal">{{ unsatisfactory }}</div>
+        <div class="stat-label">Unsatisfactory</div>
         <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_dissatisfied</span></div>
-      </div>
-    </div>
-    <div class="col-6 col-md">
-      <div class="stat-card card-neg">
-        <div class="stat-card-icon"><span class="material-icons-round" style="color:#991b1b;background:#fef2f2">sentiment_very_dissatisfied</span></div>
-        <div class="stat-value" id="sdVal">{{ strongly_disagree }}</div>
-        <div class="stat-label">Strongly Disagree</div>
-        <div class="stat-card-bg-icon"><span class="material-icons-round">sentiment_very_dissatisfied</span></div>
       </div>
     </div>
   </div>
@@ -276,12 +260,9 @@
         <span class="table-info" id="tableInfo">—</span>
         <select class="btn-ph" id="ratingFilter" onchange="applyFilters()" aria-label="Filter by rating" style="cursor:pointer">
           <option value="">All SQD Ratings</option>
-          <option value="Strongly Agree">😃 Strongly Agree</option>
-          <option value="Agree">🙂 Agree</option>
-          <option value="Neither Agree nor Disagree">😐 Neither Agree/Disagree</option>
-          <option value="Disagree">🙁 Disagree</option>
-          <option value="Strongly Disagree">😠 Strongly Disagree</option>
-          <option value="Not Applicable">N/A Not Applicable</option>
+          <option value="Very Satisfactory">Very Satisfactory</option>
+          <option value="Satisfactory">Satisfactory</option>
+          <option value="Unsatisfactory">Unsatisfactory</option>
         </select>
         <select class="btn-ph" id="categoryFilter" onchange="applyFilters()" aria-label="Filter by category" style="cursor:pointer">
           <option value="">All Categories</option>
@@ -430,12 +411,9 @@ const CSRF_TOKEN = '{{ csrf_token }}';
 const ALL_DATA = JSON.parse(document.getElementById('entries-data').textContent);
 
 const RATING_CONFIG = {
-  'Strongly Agree':             { cls:'chip-sa',  icon:'sentiment_very_satisfied' },
-  'Agree':                      { cls:'chip-a',   icon:'sentiment_satisfied' },
-  'Neither Agree nor Disagree': { cls:'chip-nad', icon:'sentiment_neutral' },
-  'Disagree':                   { cls:'chip-d',   icon:'sentiment_dissatisfied' },
-  'Strongly Disagree':          { cls:'chip-sd',  icon:'sentiment_very_dissatisfied' },
-  'Not Applicable':             { cls:'chip-na',  icon:'block' },
+  'Very Satisfactory': { cls:'chip-vs',    icon:'sentiment_very_satisfied' },
+  'Satisfactory':      { cls:'chip-sat',   icon:'sentiment_satisfied' },
+  'Unsatisfactory':    { cls:'chip-unsat', icon:'sentiment_dissatisfied' },
 };
 
 const SENTIMENT_CONFIG = {
@@ -669,7 +647,7 @@ function renderTable() {
       </div></td></tr>`;
   } else {
     body.innerHTML = rows.flatMap(r => {
-      const rCfg      = RATING_CONFIG[r.rating]    || RATING_CONFIG['Strongly Agree'] || { cls:'chip-sa', icon:'sentiment_very_satisfied' };
+      const rCfg      = RATING_CONFIG[r.rating]    || { cls:'chip-na', icon:'help_outline' };
       const sCfg      = SENTIMENT_CONFIG[r.sentiment] || { cls:'chip-na', icon:'' };
       const statusVal = r.status_value || String(r.status || 'Pending').toLowerCase();
       const stCls     = STATUS_CLS[statusVal] || STATUS_CLS[r.status] || 's-pending';
@@ -925,11 +903,9 @@ function updateStatCards(counts) {
     if (el && v !== undefined) el.textContent = v;
   };
   setVal('totalVal', counts.total);
-  setVal('saVal', counts.strongly_agree);
-  setVal('aVal', counts.agree);
-  setVal('nadVal', counts.neither);
-  setVal('dVal', counts.disagree);
-  setVal('sdVal', counts.strongly_disagree);
+  setVal('vsVal', counts.very_satisfactory);
+  setVal('satVal', counts.satisfactory);
+  setVal('unsatVal', counts.unsatisfactory);
   setVal('nav-badge-count', counts.total);
   if (typeof window.updateResponsesCount === 'function') {
     window.updateResponsesCount(counts.total);

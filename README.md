@@ -60,7 +60,7 @@ The screenshots below showcase the user interfaces and administrative tools of t
 ## Core Features
 
 ### Public-Facing Feedback Submission
-- **Structured Submission**: Collects structured Service Quality Dimensions (SQD) ratings using official 6-point scale options (😠 Strongly Disagree, 🙁 Disagree, 😐 Neither Agree nor Disagree, 🙂 Agree, 😃 Strongly Agree, N/A Not Applicable) along with detailed feedback comments.
+- **Structured Submission**: Collects Service Quality Dimensions (SQD) ratings on a 3-point scale (Very Satisfactory, Satisfactory, Unsatisfactory) along with detailed feedback comments. The SQD rating is separate from sentiment analysis: the client chooses the rating, and sentiment comes from the comment text only.
 - **Unique Tracking Code**: Generates an immutable, human-readable identifier (e.g., CF-YYYYMMDD-[HEX]) upon submission for tracking.
 - **AJAX Driven**: High-fidelity modal success screen and instant code generation without page reloads.
 
@@ -73,6 +73,7 @@ The screenshots below showcase the user interfaces and administrative tools of t
   4. Snapshot-based English Stopword removal.
   5. Snowball stemming.
 - **Batch Re-Analysis**: Built-in admin utility to re-run predictions across historical entries.
+- **Independent of Ratings**: The classifier reads only the comment. It never uses the SQD rating; a comment the model cannot classify stays Pending for manual review.
 
 ### Administrative Dashboard and Management
 - **Key Metrics**: Interactive gauges displaying total submissions and satisfaction trends.

@@ -7,22 +7,38 @@ from django.utils import timezone
 
 
 class FeedbackEntry(models.Model):
-    # Experience Ratings (Service Quality Dimensions - SQD)
-    STRONGLY_AGREE = 'strongly_agree'
-    AGREE = 'agree'
-    NEITHER = 'neither'
-    DISAGREE = 'disagree'
-    STRONGLY_DISAGREE = 'strongly_disagree'
-    NOT_APPLICABLE = 'na'
+    # Experience Ratings (Service Quality Dimensions - SQD).
+    # This rating scale is independent of the comment sentiment below: the
+    # client picks a rating, while sentiment is derived from comment text only.
+    VERY_SATISFACTORY = 'vsat'
+    SATISFACTORY = 'sat'
+    UNSATISFACTORY = 'unsat'
 
     EXPERIENCE_CHOICES = [
-        (STRONGLY_AGREE, 'Strongly Agree'),
-        (AGREE, 'Agree'),
-        (NEITHER, 'Neither Agree nor Disagree'),
-        (DISAGREE, 'Disagree'),
-        (STRONGLY_DISAGREE, 'Strongly Disagree'),
-        (NOT_APPLICABLE, 'Not Applicable'),
+        (VERY_SATISFACTORY, 'Very Satisfactory'),
+        (SATISFACTORY, 'Satisfactory'),
+        (UNSATISFACTORY, 'Unsatisfactory'),
     ]
+
+    # Numeric values submitted by the SQD radio buttons.
+    SQD_SCORE_TO_EXPERIENCE = {
+        3: VERY_SATISFACTORY,
+        2: SATISFACTORY,
+        1: UNSATISFACTORY,
+    }
+
+    # Former 5-point agreement scale, kept only so the convert_rating_scale
+    # command can move stored entries onto the 3-point scale. 'Not Applicable'
+    # (score 6) has no counterpart and becomes an empty SQD answer.
+    LEGACY_EXPERIENCE_MAP = {
+        'strongly_agree': VERY_SATISFACTORY,
+        'agree': SATISFACTORY,
+        'disagree': UNSATISFACTORY,
+        'strongly_disagree': UNSATISFACTORY,
+    }
+    LEGACY_SQD_SCORE_MAP = {5: 3, 4: 2, 2: 1, 1: 1, 6: None}
+
+    NOT_APPLICABLE = 'na'
 
     # Sentiments (Detected or Manual)
     POSITIVE = 'pos'

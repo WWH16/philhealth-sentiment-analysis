@@ -55,27 +55,18 @@ def _preprocess_light(text):
     return " ".join(filtered_tokens)
 
 
-def _fallback_from_experience(experience):
-    if not experience:
-        return FeedbackEntry.PENDING
-    if experience in (FeedbackEntry.STRONGLY_AGREE, FeedbackEntry.AGREE):
-        return FeedbackEntry.POSITIVE
-    if experience in (FeedbackEntry.DISAGREE, FeedbackEntry.STRONGLY_DISAGREE):
-        return FeedbackEntry.NEGATIVE
-    if experience in (FeedbackEntry.NEITHER, FeedbackEntry.NOT_APPLICABLE):
-        return FeedbackEntry.NEUTRAL
-    return FeedbackEntry.PENDING
-
-
-def analyze_comment_sentiment(comment, experience=None):
+def analyze_comment_sentiment(comment):
+    """Classify comment text only. The SQD rating is never consulted: rating
+    and sentiment are separate measurements. Entries the model cannot
+    classify stay PENDING for manual review."""
     if not comment or not comment.strip():
         return FeedbackEntry.NOT_APPLICABLE
     model = _get_model()
     if not model:
-        return _fallback_from_experience(experience)
+        return FeedbackEntry.PENDING
     cleaned = _preprocess_light(comment)
     if not cleaned:
-        return _fallback_from_experience(experience)
+        return FeedbackEntry.PENDING
     try:
         if hasattr(model, 'predict_proba') and hasattr(model, 'classes_'):
             probas = dict(zip(model.classes_, model.predict_proba([cleaned])[0]))
@@ -98,13 +89,9 @@ def analyze_comment_sentiment(comment, experience=None):
             if isinstance(predicted_label, str)
             else predicted_label
         )
-        res = _LABEL_MAP.get(normalized_label, FeedbackEntry.PENDING)
-        if res != FeedbackEntry.PENDING:
-            return res
-
-        return _fallback_from_experience(experience)
+        return _LABEL_MAP.get(normalized_label, FeedbackEntry.PENDING)
     except Exception:
-        return _fallback_from_experience(experience)
+        return FeedbackEntry.PENDING
 
 
 def reanalyze_pending_entries(force=False):
@@ -116,7 +103,7 @@ def reanalyze_pending_entries(force=False):
     processed = 0
 
     for entry in qs.iterator(chunk_size=200):
-        new_sentiment = analyze_comment_sentiment(entry.comment, entry.experience)
+        new_sentiment = analyze_comment_sentiment(entry.comment)
         if new_sentiment != entry.sentiment:
             entry.sentiment = new_sentiment
             entry.save(update_fields=['sentiment', 'updated_at'])

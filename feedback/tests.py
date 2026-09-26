@@ -21,14 +21,14 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         config.save()
 
         response = self._submit({
-            'experience': FeedbackEntry.STRONGLY_AGREE,
+            'experience': FeedbackEntry.VERY_SATISFACTORY,
             'comment': 'Excellent service.',
         })
 
         self.assertEqual(response.status_code, 201)
         entry = FeedbackEntry.objects.get()
         self.assertEqual(entry.sentiment, FeedbackEntry.POSITIVE)
-        mocked_analyze.assert_called_once_with('Excellent service.', FeedbackEntry.STRONGLY_AGREE)
+        mocked_analyze.assert_called_once_with('Excellent service.')
 
     @patch('feedback.views.analyze_comment_sentiment', return_value=FeedbackEntry.POSITIVE)
     def test_submit_feedback_skips_analysis_when_disabled(self, mocked_analyze):
@@ -37,7 +37,7 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         config.save()
 
         response = self._submit({
-            'experience': FeedbackEntry.AGREE,
+            'experience': FeedbackEntry.SATISFACTORY,
             'comment': 'Please improve wait times.',
         })
 
@@ -59,15 +59,15 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
             'cc1': '1',
             'cc2': '1',
             'cc3': '1',
-            'sqd0': 5,
-            'sqd1': 5,
-            'sqd2': 4,
-            'sqd3': 5,
-            'sqd4': 5,
-            'sqd5': 5,
-            'sqd6': 5,
-            'sqd7': 5,
-            'sqd8': 5,
+            'sqd0': 3,
+            'sqd1': 3,
+            'sqd2': 2,
+            'sqd3': 3,
+            'sqd4': 3,
+            'sqd5': 3,
+            'sqd6': 3,
+            'sqd7': 3,
+            'sqd8': 3,
             'comments_suggestions': 'Keep up the good work!',
             'commendation': 'Kudos to Frontdesk Staff Maria!'
         }
@@ -84,15 +84,15 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(entry.client_type, 'Citizen')
         self.assertEqual(entry.name_of_client, 'Juan Dela Cruz')
         self.assertEqual(entry.services_availed, ['KonSulTa Registration (5)', 'Claims Filing (8)'])
-        self.assertEqual(entry.sqd0, 5)
-        self.assertEqual(entry.experience, FeedbackEntry.STRONGLY_AGREE)
+        self.assertEqual(entry.sqd0, 3)
+        self.assertEqual(entry.experience, FeedbackEntry.VERY_SATISFACTORY)
         self.assertIn('Comments: Keep up the good work!', entry.comment)
         self.assertIn('Commendation: Kudos to Frontdesk Staff Maria!', entry.comment)
 
 
     def test_submit_feedback_without_comment_sets_sentiment_na(self):
         response = self._submit({
-            'experience': FeedbackEntry.STRONGLY_AGREE,
+            'experience': FeedbackEntry.VERY_SATISFACTORY,
             'comment': '',
         })
         self.assertEqual(response.status_code, 201)
@@ -119,7 +119,7 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
             'staff_assisted': staff_user.id,
             'staff_name': 'Maria Santos',
             'services_availed': ['KonSulTa Registration (5)'],
-            'sqd0': 5,
+            'sqd0': 3,
         }
         response = self._submit(payload)
         self.assertEqual(response.status_code, 201)
@@ -164,10 +164,9 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
             is_superuser=False,
         )
         payload = {
-            'experience': 'Strongly Agree',
             'staff_assisted': staff_user.id,
             'staff_name': 'Spoofed Malicious Name',
-            'sqd0': 5,
+            'sqd0': 3,
         }
         response = self._submit(payload)
         self.assertEqual(response.status_code, 201)
@@ -194,15 +193,32 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
             is_superuser=False,
         )
         payload = {
-            'experience': 'Strongly Agree',
             'comment': 'Good service',
-            'sqd0': 5,
+            'sqd0': 3,
         }
         response = self._submit(payload)
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.content.decode('utf-8'))
         self.assertFalse(data.get('ok'))
         self.assertEqual(data.get('error'), 'Please select the staff member who assisted you.')
+
+
+    def test_submit_maps_sqd0_to_three_point_rating(self):
+        expected = {
+            3: FeedbackEntry.VERY_SATISFACTORY,
+            2: FeedbackEntry.SATISFACTORY,
+            1: FeedbackEntry.UNSATISFACTORY,
+        }
+        for score, experience in expected.items():
+            response = self._submit({'sqd0': score})
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(FeedbackEntry.objects.latest('id').experience, experience)
+
+    def test_submit_rejects_rating_outside_three_point_scale(self):
+        for payload in ({'sqd0': 5}, {'sqd0': 6}, {'experience': 'strongly_agree'}, {}):
+            response = self._submit(payload)
+            self.assertEqual(response.status_code, 400)
+        self.assertEqual(FeedbackEntry.objects.count(), 0)
 
 
 class SentimentServiceTests(TestCase):
@@ -220,13 +236,20 @@ class SentimentServiceTests(TestCase):
     def test_entry_to_row_empty_comment_displays_na(self):
         from feedback_admin.views import _entry_to_row
         entry = FeedbackEntry.objects.create(
-            experience=FeedbackEntry.AGREE,
+            experience=FeedbackEntry.SATISFACTORY,
             sentiment=FeedbackEntry.PENDING,
             comment='',
         )
         row = _entry_to_row(entry)
         self.assertEqual(row['sentiment'], 'N/A')
         self.assertEqual(row['sentiment_value'], FeedbackEntry.NOT_APPLICABLE)
+
+
+    @patch('feedback.services._get_model', return_value=None)
+    def test_sentiment_does_not_fall_back_to_rating(self, _mocked_model):
+        from .services import analyze_comment_sentiment
+        # Without a usable model the comment stays unanalyzed; the rating is never used.
+        self.assertEqual(analyze_comment_sentiment('Mabilis ang serbisyo.'), FeedbackEntry.PENDING)
 
 
 class DailySummaryEmailTests(TestCase):
@@ -242,22 +265,22 @@ class DailySummaryEmailTests(TestCase):
         from .email_service import get_daily_summary_metrics
         # Create test feedback entries
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.STRONGLY_AGREE,
-            sqd0=5,
+            experience=FeedbackEntry.VERY_SATISFACTORY,
+            sqd0=3,
             sentiment=FeedbackEntry.POSITIVE,
             category=FeedbackEntry.COMPLIMENT,
             comment='Great service at Window 2.'
         )
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.AGREE,
-            sqd0=4,
+            experience=FeedbackEntry.SATISFACTORY,
+            sqd0=2,
             sentiment=FeedbackEntry.POSITIVE,
             category=FeedbackEntry.SUGGESTION,
             comment='Smooth transaction.'
         )
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.DISAGREE,
-            sqd0=2,
+            experience=FeedbackEntry.UNSATISFACTORY,
+            sqd0=1,
             sentiment=FeedbackEntry.NEGATIVE,
             category=FeedbackEntry.COMPLAINT,
             comment='Long waiting queue.'
@@ -265,7 +288,7 @@ class DailySummaryEmailTests(TestCase):
 
         metrics = get_daily_summary_metrics(self.today)
         self.assertEqual(metrics['total_count'], 3)
-        # (2 positive SQD0 out of 3) = 67%
+        # (2 Very Satisfactory/Satisfactory ratings out of 3) = 67%
         self.assertEqual(metrics['satisfaction_rate'], 67)
         self.assertEqual(metrics['pos_count'], 2)
         self.assertEqual(metrics['neg_count'], 1)
@@ -388,7 +411,7 @@ class SurveyAvailabilityTests(TestCase):
         response = self.client.post(
             '/submit/',
             data=json.dumps({
-                'experience': FeedbackEntry.AGREE,
+                'experience': FeedbackEntry.SATISFACTORY,
                 'comment': 'Trying to submit while offline.',
             }),
             content_type='application/json',
@@ -408,7 +431,7 @@ class SurveyAvailabilityTests(TestCase):
         response = self.client.post(
             '/submit/',
             data=json.dumps({
-                'experience': FeedbackEntry.STRONGLY_AGREE,
+                'experience': FeedbackEntry.VERY_SATISFACTORY,
                 'comment': 'Submitting while active.',
             }),
             content_type='application/json',
@@ -420,3 +443,29 @@ class SurveyAvailabilityTests(TestCase):
         self.assertEqual(FeedbackEntry.objects.count(), 1)
 
 
+class ConvertRatingScaleCommandTests(TestCase):
+    def test_converts_legacy_entries_once_and_keeps_sentiment(self):
+        from io import StringIO
+        from django.core.management import call_command
+
+        legacy = FeedbackEntry.objects.create(
+            experience='strongly_agree', sqd0=5, sqd4=4, sqd5=6,
+            sentiment=FeedbackEntry.NEGATIVE, comment='Mahaba ang pila.',
+        )
+        current = FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY, sqd0=2, sqd1=1,
+        )
+
+        call_command('convert_rating_scale', '--dry-run', stdout=StringIO())
+        legacy.refresh_from_db()
+        self.assertEqual(legacy.experience, 'strongly_agree')
+
+        call_command('convert_rating_scale', stdout=StringIO())
+        call_command('convert_rating_scale', stdout=StringIO())
+
+        legacy.refresh_from_db()
+        current.refresh_from_db()
+        self.assertEqual(legacy.experience, FeedbackEntry.VERY_SATISFACTORY)
+        self.assertEqual((legacy.sqd0, legacy.sqd4, legacy.sqd5), (3, 2, None))
+        self.assertEqual(legacy.sentiment, FeedbackEntry.NEGATIVE)
+        self.assertEqual((current.experience, current.sqd0, current.sqd1), (FeedbackEntry.SATISFACTORY, 2, 1))

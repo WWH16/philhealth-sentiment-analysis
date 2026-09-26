@@ -6,9 +6,9 @@ from feedback.models import FeedbackConfiguration, FeedbackEntry
 from feedback.services import analyze_comment_sentiment
 
 SAMPLE_FEEDBACK = [
-    # Strongly Agree / Positive Compliments
+    # Very Satisfactory / Compliments
     {
-        'experience': FeedbackEntry.STRONGLY_AGREE,
+        'experience': FeedbackEntry.VERY_SATISFACTORY,
         'category': FeedbackEntry.COMPLIMENT,
         'comments': [
             "Fast and courteous service at window 3. Very satisfied with the PhilHealth ID processing!",
@@ -19,9 +19,9 @@ SAMPLE_FEEDBACK = [
             "Excellent customer service! All my questions about Konsulta benefits were explained clearly.",
         ]
     },
-    # Agree / Positive & Neutral
+    # Satisfactory / Compliments
     {
-        'experience': FeedbackEntry.AGREE,
+        'experience': FeedbackEntry.SATISFACTORY,
         'category': FeedbackEntry.COMPLIMENT,
         'comments': [
             "Mabait at maasikaso ang frontline staff sa pag-update ng aking dependents.",
@@ -29,9 +29,9 @@ SAMPLE_FEEDBACK = [
             "Process was clear and staff answered all our questions kindly.",
         ]
     },
-    # Neither Agree nor Disagree / Neutral Suggestions
+    # Satisfactory / Suggestions
     {
-        'experience': FeedbackEntry.NEITHER,
+        'experience': FeedbackEntry.SATISFACTORY,
         'category': FeedbackEntry.SUGGESTION,
         'comments': [
             "Overall good experience, but please consider adding more chairs in the waiting area.",
@@ -43,9 +43,9 @@ SAMPLE_FEEDBACK = [
             "Good service overall. Clearer signage for senior citizen express counter is suggested.",
         ]
     },
-    # Disagree / Negative Complaints
+    # Unsatisfactory / Complaints
     {
-        'experience': FeedbackEntry.DISAGREE,
+        'experience': FeedbackEntry.UNSATISFACTORY,
         'category': FeedbackEntry.COMPLAINT,
         'comments': [
             "Medyo matagal ang pila nung umaga. Sana madagdagan ang active counters during peak hours.",
@@ -54,9 +54,9 @@ SAMPLE_FEEDBACK = [
             "Matagal ang veripikasyon ng member record. Kailangan po ng karagdagang verification officers.",
         ]
     },
-    # Strongly Disagree / Severe Negative Complaints & Concerns
+    # Unsatisfactory / Severe Complaints & Concerns
     {
-        'experience': FeedbackEntry.STRONGLY_DISAGREE,
+        'experience': FeedbackEntry.UNSATISFACTORY,
         'category': FeedbackEntry.COMPLAINT,
         'comments': [
             "Waited over 2 hours just to submit my claim documents. Window 2 was offline for too long.",
@@ -66,9 +66,9 @@ SAMPLE_FEEDBACK = [
             "Long waiting time at counter 4 for employer remittance corrections.",
         ]
     },
-    # Not Applicable / General Inquiries
+    # Satisfactory / General Inquiries
     {
-        'experience': FeedbackEntry.NOT_APPLICABLE,
+        'experience': FeedbackEntry.SATISFACTORY,
         'category': FeedbackEntry.SUGGESTION,
         'comments': [
             "Inquired about Konsulta package requirements for non-resident relatives.",
@@ -109,7 +109,7 @@ class Command(BaseCommand):
         for i in range(count):
             group = random.choices(
                 SAMPLE_FEEDBACK,
-                weights=[45, 30, 12, 6, 4, 3],  # 45% SA, 30% A, 12% NAD, 6% D, 4% SD, 3% N/A
+                weights=[45, 30, 12, 6, 4, 3],
                 k=1
             )[0]
 

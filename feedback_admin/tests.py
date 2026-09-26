@@ -115,12 +115,12 @@ class DashboardViewTests(TestCase):
     def test_dashboard_view_renders_successfully(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.STRONGLY_AGREE,
+            experience=FeedbackEntry.VERY_SATISFACTORY,
             category='compliment',
             comment='Great service!',
         )
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.AGREE,
+            experience=FeedbackEntry.SATISFACTORY,
             category='suggestion',
             comment='Smooth process.',
         )
@@ -129,9 +129,9 @@ class DashboardViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('filter_data', response.context)
         self.assertEqual(response.context['total'], 2)
-        self.assertEqual(response.context['strongly_agree'], 1)
-        self.assertEqual(response.context['agree'], 1)
-        self.assertEqual(response.context['disagree'], 0)
+        self.assertEqual(response.context['very_satisfactory'], 1)
+        self.assertEqual(response.context['satisfactory'], 1)
+        self.assertEqual(response.context['unsatisfactory'], 0)
         self.assertEqual(response.context['filter_data']['all']['total'], 2)
         self.assertContains(response, 'id="nav-dashboard"')
         self.assertContains(response, 'nav-item active')
@@ -150,12 +150,12 @@ class SentimentAnalysisViewTests(TestCase):
     def test_sentiment_analysis_view_renders_successfully(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.STRONGLY_AGREE,
+            experience=FeedbackEntry.VERY_SATISFACTORY,
             sentiment=FeedbackEntry.POSITIVE,
             comment='Exemplary assistance.',
         )
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.DISAGREE,
+            experience=FeedbackEntry.UNSATISFACTORY,
             sentiment=FeedbackEntry.NEGATIVE,
             comment='Delayed processing.',
         )
@@ -181,7 +181,7 @@ class ReportsViewTests(TestCase):
     def test_reports_view_renders_successfully(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.STRONGLY_AGREE,
+            experience=FeedbackEntry.VERY_SATISFACTORY,
             category='compliment',
             comment='Superb staff responsiveness.',
         )
@@ -195,7 +195,7 @@ class ReportsViewTests(TestCase):
         self.assertIn('monthly', report_data)
         self.assertIn('quarterly', report_data)
         self.assertIn('annual', report_data)
-        self.assertEqual(report_data['daily']['strongly_agree'], 1)
+        self.assertEqual(report_data['daily']['very_satisfactory'], 1)
         self.assertContains(response, 'nav-item active')
 
 
@@ -211,7 +211,7 @@ class ResponsesViewTests(TestCase):
     def test_responses_view_renders_successfully(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.STRONGLY_AGREE,
+            experience=FeedbackEntry.VERY_SATISFACTORY,
             category='compliment',
             comment='Fast transaction.',
         )
@@ -219,7 +219,7 @@ class ResponsesViewTests(TestCase):
         response = self.client.get(reverse('responses'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['total'], 1)
-        self.assertEqual(response.context['strongly_agree'], 1)
+        self.assertEqual(response.context['very_satisfactory'], 1)
         self.assertEqual(len(response.context['entries_data']), 1)
         self.assertContains(response, 'nav-item active')
 
@@ -227,12 +227,12 @@ class ResponsesViewTests(TestCase):
         from feedback.models import FeedbackEntry
         from django.contrib.admin.models import LogEntry, DELETION
         e1 = FeedbackEntry.objects.create(
-            experience=FeedbackEntry.STRONGLY_AGREE,
+            experience=FeedbackEntry.VERY_SATISFACTORY,
             category='compliment',
             comment='Response 1',
         )
         e2 = FeedbackEntry.objects.create(
-            experience=FeedbackEntry.AGREE,
+            experience=FeedbackEntry.SATISFACTORY,
             category='suggestion',
             comment='Response 2',
         )
@@ -248,8 +248,8 @@ class ResponsesViewTests(TestCase):
         self.assertEqual(data['deleted_count'], 1)
         self.assertEqual(data['deleted_ids'], [e1.id])
         self.assertEqual(data['counts']['total'], 1)
-        self.assertEqual(data['counts']['strongly_agree'], 0)
-        self.assertEqual(data['counts']['agree'], 1)
+        self.assertEqual(data['counts']['very_satisfactory'], 0)
+        self.assertEqual(data['counts']['satisfactory'], 1)
 
         self.assertFalse(FeedbackEntry.objects.filter(id=e1.id).exists())
         self.assertTrue(FeedbackEntry.objects.filter(id=e2.id).exists())
@@ -261,9 +261,9 @@ class ResponsesViewTests(TestCase):
 
     def test_responses_delete_multiple(self):
         from feedback.models import FeedbackEntry
-        e1 = FeedbackEntry.objects.create(experience=FeedbackEntry.STRONGLY_AGREE)
-        e2 = FeedbackEntry.objects.create(experience=FeedbackEntry.DISAGREE)
-        e3 = FeedbackEntry.objects.create(experience=FeedbackEntry.NEITHER)
+        e1 = FeedbackEntry.objects.create(experience=FeedbackEntry.VERY_SATISFACTORY)
+        e2 = FeedbackEntry.objects.create(experience=FeedbackEntry.UNSATISFACTORY)
+        e3 = FeedbackEntry.objects.create(experience=FeedbackEntry.SATISFACTORY)
 
         response = self.client.post(
             reverse('responses_delete'),
@@ -276,7 +276,7 @@ class ResponsesViewTests(TestCase):
         self.assertEqual(data['deleted_count'], 2)
         self.assertEqual(set(data['deleted_ids']), {e1.id, e2.id})
         self.assertEqual(data['counts']['total'], 1)
-        self.assertEqual(data['counts']['neither'], 1)
+        self.assertEqual(data['counts']['satisfactory'], 1)
 
         self.assertFalse(FeedbackEntry.objects.filter(id__in=[e1.id, e2.id]).exists())
         self.assertTrue(FeedbackEntry.objects.filter(id=e3.id).exists())
@@ -327,8 +327,8 @@ class ResponsesViewTests(TestCase):
 
     def test_responses_count(self):
         from feedback.models import FeedbackEntry
-        FeedbackEntry.objects.create(experience=FeedbackEntry.STRONGLY_AGREE)
-        FeedbackEntry.objects.create(experience=FeedbackEntry.AGREE)
+        FeedbackEntry.objects.create(experience=FeedbackEntry.VERY_SATISFACTORY)
+        FeedbackEntry.objects.create(experience=FeedbackEntry.SATISFACTORY)
 
         response = self.client.get(reverse('responses_count'))
         self.assertEqual(response.status_code, 200)
@@ -586,7 +586,7 @@ class DatabaseBackupTests(TransactionTestCase):
         from feedback_admin.backup_utils import create_backup, resolve_backup_path, delete_backup
 
         entry1 = FeedbackEntry.objects.create(
-            experience=FeedbackEntry.STRONGLY_AGREE,
+            experience=FeedbackEntry.VERY_SATISFACTORY,
             comment='Original entry before backup',
         )
 
@@ -595,7 +595,7 @@ class DatabaseBackupTests(TransactionTestCase):
 
         # Add a new entry after backup
         entry2 = FeedbackEntry.objects.create(
-            experience=FeedbackEntry.DISAGREE,
+            experience=FeedbackEntry.UNSATISFACTORY,
             comment='Entry created after backup',
         )
         self.assertEqual(FeedbackEntry.objects.count(), 2)
@@ -643,7 +643,7 @@ class DatabaseBackupTests(TransactionTestCase):
         from feedback_admin.backup_utils import create_backup, delete_backup
 
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.AGREE,
+            experience=FeedbackEntry.SATISFACTORY,
             comment='Pre-existing backup entry',
         )
 
@@ -652,7 +652,7 @@ class DatabaseBackupTests(TransactionTestCase):
 
         # Add another entry
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.DISAGREE,
+            experience=FeedbackEntry.UNSATISFACTORY,
             comment='Should disappear after restore',
         )
         self.assertEqual(FeedbackEntry.objects.count(), 2)
