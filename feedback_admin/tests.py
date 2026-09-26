@@ -168,6 +168,37 @@ class SentimentAnalysisViewTests(TestCase):
         self.assertEqual(response.context['negative'], 1)
         self.assertContains(response, 'nav-item active')
 
+    def test_word_cloud_counts_analyzed_comment_words(self):
+        from feedback.models import FeedbackEntry
+        FeedbackEntry.objects.create(
+            experience=FeedbackEntry.VERY_SATISFACTORY,
+            sentiment=FeedbackEntry.POSITIVE,
+            comment='Comments: Mabilis ang staff, staff was helpful.',
+        )
+        FeedbackEntry.objects.create(
+            experience=FeedbackEntry.UNSATISFACTORY,
+            sentiment=FeedbackEntry.NEGATIVE,
+            comment='The staff line was slow.',
+        )
+        FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY,
+            sentiment=FeedbackEntry.PENDING,
+            comment='Unanalyzed staff remark.',
+        )
+
+        response = self.client.get(reverse('sentiment_analysis'))
+        cloud = response.context['word_cloud']['all']
+        words = {word['t']: word for word in cloud['words']}
+
+        self.assertEqual(cloud['comments'], 2)
+        # Counted once per comment, split by the comment's sentiment; pending excluded.
+        self.assertEqual((words['staff']['n'], words['staff']['pos'], words['staff']['neg']), (2, 1, 1))
+        self.assertEqual(words['mabilis']['pos'], 1)
+        self.assertEqual(words['slow']['neg'], 1)
+        for stopword in ('ang', 'the', 'was', 'comments', 'unanalyzed'):
+            self.assertNotIn(stopword, words)
+        self.assertContains(response, 'id="wcCloud"')
+
 
 class ReportsViewTests(TestCase):
     def setUp(self):

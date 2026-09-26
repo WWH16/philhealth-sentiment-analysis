@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from datetime import datetime, time, timedelta
 from collections import defaultdict
 from functools import wraps
@@ -718,6 +719,88 @@ def responses_delete(request):
     })
 
 
+# Filipino and Taglish function words, plus form and agency words that appear
+# in almost every comment and would crowd out the words people actually chose.
+_WORD_CLOUD_EXTRA_STOPWORDS = frozenset('''
+    ang ng sa na mga at si ni kay ay po opo ko ako ikaw ka mo niya siya kami
+    kayo sila namin natin nila ito iyan iyon yan yun dito diyan doon nga pa din
+    rin lang lamang naman kasi dahil para pag kung kapag kahit pero ngunit may
+    mayroon meron wala hindi di ba nang nung noong nasa yung iyong aking ating
+    kanilang lahat isang isa dapat sana talaga nag mag kaya hanggang
+    comments commendation suggestions philhealth lhio cauayan office also
+    would could get got one
+'''.split())
+_WORD_RE = re.compile(r"[a-zñ]+(?:'[a-z]+)?")
+_WORD_CLOUD_LIMIT = 60
+
+
+def _sentiment_word_cloud(entries, today_start, week_start, month_start):
+    """Most frequent comment words per period, with the sentiment of the
+    comments each word came from. Only analyzed comments (positive, neutral,
+    negative) are counted, so every word has a sentiment to show."""
+    from feedback.services import _STOP_WORDS
+
+    stopwords = _STOP_WORDS | _WORD_CLOUD_EXTRA_STOPWORDS
+    sentiment_keys = {
+        FeedbackEntry.POSITIVE: 'pos',
+        FeedbackEntry.NEUTRAL: 'neu',
+        FeedbackEntry.NEGATIVE: 'neg',
+    }
+    periods = ('all', 'month', 'week', 'today')
+    words = {period: defaultdict(lambda: {'pos': 0, 'neu': 0, 'neg': 0}) for period in periods}
+    comment_counts = dict.fromkeys(periods, 0)
+
+    rows = (
+        entries.filter(sentiment__in=sentiment_keys.keys())
+        .exclude(comment='')
+        .values_list('comment', 'sentiment', 'created_at')
+    )
+    for comment, sentiment, created_at in rows.iterator(chunk_size=500):
+        text = re.sub(r'(Comments|Commendation|Comments & Suggestions):', ' ', comment, flags=re.IGNORECASE)
+        # Count each word once per comment so one long, repetitive comment cannot dominate.
+        tokens = {
+            token for token in _WORD_RE.findall(text.lower())
+            if len(token) > 2 and token not in stopwords
+        }
+        if not tokens:
+            continue
+        key = sentiment_keys[sentiment]
+        in_periods = ['all']
+        if created_at >= month_start:
+            in_periods.append('month')
+        if created_at >= week_start:
+            in_periods.append('week')
+        if created_at >= today_start:
+            in_periods.append('today')
+        for period in in_periods:
+            comment_counts[period] += 1
+            bucket = words[period]
+            for token in tokens:
+                bucket[token][key] += 1
+
+    cloud = {}
+    for period in periods:
+        entries_list = [
+            {'t': token, **counts, 'n': sum(counts.values())}
+            for token, counts in words[period].items()
+        ]
+        # Keep the top words overall and the top words of each sentiment, so
+        # the Positive/Neutral/Negative views are not limited to overall leaders.
+        kept = {}
+        for key in ('n', 'pos', 'neu', 'neg'):
+            ranked = sorted(
+                (word for word in entries_list if word[key] > 0),
+                key=lambda word: (-word[key], word['t']),
+            )
+            for word in ranked[:_WORD_CLOUD_LIMIT]:
+                kept[word['t']] = word
+        cloud[period] = {
+            'comments': comment_counts[period],
+            'words': sorted(kept.values(), key=lambda word: (-word['n'], word['t'])),
+        }
+    return cloud
+
+
 @superuser_required
 def sentiment_analysis(request):
     entries = FeedbackEntry.objects.all()
@@ -755,7 +838,10 @@ def sentiment_analysis(request):
     def trend_for(sentiment):
         return [trend_data_map[day][sentiment] for day in trend_dates]
 
+    word_cloud = _sentiment_word_cloud(entries, today_start, week_start, month_start)
+
     context = {
+        'word_cloud': word_cloud,
         'total': all_counts['total'],
         'positive': all_counts['positive'],
         'neutral': all_counts['neutral'],

@@ -53,6 +53,194 @@
     color: #f8fafc;
     background: rgba(255, 255, 255, 0.06);
   }
+  .btn-chart-toggle:focus-visible {
+    outline: 2px solid var(--g-primary, #23A455);
+    outline-offset: -2px;
+  }
+
+  /* ── WORD CLOUD ─────────────────────────────────────────────────────── */
+  .wc {
+    /* Text tones pass 4.5:1 on the card; fills match the charts below. */
+    --wc-pos: #0f7a3d;
+    --wc-neu: #a14a07;
+    --wc-neg: #b91c1c;
+    --wc-pos-fill: #169651;
+    --wc-neu-fill: #d97706;
+    --wc-neg-fill: #dc2626;
+  }
+  [data-theme="dark"] .wc {
+    --wc-pos: #5fcf8a;
+    --wc-neu: #fbbf24;
+    --wc-neg: #f87171;
+  }
+  .wc-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .wc-caption {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 62ch;
+  }
+  .wc-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 28px;
+    align-items: stretch;
+  }
+  .wc-stage {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .wc-cloud {
+    list-style: none;
+    margin: 0;
+    padding: 12px 4px;
+    flex: 1;
+    min-height: 280px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: baseline;
+    justify-content: center;
+    column-gap: 0.55em;
+    row-gap: 0.1em;
+    line-height: 1.15;
+  }
+  .wc-word {
+    --s: 0;
+    font-size: calc(13px + var(--s) * 34px);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--wc-tone);
+    cursor: default;
+    padding: 0 0.08em;
+    border-radius: 3px;
+    transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: wc-in 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--i) * 14ms);
+  }
+  .wc-word.w-mid  { font-weight: 600; }
+  .wc-word.w-high { font-weight: 700; letter-spacing: -0.025em; }
+  .wc-word.t-pos { --wc-tone: var(--wc-pos); }
+  .wc-word.t-neu { --wc-tone: var(--wc-neu); }
+  .wc-word.t-neg { --wc-tone: var(--wc-neg); }
+  .wc-word:hover {
+    background: color-mix(in srgb, var(--wc-tone) 10%, transparent);
+    transform: translateY(-1px);
+  }
+  .wc-cloud:has(.wc-word:hover) .wc-word:not(:hover) { opacity: 0.4; }
+  @keyframes wc-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.94); filter: blur(3px); }
+    to   { opacity: 1; transform: none; filter: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wc-word { animation: none; transition: none; }
+  }
+  .wc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .wc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .wc-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .wc-empty {
+    flex: 1;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 6px;
+    color: var(--text-muted);
+  }
+  .wc-empty.d-none { display: none; }
+  .wc-empty .material-icons-round { font-size: 34px; opacity: 0.6; }
+  .wc-empty-title { font-weight: 700; font-size: 13px; color: var(--text-primary); }
+  .wc-empty-text { font-size: 12px; max-width: 36ch; }
+
+  .wc-rank {
+    border-left: 1px solid var(--border);
+    padding-left: 24px;
+    min-width: 0;
+  }
+  .wc-rank-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin: 4px 0 14px;
+  }
+  .wc-rank-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .wc-rank-row {
+    display: grid;
+    grid-template-columns: 1.4em minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 8px;
+    row-gap: 5px;
+    font-size: 13px;
+  }
+  .wc-rank-num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .wc-rank-word {
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .wc-rank-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .wc-split {
+    grid-column: 2 / 4;
+    display: flex;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--surface-page);
+  }
+  .wc-split span { display: block; height: 100%; }
+  .wc-split span + span { margin-left: 1px; }
+  .wc-rank-empty { font-size: 12px; color: var(--text-muted); }
+
+  @media (max-width: 991.98px) {
+    .wc-body { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .wc-rank { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 16px; }
+    .wc-rank-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+  }
+  @media (max-width: 575.98px) {
+    .wc-cloud { min-height: 220px; }
+    .wc-word { font-size: calc(12px + var(--s) * 20px); }
+    .wc-rank-list { grid-template-columns: minmax(0, 1fr); }
+  }
 </style>
 {% endblock %}
 
@@ -110,6 +298,48 @@
         <span class="stat-delta down" id="statNegDelta"><span class="material-icons-round" aria-hidden="true">arrow_downward</span><span id="statNegPct">{{ negative_pct }}%</span> of total</span>
         <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">sentiment_dissatisfied</span></div>
       </div>
+    </div>
+  </div>
+
+  <!-- WORD CLOUD -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <section class="card-block wc" aria-labelledby="wcTitle">
+        <div class="card-block-head wc-head">
+          <div>
+            <h2 class="card-block-title" id="wcTitle" style="margin:0;">
+              <span class="material-icons-round" aria-hidden="true">forum</span>
+              What Clients Are Saying
+            </h2>
+            <p class="wc-caption" id="wcCaption">Most frequent words in analyzed comments. Color shows the sentiment of the comments each word came from.</p>
+          </div>
+          <div class="chart-type-toggle" role="group" aria-label="Show words from">
+            <button type="button" class="btn-chart-toggle active" data-wc-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="btn-chart-toggle" data-wc-filter="pos" aria-pressed="false">Positive</button>
+            <button type="button" class="btn-chart-toggle" data-wc-filter="neu" aria-pressed="false">Neutral</button>
+            <button type="button" class="btn-chart-toggle" data-wc-filter="neg" aria-pressed="false">Negative</button>
+          </div>
+        </div>
+        <div class="card-block-body wc-body">
+          <div class="wc-stage">
+            <ul class="wc-cloud" id="wcCloud" aria-describedby="wcCaption"></ul>
+            <div class="wc-empty d-none" id="wcEmpty">
+              <span class="material-icons-round" aria-hidden="true">chat_bubble_outline</span>
+              <div class="wc-empty-title">No analyzed comments for this view</div>
+              <div class="wc-empty-text">Words appear here once comments in this period are classified as Positive, Neutral, or Negative.</div>
+            </div>
+            <div class="wc-legend" aria-hidden="true">
+              <span><i style="background:var(--wc-pos-fill)"></i>Mostly positive</span>
+              <span><i style="background:var(--wc-neu-fill)"></i>Mostly neutral</span>
+              <span><i style="background:var(--wc-neg-fill)"></i>Mostly negative</span>
+            </div>
+          </div>
+          <div class="wc-rank">
+            <h3 class="wc-rank-title">Top words</h3>
+            <ol class="wc-rank-list" id="wcRank"></ol>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -214,6 +444,109 @@
 
 {% block page_scripts %}
 {{ filter_data|json_script:"sentiment-filter-data" }}
+{{ word_cloud|json_script:"word-cloud-data" }}
+<script>
+/* ── WORD CLOUD ── */
+const WORD_CLOUD = JSON.parse(document.getElementById('word-cloud-data').textContent);
+const WC_TONE_NAMES = { pos: 'positive', neu: 'neutral', neg: 'negative' };
+let wcPeriod = 'all';
+let wcFilter = 'all';
+const WC_MAX_WORDS = 60;
+
+function wcEsc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function wcDominant(w) {
+  // Ties lean toward the more urgent signal: negative, then neutral.
+  if (w.neg >= w.pos && w.neg >= w.neu) return 'neg';
+  if (w.neu >= w.pos) return 'neu';
+  return 'pos';
+}
+
+function wcSplitText(w) {
+  return `${w.pos} positive, ${w.neu} neutral, ${w.neg} negative`;
+}
+
+function renderWordCloud() {
+  const period = WORD_CLOUD[wcPeriod] || { comments: 0, words: [] };
+  const cloud  = document.getElementById('wcCloud');
+  const empty  = document.getElementById('wcEmpty');
+  const rank   = document.getElementById('wcRank');
+  const caption = document.getElementById('wcCaption');
+  if (!cloud) return;
+
+  // Size by the chosen sentiment's count; "All" sizes by total mentions.
+  const weightOf = w => (wcFilter === 'all' ? w.n : w[wcFilter]);
+  const words = period.words
+    .filter(w => weightOf(w) > 0)
+    .sort((a, b) => weightOf(b) - weightOf(a) || a.t.localeCompare(b.t))
+    .slice(0, WC_MAX_WORDS);
+
+  const noun = period.comments === 1 ? 'comment' : 'comments';
+  caption.textContent = wcFilter === 'all'
+    ? `Most frequent words in ${period.comments.toLocaleString()} analyzed ${noun}. Color shows the sentiment of the comments each word came from.`
+    : `Most frequent words in ${WC_TONE_NAMES[wcFilter]} comments, from ${period.comments.toLocaleString()} analyzed ${noun} in this period.`;
+
+  if (words.length === 0) {
+    cloud.innerHTML = '';
+    cloud.classList.add('d-none');
+    empty.classList.remove('d-none');
+    rank.innerHTML = '<li class="wc-rank-empty">No words to rank yet.</li>';
+    return;
+  }
+  cloud.classList.remove('d-none');
+  empty.classList.add('d-none');
+
+  const max = weightOf(words[0]);
+  const min = weightOf(words[words.length - 1]);
+  const scale = w => (max === min ? 0.5 : Math.sqrt((weightOf(w) - min) / (max - min)));
+
+  // Center-out order: the heaviest words land in the middle of the cloud.
+  const arranged = [];
+  words.forEach((w, i) => (i % 2 ? arranged.push(w) : arranged.unshift(w)));
+
+  cloud.innerHTML = arranged.map(w => {
+    const s = scale(w);
+    const rankIdx = words.indexOf(w);
+    const tone = wcFilter === 'all' ? wcDominant(w) : wcFilter;
+    const weight = s > 0.6 ? 'w-high' : s > 0.25 ? 'w-mid' : '';
+    const count = weightOf(w);
+    const mentions = `${count} ${count === 1 ? 'comment' : 'comments'}`;
+    return `<li class="wc-word t-${tone} ${weight}" style="--s:${s.toFixed(3)};--i:${rankIdx}" title="${wcEsc(w.t)}: ${mentions} (${wcSplitText(w)})">`
+      + `${wcEsc(w.t)}<span class="visually-hidden">, ${mentions}, ${wcSplitText(w)}</span></li>`;
+  }).join('');
+
+  const top = words.slice(0, 8);
+  const topMax = weightOf(top[0]);
+  rank.innerHTML = top.map((w, i) => {
+    const count = weightOf(w);
+    const seg = key => {
+      const width = (w[key] / topMax) * 100;
+      return width > 0 ? `<span style="width:${width.toFixed(1)}%;background:var(--wc-${key}-fill)"></span>` : '';
+    };
+    const bar = wcFilter === 'all' ? seg('pos') + seg('neu') + seg('neg') : seg(wcFilter);
+    return `<li class="wc-rank-row">
+      <span class="wc-rank-num">${i + 1}</span>
+      <span class="wc-rank-word">${wcEsc(w.t)}</span>
+      <span class="wc-rank-count">${count}<span class="visually-hidden"> ${count === 1 ? 'comment' : 'comments'}, ${wcSplitText(w)}</span></span>
+      <span class="wc-split" aria-hidden="true">${bar}</span>
+    </li>`;
+  }).join('');
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-wc-filter]');
+  if (!btn) return;
+  wcFilter = btn.dataset.wcFilter;
+  document.querySelectorAll('[data-wc-filter]').forEach(b => {
+    const on = b === btn;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  renderWordCloud();
+});
+</script>
 <script>
 const FILTER_DATA    = JSON.parse(document.getElementById('sentiment-filter-data').textContent);
 const TREND_LABELS   = {{ trend_labels|safe }};
@@ -652,6 +985,8 @@ function setSentimentFilter(btn, period) {
   updatePieAndLegend(d);
   updateSentimentBar(d);
   renderSentimentTrendForPeriod(period);
+  wcPeriod = period;
+  renderWordCloud();
 }
 
 function onThemeChange() {
@@ -672,6 +1007,7 @@ function pageInit() {
   updatePieAndLegend(initialData);
   updateSentimentBar(initialData);
   renderSentimentTrendForPeriod('all');
+  renderWordCloud();
 
   // Stabilize chart layout once scrollbars and layout geometry settle
   requestAnimationFrame(() => {
