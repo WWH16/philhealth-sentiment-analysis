@@ -11,6 +11,14 @@ from .services import analyze_comment_sentiment
 
 
 
+def landing(request):
+    config = FeedbackConfiguration.get_solo()
+    return render(request, 'feedback/landing.html', {
+        'survey_enabled': config.survey_enabled,
+        'offline_message': config.get_survey_offline_message(),
+    })
+
+
 @ensure_csrf_cookie
 def index(request):
     config = FeedbackConfiguration.get_solo()

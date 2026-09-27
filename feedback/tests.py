@@ -9,7 +9,7 @@ from .models import FeedbackConfiguration, FeedbackEntry
 class SubmitFeedbackAutoAnalysisTests(TestCase):
     def _submit(self, payload):
         return self.client.post(
-            '/submit/',
+            '/feedback/submit/',
             data=json.dumps(payload),
             content_type='application/json',
         )
@@ -147,7 +147,7 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
             first_name='Boss',
             last_name='Administrator',
         )
-        response = self.client.get('/')
+        response = self.client.get('/feedback/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Pedro Penduko')
         self.assertNotContains(response, 'Boss Administrator')
@@ -177,7 +177,7 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
     def test_index_page_empty_staff_shows_disabled_placeholder(self):
         from django.contrib.auth.models import User
         User.objects.filter(is_staff=True, is_superuser=False).delete()
-        response = self.client.get('/')
+        response = self.client.get('/feedback/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'disabled')
         self.assertContains(response, '-- No Attending Staff Listed --')
@@ -386,8 +386,25 @@ class SurveyAvailabilityTests(TestCase):
         self.config.survey_offline_message = 'Custom offline notice for testing.'
         self.config.save()
 
-    def test_index_renders_form_when_survey_enabled(self):
+    def test_landing_page_links_to_form(self):
         response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'feedback/landing.html')
+        self.assertContains(response, 'href="/feedback/"')
+        self.assertContains(response, 'Give feedback')
+        self.assertNotContains(response, 'id="csmForm"')
+
+    def test_landing_page_shows_offline_notice_when_survey_disabled(self):
+        self.config.survey_enabled = False
+        self.config.save()
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'The online form is paused right now.')
+        self.assertContains(response, 'Custom offline notice for testing.')
+        self.assertNotContains(response, 'href="/feedback/"')
+
+    def test_index_renders_form_when_survey_enabled(self):
+        response = self.client.get('/feedback/')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['survey_enabled'])
         self.assertContains(response, 'id="csmForm"')
@@ -397,7 +414,7 @@ class SurveyAvailabilityTests(TestCase):
         self.config.survey_enabled = False
         self.config.save()
 
-        response = self.client.get('/')
+        response = self.client.get('/feedback/')
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['survey_enabled'])
         self.assertContains(response, 'Online Feedback Form is Currently Unavailable')
@@ -409,7 +426,7 @@ class SurveyAvailabilityTests(TestCase):
         self.config.save()
 
         response = self.client.post(
-            '/submit/',
+            '/feedback/submit/',
             data=json.dumps({
                 'experience': FeedbackEntry.SATISFACTORY,
                 'comment': 'Trying to submit while offline.',
@@ -429,7 +446,7 @@ class SurveyAvailabilityTests(TestCase):
         self.config.save()
 
         response = self.client.post(
-            '/submit/',
+            '/feedback/submit/',
             data=json.dumps({
                 'experience': FeedbackEntry.VERY_SATISFACTORY,
                 'comment': 'Submitting while active.',

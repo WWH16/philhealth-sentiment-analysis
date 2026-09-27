@@ -1,0 +1,539 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSAS: Client Sentiment Analysis System | PhilHealth LHIO Cauayan City</title>
+  <meta name="description" content="Tell PhilHealth LHIO Cauayan City how you were served. Answer the official Client Satisfaction Measurement (CSM) form and see what the office does with your feedback.">
+  <meta name="theme-color" content="#174d2a">
+  <link rel="icon" type="image/png" href="{% static 'img/csas-mark.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/csas-mark.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    /* Tokens mirror the staff dashboard (feedback_admin/base.html). */
+    :root {
+      --g-primary: #23A455;
+      --g-deep:    #1F964B;
+      --g-forest:  #0f5a2b;
+      --g-dark:    #174d2a;
+      --g-light:   #d4f0e1;
+      --g-xlight:  #f0faf5;
+
+      --ink:  #1c1e22;
+      --ink2: #2e3238;
+      --ink4: #484c53;
+      --ink5: #525866;
+      --ink7: #e4e7eb;
+      --ink8: #f2f4f6;
+      --white: #ffffff;
+
+      --surface-page: var(--ink8);
+      --surface-card: var(--white);
+      --border: var(--ink7);
+      --text-primary: var(--ink);
+      --text-secondary: var(--ink4);
+      --text-muted: var(--ink5);
+
+      /* Text and lines on the dark green bars */
+      --on-dark: #ffffff;
+      --on-dark-soft: #c3e6d0;
+      --on-dark-accent: #7fd8a2;
+      --on-dark-line: rgba(255, 255, 255, 0.14);
+
+      /* Comment sentiment roles (dashboard chip colors) */
+      --pos: #169651;  --pos-bg: #f0faf5; --pos-text: #0d6e35; --pos-border: #b8e6cb;
+      --neu: #d97706;  --neu-bg: #fffbe6; --neu-text: #7a5500; --neu-border: #f5e4a0;
+      --neg: #dc2626;  --neg-bg: #fff0f2; --neg-text: #990014; --neg-border: #fca5a5;
+
+      --font: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+      --wrap: 1180px;
+      --gutter: clamp(16px, 3vw, 32px);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    /* Green behind the body so overscroll and short pages end in the footer's green. */
+    html { background: var(--g-dark); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; scrollbar-color: #b3b9c1 var(--surface-page); }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body {
+      margin: 0;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: var(--g-light); color: var(--g-forest); }
+    img { display: block; max-width: 100%; height: auto; }
+    a { color: var(--g-forest); text-underline-offset: 3px; }
+    :focus-visible { outline: 2px solid var(--g-primary); outline-offset: 2px; }
+    .material-icons-round { font-size: 18px; line-height: 1; }
+    .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
+    .visually-hidden {
+      position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+    .skip {
+      position: absolute; left: 16px; top: -60px; z-index: 10;
+      background: var(--g-forest); color: #fff; padding: 8px 14px; font-weight: 700; font-size: 13px;
+    }
+    .skip:focus { top: 10px; }
+
+    /* ── Top bar (dashboard .topbar) ─────────────────────────────────── */
+    .topbar { background: var(--g-dark); color: var(--on-dark); }
+    .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+    .brand img { width: 38px; height: 38px; }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .brand-name { font-size: 16px; font-weight: 800; letter-spacing: 0.06em; color: #fff; }
+    .brand-sub { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--on-dark-accent); }
+    .agency { display: flex; align-items: center; gap: 12px; }
+    .agency-text { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+    .agency-name { font-size: 13px; font-weight: 800; letter-spacing: 0.02em; }
+    .agency-city { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--on-dark-accent); }
+    .agency-marks { display: flex; align-items: center; gap: 8px; }
+    .agency-marks span { display: grid; place-items: center; width: 38px; height: 38px; background: #fff; border-radius: 6px; }
+    .agency-marks img { width: 28px; height: 28px; object-fit: contain; }
+
+    /* ── Buttons (dashboard .btn-ph, sized for clients) ─────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 15px 24px; border: 1.5px solid var(--border); border-radius: 0;
+      background: transparent; color: var(--text-secondary);
+      font: 700 14px/1 var(--font); letter-spacing: 0.08em; text-transform: uppercase;
+      text-decoration: none; cursor: pointer; white-space: nowrap;
+      transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
+    }
+    .btn:hover { border-color: var(--ink4); color: var(--text-primary); }
+    .btn:active { transform: translateY(1px); }
+    .btn .material-icons-round { font-size: 18px; transition: transform 140ms var(--ease-out); }
+    .btn-primary { background: var(--g-forest); border-color: var(--g-forest); color: #fff; }
+    .btn-primary:hover { background: var(--g-dark); border-color: var(--g-dark); color: #fff; }
+    .btn-primary:hover .material-icons-round { transform: translateX(3px); }
+    .btn-lg { padding: 18px 28px; font-size: 15px; }
+
+    /* Buttons on the dark green bars: primary inverts to white. */
+    .on-dark .btn { border-color: rgba(255, 255, 255, 0.4); color: var(--on-dark); }
+    .on-dark .btn:hover { border-color: #fff; background: rgba(255, 255, 255, 0.06); color: #fff; }
+    .on-dark .btn-primary { background: #fff; border-color: #fff; color: var(--g-forest); }
+    .on-dark .btn-primary:hover { background: var(--g-xlight); border-color: var(--g-xlight); color: var(--g-forest); }
+    .on-dark :focus-visible { outline-color: var(--on-dark-accent); }
+
+    /* ── Hero: the top bar's green carried full width ───────────────── */
+    .hero { background: var(--g-dark); color: var(--on-dark); border-top: 1px solid var(--on-dark-line); }
+    .hero .wrap {
+      display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); align-items: center;
+      gap: clamp(24px, 4vw, 64px); padding-top: clamp(40px, 6vw, 88px); padding-bottom: clamp(40px, 6vw, 88px);
+    }
+    .hero h1 {
+      margin: 0; font-size: clamp(38px, 5.2vw, 68px); line-height: 1.04;
+      font-weight: 800; letter-spacing: -0.035em; text-wrap: balance; max-width: 16ch;
+    }
+    .hero h1 em { font-style: normal; color: var(--on-dark-accent); }
+    .hero-fil { margin: 18px 0 0; font-size: clamp(18px, 1.6vw, 21px); font-weight: 500; color: #fff; max-width: 38ch; line-height: 1.45; }
+    .hero-lede { margin: 12px 0 0; font-size: 16px; color: var(--on-dark-soft); max-width: 48ch; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+    .offline {
+      margin-top: 30px; max-width: 48ch; padding: 14px 16px;
+      background: var(--neu-bg); border: 1px solid var(--neu-border); color: var(--neu-text); font-size: 15px;
+    }
+    .offline strong { display: block; color: var(--text-primary); margin-bottom: 2px; }
+    /* Transparent mark straight on the green; its white bubble carries it. */
+    .hero-mark { justify-self: end; width: min(100%, 380px); }
+    .hero-mark img { width: 100%; }
+
+    /* ── What happens: three full-width sentiment fields ────────────── */
+    .faces { background: var(--surface-card); border-bottom: 1px solid var(--border); }
+    .faces-head { padding-top: clamp(40px, 6vw, 72px); padding-bottom: 8px; }
+    .section-title { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; text-wrap: balance; }
+    .section-note { margin: 10px 0 0; font-size: 16px; color: var(--text-secondary); max-width: 60ch; }
+
+    /* The mark's pulse, one beat per field: up for positive, level for neutral, down for negative. */
+    .pulse { position: relative; height: 72px; }
+    .pulse .wrap { height: 100%; }
+    .pulse svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .pulse path { fill: none; stroke: url(#pulseGradient); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+    .pulse::before, .pulse::after {
+      content: ""; position: absolute; top: calc(50% - 2.5px); height: 5px;
+      width: calc((100% - min(100%, var(--wrap))) / 2 + var(--gutter)); transform-origin: left center;
+    }
+    .pulse::before { left: 0; background: var(--pos); }
+    .pulse::after { right: 0; background: var(--neg); }
+
+    /* Section background splits green | red so the outer fields run to the screen edge. */
+    .fields { background: linear-gradient(90deg, var(--pos-bg) 50%, var(--neg-bg) 50%); }
+    .fields .wrap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .field { display: flex; flex-direction: column; gap: 18px; padding: clamp(28px, 3.5vw, 44px) clamp(20px, 2.6vw, 36px) clamp(32px, 4vw, 52px); }
+    .field.f-pos { padding-left: 0; background: var(--pos-bg); }
+    .field.f-neu { background: var(--neu-bg); }
+    .field.f-neg { padding-right: 0; background: var(--neg-bg); }
+    .field-head { display: flex; align-items: center; gap: 14px; }
+    .face { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 6px; flex: none; color: #fff; }
+    .face .material-icons-round { font-size: 34px; }
+    .f-pos .face { background: var(--pos); }
+    .f-neu .face { background: var(--neu); }
+    .f-neg .face { background: var(--neg); }
+    .field h3 { margin: 0; font-size: clamp(20px, 1.9vw, 24px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; }
+    .f-pos h3 { color: var(--pos-text); }
+    .f-neu h3 { color: var(--neu-text); }
+    .f-neg h3 { color: var(--neg-text); }
+    .quote { margin: 0; padding: 16px 18px; background: #fff; border: 1px solid; }
+    .f-pos .quote { border-color: var(--pos-border); }
+    .f-neu .quote { border-color: var(--neu-border); }
+    .f-neg .quote { border-color: var(--neg-border); }
+    .quote blockquote { margin: 0; font-size: 17px; line-height: 1.5; font-weight: 500; color: var(--text-primary); }
+    .quote figcaption { margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .field-does { margin: 0; font-size: 15px; color: var(--text-secondary); }
+    .field-does strong { display: block; margin-bottom: 2px; font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-primary); }
+
+    /* Signature moment: the pulse draws left to right, each face lights as the beat reaches it. */
+    .js .faces .pulse::before, .js .faces .pulse::after { transform: scaleX(0); }
+    .js .faces .pulse svg { clip-path: inset(-60% 100% -60% 0); }
+    .js .faces .face { filter: grayscale(1); opacity: 0.35; transform: scale(0.86); }
+    .js .faces.is-live .pulse::before { transform: none; transition: transform 240ms linear; }
+    .js .faces.is-live .pulse svg { clip-path: inset(-60% 0 -60% 0); transition: clip-path 1200ms cubic-bezier(0.45, 0, 0.55, 1) 240ms; }
+    .js .faces.is-live .pulse::after { transform: none; transition: transform 240ms linear 1440ms; }
+    .js .faces.is-live .face { filter: none; opacity: 1; transform: none; transition: filter 360ms var(--ease-out), opacity 360ms var(--ease-out), transform 560ms var(--ease-out); }
+    .js .faces.is-live .f-pos .face { transition-delay: 600ms; }
+    .js .faces.is-live .f-neu .face { transition-delay: 840ms; }
+    .js .faces.is-live .f-neg .face { transition-delay: 1080ms; }
+
+    /* ── Panels (dashboard .card-block) ─────────────────────────────── */
+    .details { padding: clamp(32px, 5vw, 56px) 0; }
+    .panel { background: var(--surface-card); border: 1px solid var(--border); }
+    .panel + .panel { margin-top: 20px; }
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 16px 22px 14px; border-bottom: 1px solid var(--border);
+    }
+    .panel-title {
+      margin: 0; display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-primary);
+    }
+    .panel-title .material-icons-round { font-size: 18px; color: var(--g-primary); }
+
+    /* ── Rating vs comment ──────────────────────────────────────────── */
+    .apart { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .apart > div { padding: 22px; }
+    .apart > div + div { border-left: 1px solid var(--border); }
+    .apart h3 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+    .apart .who { margin: 2px 0 16px; font-size: 14px; color: var(--text-muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border: 1px solid; border-radius: 2px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .chip .material-icons-round { font-size: 15px; }
+    .chip-vs    { background: var(--g-xlight); color: #0d6e35; border-color: #b8e6cb; }
+    .chip-sat   { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .chip-unsat { background: #fff0f2; color: #990014; border-color: #fca5a5; }
+    .chip-pos { background: var(--pos-bg); color: var(--pos-text); border-color: var(--pos-border); }
+    .chip-neu { background: var(--neu-bg); color: var(--neu-text); border-color: var(--neu-border); }
+    .chip-neg { background: var(--neg-bg); color: var(--neg-text); border-color: var(--neg-border); }
+    .chip.is-off { opacity: 0.35; }
+    .snippet { margin: 0 0 12px; padding: 12px 14px; background: var(--surface-page); border: 1px solid var(--border); font-size: 15px; }
+    .apart-foot { margin: 0; padding: 14px 22px; border-top: 1px solid var(--border); font-size: 15px; color: var(--text-secondary); background: var(--ink8); }
+
+    /* ── What the form asks ─────────────────────────────────────────── */
+    .asks { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
+    .asks-intro { padding: 22px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 18px; align-items: flex-start; }
+    .asks-intro p { margin: 0; font-size: 15px; color: var(--text-secondary); max-width: 40ch; }
+    .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+    .steps li {
+      counter-increment: step; display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 14px;
+      padding: 16px 22px;
+    }
+    .steps li + li { border-top: 1px solid var(--border); }
+    .steps li::before {
+      content: counter(step); grid-row: span 2; display: grid; place-items: center;
+      width: 34px; height: 34px; border-radius: 6px; background: var(--g-xlight); color: var(--g-forest);
+      font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums;
+    }
+    .steps h3 { margin: 4px 0 2px; font-size: 16px; font-weight: 700; }
+    .steps p { margin: 0; font-size: 14px; color: var(--text-muted); }
+    .steps .opt { margin-left: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--g-forest); }
+
+    /* ── Closing band and footer (dashboard sidebar green) ──────────── */
+    .close { background: var(--g-dark); color: var(--on-dark); }
+    .band { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); }
+    .band-cta { padding: clamp(40px, 6vw, 72px) clamp(20px, 4vw, 48px) clamp(40px, 6vw, 72px) 0; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+    .band h2 { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; }
+    .band p { margin: 0; font-size: 16px; color: var(--on-dark-soft); max-width: 44ch; }
+    .band p strong { color: #fff; }
+    .band .btn { margin-top: 10px; }
+    .visit { padding: clamp(40px, 6vw, 72px) 0 clamp(40px, 6vw, 72px) clamp(20px, 4vw, 48px); border-left: 1px solid var(--on-dark-line); }
+    .visit h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-dark-accent); }
+    .visit h3 .material-icons-round { font-size: 16px; }
+    .visit address { font-style: normal; font-size: 16px; line-height: 1.55; font-weight: 500; }
+    .visit a { display: inline-flex; align-items: center; gap: 4px; margin-top: 12px; font-size: 14px; font-weight: 700; color: #fff; }
+    .visit a:hover { color: var(--on-dark-soft); }
+    .visit a .material-icons-round { font-size: 16px; }
+
+    .footer { border-top: 1px solid var(--on-dark-line); }
+    .footer .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; padding-top: 20px; padding-bottom: 24px; }
+    .footer .brand img { width: 32px; height: 32px; padding: 3px; background: #fff; border-radius: 6px; }
+    .footer .btn { padding: 12px 18px; font-size: 13px; }
+
+    /* ── Responsive ─────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .apart, .asks, .band { grid-template-columns: minmax(0, 1fr); }
+      .apart > div + div { border-left: 0; border-top: 1px solid var(--border); }
+      .asks-intro { border-right: 0; border-bottom: 1px solid var(--border); }
+      .band-cta { padding-right: 0; }
+      .visit { padding: 28px 0 40px; border-left: 0; border-top: 1px solid var(--on-dark-line); }
+
+      .fields { background: none; }
+      .fields .wrap { grid-template-columns: minmax(0, 1fr); padding: 0; }
+      .field, .field.f-pos, .field.f-neg { padding: 28px var(--gutter) 32px; }
+      .quote, .field-does { max-width: 60ch; }
+      .hero-mark { width: min(100%, 260px); }
+    }
+    @media (max-width: 720px) {
+      .agency-text { display: none; }
+      .hero .wrap { grid-template-columns: minmax(0, 1fr); }
+      .hero-mark { display: none; }
+      .hero-actions .btn { width: 100%; }
+      .apart > div, .asks-intro, .steps li { padding-left: 16px; padding-right: 16px; }
+      .panel-head, .apart-foot { padding-left: 16px; padding-right: 16px; }
+      .band .btn { width: 100%; }
+      .footer .wrap { flex-direction: column; align-items: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .js .faces .pulse::before, .js .faces .pulse::after,
+      .js .faces .pulse svg, .js .faces .face { transform: none; clip-path: none; filter: none; opacity: 1; transition: none !important; }
+      .btn, .btn .material-icons-round { transition: none; }
+    }
+  </style>
+  <script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="{% url 'landing' %}" aria-label="CSAS home">
+        <img src="{% static 'img/csas-mark.png' %}" alt="" width="1024" height="1024">
+        <span class="brand-text">
+          <span class="brand-name">CSAS</span>
+          <span class="brand-sub">Client Sentiment Analysis System</span>
+        </span>
+      </a>
+      <div class="agency">
+        <div class="agency-text">
+          <span class="agency-name">PhilHealth</span>
+          <span class="agency-city">LHIO Cauayan City</span>
+        </div>
+        <div class="agency-marks">
+          <span><img src="{% static 'img/philhealth_logo.png' %}" alt="PhilHealth" width="250" height="250"></span>
+          <span><img src="{% static 'img/bagong_pilipinas_logo.png' %}" alt="Bagong Pilipinas" width="168" height="168"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- HERO -->
+    <section class="hero on-dark" aria-labelledby="heroTitle">
+      <div class="wrap">
+        <div class="hero-copy">
+          <h1 id="heroTitle">Tell us how we <em>served you</em> today.</h1>
+          <p class="hero-fil" lang="fil">Sabihin sa amin kung paano namin kayo napagsilbihan ngayong araw.</p>
+          <p class="hero-lede">The official CSM form of PhilHealth LHIO Cauayan City. Rate your transaction and add a comment if you like.</p>
+          {% if survey_enabled %}
+            <div class="hero-actions">
+              <a class="btn btn-primary btn-lg" href="{% url 'feedback-index' %}">Give feedback <span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
+              <a class="btn btn-lg" href="#what-happens">What happens next</a>
+            </div>
+          {% else %}
+            <div class="offline" role="status">
+              <strong>The online form is paused right now.</strong>
+              {{ offline_message }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="hero-mark">
+          <img src="{% static 'img/csas-mark.png' %}" alt="" width="1024" height="1024">
+        </div>
+      </div>
+    </section>
+
+    <!-- WHAT HAPPENS -->
+    <section class="faces" id="what-happens" aria-labelledby="facesTitle">
+      <div class="wrap faces-head">
+        <h2 class="section-title" id="facesTitle">What happens to your comment</h2>
+        <p class="section-note">CSAS reads your comment and sorts it as positive, neutral, or negative for the office’s staff dashboard.</p>
+      </div>
+      <div class="pulse" aria-hidden="true">
+        <div class="wrap">
+          <svg viewBox="0 0 1200 72" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="pulseGradient" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#169651"/>
+                <stop offset="0.3" stop-color="#169651"/>
+                <stop offset="0.37" stop-color="#f9bc22"/>
+                <stop offset="0.45" stop-color="#d97706"/>
+                <stop offset="0.62" stop-color="#d97706"/>
+                <stop offset="0.72" stop-color="#dc2626"/>
+                <stop offset="1" stop-color="#dc2626"/>
+              </linearGradient>
+            </defs>
+            <path d="M0 36 H150 L170 46 L196 6 L222 62 L240 36 H560 L578 28 L600 44 L622 28 L640 36 H960 L978 26 L1004 66 L1030 12 L1050 36 H1200"/>
+          </svg>
+        </div>
+      </div>
+      <div class="fields">
+        <div class="wrap">
+          <article class="field f-pos" aria-labelledby="posTitle">
+            <div class="field-head">
+              <span class="face"><span class="material-icons-round" aria-hidden="true">sentiment_satisfied_alt</span></span>
+              <h3 id="posTitle">Positive comment</h3>
+            </div>
+            <figure class="quote">
+              <blockquote lang="fil">Mabilis at magalang ang staff sa window 3. Salamat po!</blockquote>
+              <figcaption>Example comment</figcaption>
+            </figure>
+            <p class="field-does"><strong>What the office does</strong>Records it with the staff member who assisted you, so the office can see who was commended.</p>
+          </article>
+          <article class="field f-neu" aria-labelledby="neuTitle">
+            <div class="field-head">
+              <span class="face"><span class="material-icons-round" aria-hidden="true">sentiment_neutral</span></span>
+              <h3 id="neuTitle">Neutral comment</h3>
+            </div>
+            <figure class="quote">
+              <blockquote lang="fil">Okay naman ang proseso. Sana may dagdag na upuan sa waiting area.</blockquote>
+              <figcaption>Example comment</figcaption>
+            </figure>
+            <p class="field-does"><strong>What the office does</strong>Staff read it on the dashboard and mark it reviewed once it has been looked at.</p>
+          </article>
+          <article class="field f-neg" aria-labelledby="negTitle">
+            <div class="field-head">
+              <span class="face"><span class="material-icons-round" aria-hidden="true">sentiment_dissatisfied</span></span>
+              <h3 id="negTitle">Negative comment</h3>
+            </div>
+            <figure class="quote">
+              <blockquote lang="fil">Matagal ang pila kaninang umaga. Isa lang ang bukas na counter.</blockquote>
+              <figcaption>Example comment</figcaption>
+            </figure>
+            <p class="field-does"><strong>What the office does</strong>Lists it for staff to follow up, and keeps it open on the dashboard until it is marked resolved.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <div class="details">
+      <div class="wrap">
+
+        <!-- RATING VS COMMENT -->
+        <section class="panel" aria-labelledby="apartTitle">
+          <div class="panel-head">
+            <h2 class="panel-title" id="apartTitle"><span class="material-icons-round" aria-hidden="true">compare_arrows</span>Your rating and your comment are read separately</h2>
+          </div>
+          <div class="apart">
+            <div>
+              <h3>Your rating</h3>
+              <p class="who">You choose it for each service question.</p>
+              <div class="chips" aria-label="Rating choices on the form">
+                <span class="chip chip-vs"><span class="material-icons-round" aria-hidden="true">sentiment_very_satisfied</span>Very Satisfactory</span>
+                <span class="chip chip-sat"><span class="material-icons-round" aria-hidden="true">sentiment_satisfied</span>Satisfactory</span>
+                <span class="chip chip-unsat"><span class="material-icons-round" aria-hidden="true">sentiment_dissatisfied</span>Unsatisfactory</span>
+              </div>
+            </div>
+            <div>
+              <h3>Your comment</h3>
+              <p class="who">CSAS reads the words and sorts the comment.</p>
+              <p class="snippet" lang="fil">“Sana may dagdag na upuan sa waiting area.” <span class="visually-hidden">(example comment)</span></p>
+              <div class="chips" aria-label="How this example is sorted">
+                <span class="chip chip-pos is-off">Positive</span>
+                <span class="chip chip-neu"><span class="material-icons-round" aria-hidden="true">check</span>Neutral</span>
+                <span class="chip chip-neg is-off">Negative</span>
+              </div>
+            </div>
+          </div>
+          <p class="apart-foot">A Very Satisfactory rating with a suggestion is recorded as both: a high rating, and a suggestion for the office to review.</p>
+        </section>
+
+        <!-- WHAT THE FORM ASKS -->
+        <section class="panel" aria-labelledby="asksTitle">
+          <div class="panel-head">
+            <h2 class="panel-title" id="asksTitle"><span class="material-icons-round" aria-hidden="true">assignment</span>What the form asks</h2>
+          </div>
+          <div class="asks">
+            <div class="asks-intro">
+              <p>The same Client Satisfaction Measurement form used in government offices, answered on your phone or computer.</p>
+              {% if survey_enabled %}
+                <a class="btn btn-primary" href="{% url 'feedback-index' %}">Give feedback <span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
+              {% endif %}
+            </div>
+            <ol class="steps">
+              <li><h3>About you and your visit</h3><p>Client type, the service you availed, and the staff member who assisted you.</p></li>
+              <li><h3>Citizen’s Charter</h3><p>Three questions on whether you knew about and used the office’s Citizen’s Charter.</p></li>
+              <li><h3>Service quality</h3><p>Rate nine statements about the service: Very Satisfactory, Satisfactory, or Unsatisfactory.</p></li>
+              <li><h3>Comments and commendation<span class="opt">Optional</span></h3><p>Tell us what went well or what should change, in English or Filipino.</p></li>
+            </ol>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- CLOSE -->
+    <section class="close on-dark" aria-labelledby="closeTitle">
+      <div class="wrap band">
+        <div class="band-cta">
+          <h2 id="closeTitle">Just finished your transaction?</h2>
+          <p>Your answers help PhilHealth LHIO Cauayan City see what is working and what needs fixing.</p>
+          {% if survey_enabled %}
+            <a class="btn btn-primary btn-lg" href="{% url 'feedback-index' %}">Give feedback <span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
+          {% else %}
+            <p><strong>The online form is paused right now.</strong> {{ offline_message }}</p>
+          {% endif %}
+        </div>
+        <div class="visit">
+          <h3><span class="material-icons-round" aria-hidden="true">place</span>Visit the office</h3>
+          <address>
+            PhilHealth Local Health Insurance Office<br>
+            AM Commercial Building, Quezon Street<br>
+            District I, Cauayan City, Isabela
+          </address>
+          <a href="https://www.google.com/maps/search/?api=1&amp;query=AM+Commercial+Building+Quezon+Street+District+I+Cauayan+City+Isabela" target="_blank" rel="noopener">
+            Open in Google Maps<span class="material-icons-round" aria-hidden="true">open_in_new</span>
+            <span class="visually-hidden">(opens in a new tab)</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer close on-dark">
+    <div class="wrap">
+      <a class="brand" href="{% url 'landing' %}" aria-label="CSAS home">
+        <img src="{% static 'img/csas-mark.png' %}" alt="" width="1024" height="1024">
+        <span class="brand-text">
+          <span class="brand-name">CSAS</span>
+          <span class="brand-sub">Client Sentiment Analysis System</span>
+        </span>
+      </a>
+      <a class="btn" href="{% url 'admin_login' %}">Staff sign in</a>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var faces = document.getElementById('what-happens');
+      if (!('IntersectionObserver' in window)) { faces.classList.add('is-live'); return; }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) { faces.classList.add('is-live'); io.disconnect(); }
+        });
+      }, { threshold: 0.25 });
+      io.observe(faces);
+    })();
+  </script>
+</body>
+</html>

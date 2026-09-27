@@ -246,7 +246,7 @@ function handleSubmitCSM(event) {
     commendation: (document.getElementById('commendation') || {}).value || ''
   };
 
-  var submitUrl = window.FEEDBACK_SUBMIT_URL || '/submit/';
+  var submitUrl = window.FEEDBACK_SUBMIT_URL || '/feedback/submit/';
   fetch(submitUrl, {
     method: 'POST',
     headers: {
