@@ -1,0 +1,160 @@
+/* Sentiment components for the AI Sentiment Analytics page. */
+
+.sx {
+  /* Text tones pass 4.5:1 on the card; fills match the charts. */
+  --sx-pos: #0f7a3d;
+  --sx-neu: #a14a07;
+  --sx-neg: #b91c1c;
+  --sx-pos-fill: #169651;
+  --sx-neu-fill: #d97706;
+  --sx-neg-fill: #dc2626;
+  --wc-bubble: #f6faf7;
+  --wc-bubble-edge: #d9e9df;
+  --wc-bubble-shadow: rgba(15, 90, 43, 0.10);
+}
+[data-theme="dark"] .sx {
+  --sx-pos: #5fcf8a;
+  --sx-neu: #fbbf24;
+  --sx-neg: #f87171;
+  --wc-bubble: #20262d;
+  --wc-bubble-edge: #2f3842;
+  --wc-bubble-shadow: rgba(0, 0, 0, 0.35);
+}
+
+/* ── Segmented toggle ─────────────────────────────────────────────── */
+.sx-seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface-card);
+}
+.sx-seg button {
+  padding: 4px 10px;
+  font: 700 11px/1.4 var(--font);
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1), color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sx-seg button + button { border-left: 1px solid var(--border); }
+.sx-seg button:hover { color: var(--text-primary); background: var(--surface-page); }
+.sx-seg button.active,
+.sx-seg button[aria-pressed="true"],
+.sx-seg button[aria-selected="true"] { background: var(--g-forest); color: #fff; }
+.sx-seg button:focus-visible { outline: 2px solid var(--g-primary); outline-offset: -2px; }
+/* ── Word cloud ───────────────────────────────────────────────────── */
+.wc-canvas {
+  position: relative;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wc-svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* One filled silhouette over one stroked copy: only the outer edge of the
+   overlapping lobes shows as an outline. */
+.wc-bubble-edge ellipse { fill: none; stroke: var(--wc-bubble-edge); stroke-width: 3; }
+.wc-bubble-fill ellipse { fill: var(--wc-bubble); }
+.wc-bubble { filter: drop-shadow(0 10px 24px var(--wc-bubble-shadow)); }
+.wc-svg text {
+  font-family: var(--font);
+  fill: var(--wc-tone);
+  cursor: default;
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: wc-in 560ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--i) * 12ms);
+}
+.wc-svg.is-clickable text { cursor: pointer; }
+.wc-svg.no-anim text { animation: none; }
+.wc-svg text.t-pos { --wc-tone: var(--sx-pos); }
+.wc-svg text.t-neu { --wc-tone: var(--sx-neu); }
+.wc-svg text.t-neg { --wc-tone: var(--sx-neg); }
+.wc-svg:has(text:hover) text:not(:hover),
+.wc-svg.has-selection text:not(.is-selected) { opacity: 0.3; }
+.wc-svg.has-selection:has(text:hover) text:hover { opacity: 1; }
+.wc-svg text.is-selected { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+@keyframes wc-in {
+  from { opacity: 0; filter: blur(4px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+.wc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.wc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.wc-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ── Ranked words ─────────────────────────────────────────────────── */
+.wc-rank-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 4px 0 14px;
+}
+.wc-rank-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.wc-rank-row {
+  display: grid;
+  grid-template-columns: 1.4em minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 8px;
+  row-gap: 5px;
+  font-size: 13px;
+  width: 100%;
+  padding: 6px 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  font-family: var(--font);
+  color: inherit;
+}
+.wc-rank-num { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.wc-rank-word { font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wc-rank-count { font-size: 12px; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.sx-split {
+  display: flex;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface-page);
+}
+.wc-rank-row .sx-split { grid-column: 2 / 4; }
+.sx-split span { display: block; height: 100%; }
+.sx-split span + span { margin-left: 1px; }
+.wc-rank-empty { font-size: 12px; color: var(--text-muted); padding: 6px; }
+
+.sx-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 36px 16px;
+  color: var(--text-muted);
+}
+.sx-empty .material-icons-round { font-size: 32px; opacity: 0.6; }
+.sx-empty-title { font-weight: 700; font-size: 13px; color: var(--text-primary); }
+.sx-empty-text { font-size: 12px; max-width: 40ch; line-height: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wc-svg text, .sx-seg button { animation: none; transition: none; }
+}
+@media (max-width: 575.98px) {
+  .wc-canvas { min-height: 200px; }
+}
