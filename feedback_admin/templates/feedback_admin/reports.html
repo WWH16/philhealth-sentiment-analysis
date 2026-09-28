@@ -1,5 +1,4 @@
 {% extends 'feedback_admin/base.html' %}
-{% load static %}
 
 {% block title %}Reports | CSAS{% endblock %}
 
@@ -553,7 +552,6 @@ function onThemeChange() {
   updateReportPieChart(REPORT_DATA[currentPeriod], true);
   updateReportTrendChart(REPORT_DATA[currentPeriod], true);
 }
-function onResize() {}
 
 function pageInit() {
   updateReport();

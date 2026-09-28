@@ -13,7 +13,8 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from django.db.models import Count, Q
+from django.core.cache import cache
+from django.db.models import Count, Max, Q
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -371,7 +372,7 @@ def dashboard(request):
         'filter_data': filter_data,
         'rating_data': _multi_period_experience_counts(entries, today_range, week_start, month_start),
         'needs_attention': _open_negative_comments(entries, today_range, week_start, month_start),
-        'word_cloud': _sentiment_word_cloud(entries, today_range[0], week_start, month_start),
+        'word_cloud': _cached_word_cloud(entries, today_range[0], week_start, month_start),
         'recent_entries_data': [_entry_to_row(entry, recent_activity) for entry in recent_entries],
         'trend_labels': [f'{day:%b} {day.day}' for day in trend_dates],
         'trend_dates': [day.isoformat() for day in trend_dates],
@@ -708,6 +709,16 @@ _WORD_RE = re.compile(r"[a-zñ]+(?:'[a-z]+)?")
 _WORD_CLOUD_LIMIT = 60
 
 
+def _cached_word_cloud(entries, today_start, week_start, month_start):
+    """Word cloud reuse: the key changes whenever an entry is added, edited,
+    or deleted, or the day rolls over, so a cached cloud is never stale."""
+    stamp = entries.aggregate(n=Count('id'), last=Max('updated_at'))
+    key = f"dashboard-word-cloud:{stamp['n']}:{stamp['last']}:{today_start.date()}"
+    return cache.get_or_set(
+        key, lambda: _sentiment_word_cloud(entries, today_start, week_start, month_start), 600,
+    )
+
+
 def _sentiment_word_cloud(entries, today_start, week_start, month_start):
     """Most frequent comment words per period, with the sentiment of the
     comments each word came from. Only analyzed comments (positive, neutral,
@@ -863,9 +874,6 @@ def _report_counts(qs):
 def _report_trend(qs, period, start, now, end=None):
     """Sentiment counts per hour (today), day (week), week (month), or month."""
     keys = {FeedbackEntry.POSITIVE: 'pos', FeedbackEntry.NEUTRAL: 'neu', FeedbackEntry.NEGATIVE: 'neg'}
-    if start is None:
-        first = qs.order_by('created_at').values_list('created_at', flat=True).first()
-        start = timezone.localtime(first) if first else now
     last_day = (end - timedelta(days=1)).date() if end else now.date()
 
     if period == 'today':
@@ -888,7 +896,7 @@ def _report_trend(qs, period, start, now, end=None):
 
         def label(d):
             a, b = max(d, first_day), min(d + timedelta(days=6), last_day)
-            return f'{a:%b} {a.day}' if a == b else f'{a:%b} {a.day} to {b.day}' if a.month == b.month else f'{a:%b} {a.day} to {b:%b} {b.day}'
+            return f'{a:%b} {a.day}' + ('' if a == b else f' to {b:%b} {b.day}')
         caption = 'By week'
     else:
         trunc = TruncMonth

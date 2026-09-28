@@ -192,6 +192,22 @@ class SentimentAnalysisViewTests(TestCase):
         self.assertEqual(response.context['needs_attention']['today']['count'], 2)
         self.assertContains(response, 'id="naList"')
 
+    def test_cached_word_cloud_refreshes_when_feedback_changes(self):
+        from feedback.models import FeedbackEntry
+        FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY, sentiment=FeedbackEntry.POSITIVE, comment='Helpful cashier.',
+        )
+        words = lambda: {w['t'] for w in self.client.get(reverse('dashboard')).context['word_cloud']['all']['words']}
+        self.assertIn('cashier', words())
+        self.assertIn('cashier', words())  # served from cache
+
+        entry = FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY, sentiment=FeedbackEntry.NEGATIVE, comment='Broken printer.',
+        )
+        self.assertIn('printer', words())  # new entry changes the cache key
+        entry.delete()
+        self.assertNotIn('printer', words())
+
     def test_word_cloud_counts_analyzed_comment_words(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(
