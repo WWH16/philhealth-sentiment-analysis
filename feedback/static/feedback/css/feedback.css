@@ -100,7 +100,6 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 }
 .ticket-chip strong { font-weight: 800; font-variant-numeric: tabular-nums; }
 .ticket-chip .material-icons-round { font-size: 18px; }
-.intro-fil { margin: 0; font-size: 18px; font-weight: 500; color: var(--text-secondary); line-height: 1.4; }
 .offline {
   margin: 14px 0 12px; max-width: 60ch; padding: 14px 16px;
   background: var(--neu-bg); border: 1px solid var(--neu-border); color: var(--neu-text); font-size: 16px;
@@ -116,7 +115,6 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 }
 .panel-title .material-icons-round { font-size: 18px; color: var(--g-primary); }
 .panel-title label { cursor: pointer; }
-.block-note { margin: 4px 0 0 26px; font-size: 14px; color: var(--text-muted); }
 
 /* ── Experience: three faces, the picked one lights up ────────────── */
 .rate { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -137,15 +135,14 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 }
 .rate-face .material-icons-round { font-size: 44px; }
 .rate-label { font-size: 16px; font-weight: 700; line-height: 1.25; }
-.rate-fil { font-size: 14px; line-height: 1.3; color: var(--text-muted); }
 .rate-check { position: absolute; top: 8px; right: 8px; font-size: 22px; color: var(--tone); opacity: 0; transform: scale(0.6); transition: opacity 160ms var(--ease-out), transform 260ms var(--ease-out); }
 
-.rate-opt:hover { border-color: var(--ink4); }
+@media (hover: hover) { .rate-opt:hover { border-color: var(--ink4); } }
 .rate-opt:has(input:focus-visible) { outline: 2px solid var(--g-primary); outline-offset: 2px; }
 .rate-opt:has(input:checked) { border-color: var(--tone); background: var(--tone-bg); }
-.rate-opt:has(input:checked) .rate-face { background: var(--tone-solid); border-color: var(--tone-solid); color: #fff; transform: scale(1.08); }
-.rate-opt:has(input:checked) .rate-label { color: var(--tone); }
-.rate-opt:has(input:checked) .rate-check { opacity: 1; transform: none; }
+.rate-opt input:checked ~ .rate-face { background: var(--tone-solid); border-color: var(--tone-solid); color: #fff; transform: scale(1.08); }
+.rate-opt input:checked ~ .rate-label { color: var(--tone); }
+.rate-opt input:checked ~ .rate-check { opacity: 1; transform: none; }
 /* Once one is picked, the other two faces go quiet. */
 .rate:has(input:checked) .rate-opt:not(:has(input:checked)) .rate-face { filter: grayscale(1); opacity: 0.5; }
 
@@ -190,19 +187,29 @@ textarea:focus { border-color: var(--g-forest); outline: none; box-shadow: 0 0 0
 @media (max-width: 720px) {
   .agency-text { display: none; }
   .block { padding: 18px 16px; }
-  .rate { gap: 8px; }
-  .rate-opt { padding: 18px 4px 14px; }
-  .rate-face { width: 52px; height: 52px; }
-  .rate-face .material-icons-round { font-size: 36px; }
-  .rate-label { font-size: 14px; }
-  .rate-fil { font-size: 13px; }
-  .rate-check { top: 4px; right: 4px; font-size: 20px; }
-  .block-note { margin-left: 0; }
+}
+/* Phones: three cramped columns become full-width rows, face left, check right. */
+@media (max-width: 560px) {
+  .intro { padding-top: 24px; }
+  .rate { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .rate-opt { flex-direction: row; gap: 14px; min-height: 68px; padding: 10px 14px; text-align: left; }
+  .rate-face { width: 46px; height: 46px; margin: 0; flex: none; }
+  .rate-face .material-icons-round { font-size: 32px; }
+  .rate-label { flex: 1; font-size: 17px; }
+  /* Empty ring until picked, then a solid check: the state reads at arm's length. */
+  .rate-check {
+    position: static; order: 3; flex: none; display: grid; place-items: center;
+    width: 26px; height: 26px; border: 2px solid #c9cdd3; border-radius: 50%;
+    font-size: 0; opacity: 1; transform: none;
+  }
+  .rate-opt input:checked ~ .rate-check { border: 0; font-size: 28px; color: var(--tone-solid); }
+  .rate-opt input:checked ~ .rate-face { transform: none; }
+  .btn-lg { padding: 18px 20px; }
 }
 @media (max-width: 430px) {
   .brand-sub { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .btn, .btn .material-icons-round, .rate-opt, .rate-face, .rate-check, textarea { transition: none; }
-  .rate-opt:has(input:checked) .rate-face { transform: none; }
+  .rate-opt input:checked ~ .rate-face { transform: none; }
 }

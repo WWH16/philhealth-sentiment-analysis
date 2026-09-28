@@ -47,12 +47,10 @@
       <div class="intro">
         {% if token_invalid %}
         <h1>This feedback link no longer works</h1>
-        <p class="intro-fil" lang="fil">Hindi na gumagana ang link na ito</p>
-        <div class="offline" role="status">It has expired or was already used. Ask the staff for a new QR code.<br><span lang="fil">Humingi po ng bagong QR code sa aming staff.</span></div>
+        <div class="offline" role="status">It has expired or was already used. Ask the staff for a new QR code.</div>
         {% else %}
         <h1>Scan the QR code from our staff</h1>
-        <p class="intro-fil" lang="fil">I-scan ang QR code mula sa aming staff</p>
-        <div class="offline" role="status">After your transaction, the staff at your last counter gives you a QR code. Scan it with your phone camera to open the form.<br><span lang="fil">Pagkatapos ng inyong transaksyon, bibigyan kayo ng QR code ng staff. I-scan ito gamit ang camera ng inyong telepono.</span></div>
+        <div class="offline" role="status">After your transaction, the staff at your last counter gives you a QR code. Scan it with your phone camera to open the form.</div>
         {% endif %}
       </div>
       {% else %}
@@ -60,7 +58,6 @@
       <div class="intro" id="formIntro">
         <p class="ticket-chip"><span class="material-icons-round" aria-hidden="true">confirmation_number</span>Ticket <strong>#{{ token.ticket_number }}</strong></p>
         <h1 id="formTitle">How was your transaction today?</h1>
-        <p class="intro-fil" lang="fil">Kumusta ang inyong transaksyon ngayong araw?</p>
       </div>
 
       <form id="feedbackForm" class="panel" aria-labelledby="formTitle" novalidate>
@@ -76,21 +73,18 @@
               <span class="rate-check material-icons-round" aria-hidden="true">check_circle</span>
               <span class="rate-face"><span class="material-icons-round" aria-hidden="true">sentiment_very_satisfied</span></span>
               <span class="rate-label">Very Satisfactory</span>
-              <span class="rate-fil" lang="fil">Lubos na nasiyahan</span>
             </label>
             <label class="rate-opt r-sat">
               <input type="radio" name="experience" value="sat">
               <span class="rate-check material-icons-round" aria-hidden="true">check_circle</span>
               <span class="rate-face"><span class="material-icons-round" aria-hidden="true">sentiment_satisfied</span></span>
               <span class="rate-label">Satisfactory</span>
-              <span class="rate-fil" lang="fil">Nasiyahan</span>
             </label>
             <label class="rate-opt r-unsat">
               <input type="radio" name="experience" value="unsat">
               <span class="rate-check material-icons-round" aria-hidden="true">check_circle</span>
               <span class="rate-face"><span class="material-icons-round" aria-hidden="true">sentiment_dissatisfied</span></span>
               <span class="rate-label">Unsatisfactory</span>
-              <span class="rate-fil" lang="fil">Hindi nasiyahan</span>
             </label>
           </div>
           <p class="field-error" id="err-experience" hidden><span class="material-icons-round" aria-hidden="true">error_outline</span>Choose how your transaction went.</p>
@@ -99,7 +93,6 @@
         <section class="block" id="group-comment" aria-labelledby="commentTitle">
           <div class="block-head">
             <h2 class="panel-title" id="commentTitle"><span class="material-icons-round" aria-hidden="true">chat_bubble</span><label for="commentsSuggestions">Comment</label></h2>
-            <p class="block-note" lang="fil">Komento at mungkahi</p>
           </div>
           <textarea id="commentsSuggestions" name="comments_suggestions" rows="5" maxlength="1000" aria-required="true" aria-describedby="err-comment" placeholder="What went well, or what should change? English or Filipino is fine."></textarea>
           <p class="count"><span data-count-for="commentsSuggestions">0</span> / 1000</p>
@@ -125,7 +118,6 @@
       <section class="panel done" id="doneState" tabindex="-1" aria-labelledby="doneTitle" hidden>
         <span class="done-mark"><span class="material-icons-round" aria-hidden="true">task_alt</span></span>
         <h2 id="doneTitle">Thank you. Your feedback is recorded.</h2>
-        <p lang="fil">Salamat po sa inyong feedback.</p>
       </section>
 
       {% endif %}
