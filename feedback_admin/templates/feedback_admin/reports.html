@@ -1,0 +1,562 @@
+{% extends 'feedback_admin/base.html' %}
+{% load static %}
+
+{% block title %}Reports | CSAS{% endblock %}
+
+{% block head_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block extra_styles %}
+.metric-tile, .card-block {
+  contain: content;
+}
+.metric-tile {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 18px; background: var(--surface-card);
+  border: 1px solid var(--border); text-align: center;
+}
+.metric-value { font-size: 32px; font-weight: 800; letter-spacing: -0.05em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.metric-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.metric-tile.pos .metric-value { color: var(--g-primary); }
+.metric-tile.neu .metric-value { color: var(--gold); }
+.metric-tile.neg .metric-value { color: var(--red); }
+.metric-sub { margin-top: -6px; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+
+.summary-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.summary-item:last-child { border-bottom: none; }
+.summary-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0; font-size: 18px;
+}
+.summary-icon.pos { background: var(--g-xlight); color: var(--g-primary); }
+.summary-icon.neu { background: var(--gold-light); color: var(--gold); }
+.summary-icon.neg { background: var(--red-bg); color: var(--red); }
+.summary-icon.pending { background: var(--ink8); color: var(--ink4); }
+.summary-content { flex: 1; }
+.summary-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.summary-value { font-size: 13px; font-weight: 600; font-family: var(--mono); color: var(--text-secondary); }
+.summary-foot { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.summary-foot-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.summary-foot-value { font-size: 28px; font-weight: 800; letter-spacing: -0.05em; color: var(--g-primary); }
+.summary-foot-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+.report-actions { display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
+.report-periods { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 20px; }
+.report-periods .filter-tabs { display: inline-flex; flex-wrap: wrap; max-width: 100%; }
+.report-month { display: flex; align-items: center; gap: 8px; }
+.report-month label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+.report-month select { height: 34px; padding: 0 10px; font: 600 13px var(--font); color: var(--text-primary); background: var(--surface-card); border: 1px solid var(--border); border-radius: 0; cursor: pointer; }
+.report-month select:focus-visible { outline: 2px solid var(--g-primary); outline-offset: 1px; }
+.report-dates { margin: 0 0 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.print-header { display: none; }
+
+.sent-layout { display: flex; align-items: center; gap: 16px; }
+.sent-chart { flex: 0 0 48%; max-width: 48%; }
+.sent-legend { flex: 1; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.sent-legend li { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.sent-legend i { width: 10px; height: 10px; flex: none; }
+.sent-legend span { flex: 1; }
+.sent-legend b { font-family: var(--mono); font-size: 13px; color: var(--text-primary); }
+.sent-legend small { min-width: 38px; text-align: right; font-size: 10px; font-weight: 600; color: var(--text-muted); }
+@media (max-width: 575.98px) { .sent-chart { flex-basis: 44%; max-width: 44%; } }
+
+.performance-bar-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.performance-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); min-width: 110px; }
+.performance-bar { flex: 1; height: 8px; background: var(--border); position: relative; border-radius: 4px; overflow: hidden; }
+.performance-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 100% !important;
+  border-radius: 4px; transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 300ms cubic-bezier(.4,0,.2,1);
+}
+.performance-value { font-size: 11px; font-weight: 700; color: var(--text-primary); font-family: var(--mono); min-width: 36px; text-align: right; }
+.performance-caption {
+  font-size: 11px; color: var(--text-muted); line-height: 1.6;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+.performance-caption .material-icons-round { font-size: 14px; color: var(--g-primary); flex-shrink: 0; }
+
+@media (prefers-reduced-motion: reduce) { .performance-fill { transition: none; } }
+@media print {
+  .report-actions, .report-periods { display: none !important; }
+  .print-header { display: block !important; }
+  .performance-fill, .summary-icon { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+{% endblock %}
+
+{% block nav_reports %}active{% endblock %}
+
+{% block page_content %}
+
+<!-- PRINT-ONLY HEADER -->
+<div class="print-header">
+  <div style="text-align:center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #0f5a2b;">
+    <div style="font-size: 13px; font-weight: 800; letter-spacing: 0.02em;">CSAS · Client Sentiment Analysis System</div>
+    <div style="font-size: 11px; font-weight: 600;">PhilHealth LHIO Cauayan City</div>
+    <div style="margin-top: 12px; font-size: 16px; font-weight: 800; letter-spacing: -0.02em;">Sentiment Report</div>
+    <div style="font-size: 11px; color: #475569; margin-top: 2px;" id="printPeriodLabel"></div>
+  </div>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1 class="page-title">Reports</h1>
+      <p class="page-subtitle">Comment sentiment for each period, with trends, categories, and client ratings.</p>
+    </div>
+    <div class="report-actions">
+      <button type="button" class="btn-ph btn-ph-primary" onclick="exportReportExcel()">
+        <span class="material-icons-round" aria-hidden="true">table_chart</span>
+        Export Excel
+      </button>
+      <button type="button" class="btn-ph" onclick="printReport()">
+        <span class="material-icons-round" aria-hidden="true">print</span>
+        Print
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT PERIOD SELECTOR -->
+<div class="report-periods">
+  <div class="filter-tabs" role="tablist" aria-label="Report period">
+    {% for key, tab in tabs %}
+      <button type="button" role="tab" id="tab-{{ key }}" aria-selected="{% if key == initial_period %}true{% else %}false{% endif %}" class="filter-tab{% if key == initial_period %} active{% endif %}" onclick="setReportPeriod(this, '{{ key }}')">{{ tab }}</button>
+    {% endfor %}
+  </div>
+  <form class="report-month" method="get">
+    <label for="reportMonth">Month</label>
+    <select id="reportMonth" name="month" onchange="this.form.submit()">
+      <option value=""{% if not month %} selected{% endif %}>Choose a month</option>
+      {% for value, text in month_options %}
+        <option value="{{ value }}"{% if value == month %} selected{% endif %}>{{ text }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit" class="btn-ph">View</button></noscript>
+  </form>
+</div>
+
+<p class="report-dates" id="reportDates">—</p>
+
+<!-- KEY METRICS ROW -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile">
+      <div class="metric-value" id="metricTotal">0</div>
+      <div class="metric-label">Total Responses</div>
+      <div class="metric-sub" id="metricAnalyzed">0 analyzed</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile pos">
+      <div class="metric-value" id="metricPos">0</div>
+      <div class="metric-label">Positive</div>
+      <div class="metric-sub" id="metricPosPct">0% of analyzed</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile neu">
+      <div class="metric-value" id="metricNeu">0</div>
+      <div class="metric-label">Neutral</div>
+      <div class="metric-sub" id="metricNeuPct">0% of analyzed</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="metric-tile neg">
+      <div class="metric-value" id="metricNeg">0</div>
+      <div class="metric-label">Negative</div>
+      <div class="metric-sub" id="metricNegPct">0% of analyzed</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT ROW -->
+<div class="row g-3 mb-4">
+  <!-- Sentiment Distribution -->
+  <div class="col-12 col-lg-5">
+    <div class="card-block h-100">
+      <div class="card-block-head">
+        <h2 class="card-block-title">
+          <span class="material-icons-round">donut_large</span>
+          Sentiment Distribution
+        </h2>
+      </div>
+      <div class="card-block-body">
+        <div class="sent-layout">
+          <div class="sent-chart">
+            <div class="chart-wrap" style="height: 200px;">
+              <canvas id="reportPieChart" aria-label="Comment sentiment distribution chart" role="img"></canvas>
+            </div>
+          </div>
+          <ul class="sent-legend">
+            <li><i style="background:#169651"></i><span>Positive</span><b id="legendPos">0</b><small id="legendPosPct">0%</small></li>
+            <li><i style="background:#d97706"></i><span>Neutral</span><b id="legendNeu">0</b><small id="legendNeuPct">0%</small></li>
+            <li><i style="background:#dc2626"></i><span>Negative</span><b id="legendNeg">0</b><small id="legendNegPct">0%</small></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK CATEGORIES -->
+  <div class="col-12 col-lg-7">
+    <div class="card-block h-100">
+      <div class="card-block-head">
+        <h2 class="card-block-title">
+          <span class="material-icons-round">label</span>
+          Feedback Categories
+        </h2>
+      </div>
+      <div class="card-block-body">
+        <div class="performance-bar-row" data-category="compliment">
+          <span class="performance-label">Compliments</span>
+          <div class="performance-bar"><div class="performance-fill" style="background: var(--g-primary);"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+        <div class="performance-bar-row" data-category="suggestion">
+          <span class="performance-label">Suggestions</span>
+          <div class="performance-bar"><div class="performance-fill" style="background: var(--gold);"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+        <div class="performance-bar-row" data-category="complaint">
+          <span class="performance-label">Complaints</span>
+          <div class="performance-bar"><div class="performance-fill" style="background: var(--red);"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+        <div class="performance-bar-row" data-category="concern">
+          <span class="performance-label">Service Concerns</span>
+          <div class="performance-bar"><div class="performance-fill" style="background: #3b82f6;"></div></div>
+          <span class="performance-value">0%</span>
+        </div>
+        <div class="performance-caption" id="performanceCaption">
+          <span class="material-icons-round" aria-hidden="true">info</span>
+          <span>—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="row g-3 mb-4">
+  <!-- SENTIMENT TREND -->
+  <div class="col-12 col-lg-7">
+    <div class="card-block h-100">
+      <div class="card-block-head">
+        <h2 class="card-block-title">
+          <span class="material-icons-round">show_chart</span>
+          Sentiment Trend
+        </h2>
+        <span class="table-info" id="trendRangeCaption">—</span>
+      </div>
+      <div class="card-block-body">
+        <div id="reportTrendEmptyState" class="chart-empty-state d-none" style="height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;color:var(--text-muted,#64748b);">
+          <span class="material-icons-round" style="font-size:36px;opacity:0.6;">query_stats</span>
+          <div style="font-weight:700;font-size:13px;color:var(--text-primary,#0f172a);">No analyzed comments in this period</div>
+          <div style="font-size:11px;max-width:280px;">Pick a longer period or another month.</div>
+        </div>
+        <div class="chart-wrap" id="reportTrendChartWrap" style="height: 260px;">
+          <canvas id="reportTrendChart" aria-label="Comment sentiment trend chart" role="img"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="col-12 col-lg-5">
+    <div class="card-block h-100">
+      <div class="card-block-head">
+        <h2 class="card-block-title">
+          <span class="material-icons-round">info</span>
+          Report Summary
+        </h2>
+      </div>
+      <div class="card-block-body">
+        <div class="summary-item">
+          <div class="summary-icon pos"><span class="material-icons-round">sentiment_satisfied_alt</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Positive comments</div>
+            <div class="summary-value" id="summaryPos">0 comments</div>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon neu"><span class="material-icons-round">sentiment_neutral</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Neutral comments</div>
+            <div class="summary-value" id="summaryNeu">0 comments</div>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon neg"><span class="material-icons-round">sentiment_dissatisfied</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Negative comments</div>
+            <div class="summary-value" id="summaryNeg">0 comments</div>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-icon pending"><span class="material-icons-round">hourglass_empty</span></div>
+          <div class="summary-content">
+            <div class="summary-title">Waiting for analysis</div>
+            <div class="summary-value" id="summaryPending">0 comments</div>
+          </div>
+        </div>
+        <div class="summary-foot">
+          <div class="summary-foot-label">Positive Rate</div>
+          <div class="summary-foot-value" id="summaryPositiveRate">0%</div>
+          <div class="summary-foot-note" id="summaryRatings">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+{{ report_json|json_script:"report-json" }}
+<script>
+const REPORT_DATA = JSON.parse(document.getElementById('report-json').textContent);
+const EXCEL_URL = '{% url "export_report_excel" %}';
+const CHART_ANIM = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300;
+
+let currentPeriod = '{{ initial_period }}';
+let reportPieChart, reportTrendChart;
+
+function setReportPeriod(btn, period) {
+  document.querySelectorAll('.filter-tab').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+  currentPeriod = period;
+  updateReport();
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function updateReport(forceRecreate = false) {
+  const data = REPORT_DATA[currentPeriod];
+  const s = data.sentiment, pct = data.sentiment_pct;
+
+  setText('reportDates', `${data.label}: ${data.dates}`);
+  setText('metricAnalyzed', `${data.analyzed.toLocaleString()} analyzed`);
+  // Ctrl+P prints the same header as the Print button.
+  setText('printPeriodLabel', `${data.label} (${data.dates}) · Generated ` +
+    new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }));
+  setText('trendRangeCaption', data.trend.caption);
+
+  if (typeof animateCount === 'function') {
+    animateCount('metricTotal', data.total);
+    animateCount('metricPos', s.pos);
+    animateCount('metricNeu', s.neu);
+    animateCount('metricNeg', s.neg);
+  } else {
+    setText('metricTotal', data.total);
+    setText('metricPos', s.pos);
+    setText('metricNeu', s.neu);
+    setText('metricNeg', s.neg);
+  }
+  setText('metricPosPct', `${pct.pos}% of analyzed`);
+  setText('metricNeuPct', `${pct.neu}% of analyzed`);
+  setText('metricNegPct', `${pct.neg}% of analyzed`);
+
+  setText('legendPos', s.pos); setText('legendPosPct', pct.pos + '%');
+  setText('legendNeu', s.neu); setText('legendNeuPct', pct.neu + '%');
+  setText('legendNeg', s.neg); setText('legendNegPct', pct.neg + '%');
+
+  const comments = n => `${n.toLocaleString()} ${n === 1 ? 'comment' : 'comments'}`;
+  setText('summaryPos', comments(s.pos));
+  setText('summaryNeu', comments(s.neu));
+  setText('summaryNeg', comments(s.neg));
+  setText('summaryPending', comments(data.pending));
+  setText('summaryPositiveRate', pct.pos + '%');
+  const r = data.ratings;
+  setText('summaryRatings',
+    `Of ${data.analyzed.toLocaleString()} analyzed ${data.analyzed === 1 ? 'comment' : 'comments'}. ` +
+    `Client ratings: ${data.satisfaction}% Satisfactory or better (Very Satisfactory ${r.vsat}, Satisfactory ${r.sat}, Unsatisfactory ${r.unsat}).`);
+
+  const categorized = data.categorized || 0;
+  document.querySelectorAll('.performance-bar-row').forEach(row => {
+    const count = data.categories[row.dataset.category] || 0;
+    const share = categorized ? Math.round((count / categorized) * 100) : 0;
+    row.querySelector('.performance-fill').style.transform = `scaleX(${share / 100})`;
+    row.querySelector('.performance-value').textContent = share + '%';
+  });
+  document.getElementById('performanceCaption').querySelector('span:last-child').textContent =
+    `Based on ${categorized.toLocaleString()} of ${data.total.toLocaleString()} responses categorized by staff.`;
+
+  updateReportPieChart(data, forceRecreate);
+  updateReportTrendChart(data, forceRecreate);
+}
+
+function tooltipStyle(isDark) {
+  return {
+    backgroundColor: isDark ? '#0f172a' : '#1e293b',
+    titleColor: '#ffffff',
+    bodyColor: '#f1f5f9',
+    padding: 10,
+    cornerRadius: 4,
+    titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+    bodyFont: { family: "'IBM Plex Sans'", size: 12 },
+  };
+}
+
+function updateReportPieChart(data, forceRecreate = false) {
+  const canvas = document.getElementById('reportPieChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const values = [data.sentiment.pos, data.sentiment.neu, data.sentiment.neg];
+
+  if (reportPieChart && !forceRecreate) {
+    reportPieChart.data.datasets[0].data = values;
+    reportPieChart.update();
+    return;
+  }
+  if (reportPieChart) reportPieChart.destroy();
+
+  const centerText = {
+    id: 'centerReportText',
+    afterDraw(chart) {
+      if (!chart.chartArea) return;
+      const d = REPORT_DATA[currentPeriod];
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const c = chart.ctx;
+      const x = (chart.chartArea.left + chart.chartArea.right) / 2;
+      const y = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+      c.save();
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = '700 22px "IBM Plex Sans", sans-serif';
+      c.fillStyle = dark ? '#f8fafc' : '#0f172a';
+      c.fillText(`${d.sentiment_pct.pos}%`, x, y - 8);
+      c.font = '600 10px "IBM Plex Sans", sans-serif';
+      c.fillStyle = dark ? '#94a3b8' : '#64748b';
+      c.fillText('Positive', x, y + 12);
+      c.restore();
+    }
+  };
+
+  reportPieChart = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Positive', 'Neutral', 'Negative'],
+      datasets: [{
+        data: values,
+        backgroundColor: ['#169651', '#d97706', '#dc2626'],
+        borderColor: isDark ? '#1e293b' : '#ffffff',
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    plugins: [centerText],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      animation: { duration: CHART_ANIM, animateRotate: true, animateScale: true },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...tooltipStyle(isDark),
+          callbacks: {
+            label(ctx) {
+              const t = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const p = t ? Math.round((ctx.parsed / t) * 100) : 0;
+              return `  ${ctx.label}: ${ctx.parsed} (${p}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateReportTrendChart(data, forceRecreate = false) {
+  const canvas = document.getElementById('reportTrendChart');
+  const empty = document.getElementById('reportTrendEmptyState');
+  const wrap = document.getElementById('reportTrendChartWrap');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const t = data.trend;
+  const sum = [...t.pos, ...t.neu, ...t.neg].reduce((a, b) => a + b, 0);
+  empty.classList.toggle('d-none', sum > 0);
+  wrap.classList.toggle('d-none', sum === 0);
+  if (sum === 0) return;
+
+  if (reportTrendChart && !forceRecreate) {
+    reportTrendChart.data.labels = t.labels;
+    reportTrendChart.data.datasets[0].data = t.pos;
+    reportTrendChart.data.datasets[1].data = t.neu;
+    reportTrendChart.data.datasets[2].data = t.neg;
+    reportTrendChart.update();
+    return;
+  }
+  if (reportTrendChart) reportTrendChart.destroy();
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+  const textColor = isDark ? '#cbd5e1' : '#475569';
+  const tick = { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' } };
+
+  reportTrendChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: t.labels,
+      datasets: [
+        { label: 'Positive', data: t.pos, backgroundColor: '#169651', stack: 's', maxBarThickness: 48 },
+        { label: 'Neutral',  data: t.neu, backgroundColor: '#d97706', stack: 's', maxBarThickness: 48 },
+        { label: 'Negative', data: t.neg, backgroundColor: '#dc2626', stack: 's', maxBarThickness: 48 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: CHART_ANIM },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { ...tick, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, border: { display: false } },
+        y: { stacked: true, beginAtZero: true, grid: { color: gridColor, drawTicks: false }, ticks: { ...tick, precision: 0 }, border: { display: false } }
+      },
+      plugins: {
+        legend: {
+          position: 'top', align: 'end',
+          labels: { ...tick, boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', padding: 12 }
+        },
+        tooltip: tooltipStyle(isDark)
+      }
+    }
+  });
+}
+
+/* ── EXPORT ── */
+function exportReportExcel() {
+  window.location.href = `${EXCEL_URL}?${REPORT_DATA[currentPeriod].excel}`;
+}
+
+function printReport() {
+  window.print();
+}
+
+/* ── THEME & INIT ── */
+function onThemeChange() {
+  updateReportPieChart(REPORT_DATA[currentPeriod], true);
+  updateReportTrendChart(REPORT_DATA[currentPeriod], true);
+}
+function onResize() {}
+
+function pageInit() {
+  updateReport();
+}
+</script>
+{% endblock %}

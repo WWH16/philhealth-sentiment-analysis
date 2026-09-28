@@ -233,6 +233,61 @@ class ReportsViewTests(TestCase):
         )
         self.client.force_login(self.user)
 
+    def test_reports_page_counts_sentiment_per_period(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from feedback.models import FeedbackEntry
+
+        for sentiment, days_ago in ((FeedbackEntry.NEGATIVE, 0), (FeedbackEntry.POSITIVE, 0), (FeedbackEntry.POSITIVE, 400)):
+            entry = FeedbackEntry.objects.create(
+                experience=FeedbackEntry.SATISFACTORY, sentiment=sentiment, category='compliment', comment='x',
+            )
+            FeedbackEntry.objects.filter(pk=entry.pk).update(created_at=timezone.now() - timedelta(days=days_ago))
+
+        response = self.client.get(reverse('reports'))
+        self.assertEqual(response.status_code, 200)
+        report = response.context['report_json']
+        self.assertEqual(list(report), ['today', 'week', 'month', 'quarter', 'year'])
+        self.assertEqual(response.context['initial_period'], 'month')
+        self.assertEqual(report['today']['sentiment'], {'pos': 1, 'neu': 0, 'neg': 1})
+        self.assertEqual(report['today']['sentiment_pct']['neg'], 50)
+        self.assertEqual(report['week']['trend']['caption'], 'By day')
+        self.assertEqual(sum(report['today']['trend']['neg']), 1)
+        self.assertEqual(report['year']['categories']['compliment'], 2)
+        self.assertContains(response, 'id="nav-reports"')
+
+    def test_reports_for_a_chosen_month_cover_only_that_month(self):
+        from datetime import datetime
+        from io import BytesIO
+
+        import openpyxl
+        from django.utils import timezone
+        from feedback.models import FeedbackEntry
+
+        for day, sentiment in (('2025-07-31', FeedbackEntry.POSITIVE), ('2025-08-01', FeedbackEntry.NEGATIVE),
+                               ('2025-08-31', FeedbackEntry.NEUTRAL), ('2025-09-01', FeedbackEntry.POSITIVE)):
+            entry = FeedbackEntry.objects.create(experience=FeedbackEntry.SATISFACTORY, sentiment=sentiment, comment='x')
+            FeedbackEntry.objects.filter(pk=entry.pk).update(
+                created_at=timezone.make_aware(datetime.strptime(day, '%Y-%m-%d')),
+            )
+
+        response = self.client.get(reverse('reports') + '?month=2025-08')
+        self.assertEqual(response.context['initial_period'], 'custom')
+        custom = response.context['report_json']['custom']
+        self.assertEqual((custom['label'], custom['total']), ('August 2025', 2))
+        self.assertEqual(custom['sentiment'], {'pos': 0, 'neu': 1, 'neg': 1})
+        self.assertEqual(custom['trend']['caption'], 'By week')
+        self.assertEqual(custom['excel'], 'month=2025-08')
+        self.assertIn(('2025-08', 'August 2025'), response.context['month_options'])
+
+        excel = self.client.get(reverse('export_report_excel') + '?month=2025-08')
+        rows = {r[0]: r[1] for r in openpyxl.load_workbook(BytesIO(excel.content))['Summary'].iter_rows(values_only=True) if r[0]}
+        self.assertEqual((rows['Total Responses'], rows['Negative'], rows['Neutral']), (2, 1, 1))
+
+        # Bad or future months are ignored.
+        for bad in ('2025-13', 'nope', '2999-01'):
+            self.assertNotIn('custom', self.client.get(reverse('reports') + f'?month={bad}').context['report_json'])
+
     def test_excel_export_follows_range_and_counts_sentiment(self):
         from datetime import timedelta
         from io import BytesIO
@@ -547,13 +602,14 @@ class RoleBasedAccessControlTests(TestCase):
     def test_staff_can_access_core_operations(self):
         self.client.force_login(self.staff_user)
 
-        # Dashboard, Responses, and Excel export
+        # Dashboard, Responses, Reports, and Excel export
         res_dash = self.client.get(reverse('dashboard'))
         self.assertEqual(res_dash.status_code, 200)
 
         res_resp = self.client.get(reverse('responses'))
         self.assertEqual(res_resp.status_code, 200)
 
+        self.assertEqual(self.client.get(reverse('reports')).status_code, 200)
         res_xls = self.client.get(reverse('export_report_excel') + '?range=week')
         self.assertEqual(res_xls.status_code, 200)
 

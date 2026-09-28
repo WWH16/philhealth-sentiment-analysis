@@ -26,7 +26,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
-from django.db.models.functions import TruncDate
+from django.db.models.functions import ExtractHour, TruncDate, TruncMonth, TruncWeek
 from feedback.models import FeedbackConfiguration, FeedbackEntry
 from feedback.email_service import send_daily_summary_email
 
@@ -775,28 +775,67 @@ def _sentiment_word_cloud(entries, today_start, week_start, month_start):
     return cloud
 
 
-@staff_required
-def export_report_excel(request):
-    """Excel file (summary + responses) for the Responses page's date range."""
-    import openpyxl
-    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+# Report tabs, in order: range key and tab label.
+REPORT_TABS = [('today', 'Daily'), ('week', 'Weekly'), ('month', 'Monthly'),
+               ('quarter', 'Quarterly'), ('year', 'Annual')]
 
-    now = timezone.localtime(timezone.now())
+
+def _report_ranges(now):
+    """Label and start of each report period. Shared by the Reports page,
+    its Excel export, and the Responses page date filter keys."""
     today_start = timezone.make_aware(datetime.combine(now.date(), time.min))
-
-    # Same ranges as the Responses page date filter.
-    range_filters = {
-        'all': ('All Time', Q()),
-        'today': ('Today', Q(created_at__gte=today_start)),
-        'week': ('Last 7 Days', Q(created_at__gte=now - timedelta(days=7))),
-        'month': ('This Month', Q(created_at__gte=today_start.replace(day=1))),
+    month_start = today_start.replace(day=1)
+    return {
+        'today': ('Today', today_start),
+        'week': ('Last 7 Days', now - timedelta(days=7)),
+        'month': ('This Month', month_start),
+        'quarter': ('This Quarter', month_start.replace(month=(month_start.month - 1) // 3 * 3 + 1)),
+        'year': ('This Year', month_start.replace(month=1)),
+        'all': ('All Time', None),
     }
-    period = request.GET.get('range', 'all')
-    if period not in range_filters:
-        period = 'all'
-    period_label, period_q = range_filters[period]
 
-    qs = FeedbackEntry.objects.filter(period_q)
+
+def _resolve_report_period(request, now, default):
+    """(key, label, start, end, month) from `?month=YYYY-MM` or `?range=`.
+    A chosen month has an exclusive `end`; bad values fall back to `default`."""
+    try:
+        chosen = datetime.strptime(request.GET.get('month', ''), '%Y-%m').date()
+    except ValueError:
+        chosen = None
+    if chosen and chosen <= now.date():
+        start = timezone.make_aware(datetime.combine(chosen, time.min))
+        end = timezone.make_aware(datetime.combine((chosen + timedelta(days=32)).replace(day=1), time.min))
+        return 'month', f'{start:%B %Y}', start, end, f'{chosen:%Y-%m}'
+    ranges = _report_ranges(now)
+    period = request.GET.get('range', default)
+    if period not in ranges:
+        period = default
+    label, start = ranges[period]
+    return period, label, start, None, ''
+
+
+def _report_queryset(start, end=None):
+    qs = FeedbackEntry.objects.all()
+    if start:
+        qs = qs.filter(created_at__gte=start)
+    if end:
+        qs = qs.filter(created_at__lt=end)
+    return qs
+
+
+def _report_month_options(now):
+    """Every month from the first response to now, newest first."""
+    first = FeedbackEntry.objects.order_by('created_at').values_list('created_at', flat=True).first()
+    cursor = (timezone.localtime(first) if first else now).date().replace(day=1)
+    months = []
+    while cursor <= now.date():
+        months.append((f'{cursor:%Y-%m}', f'{cursor:%B %Y}'))
+        cursor = (cursor + timedelta(days=32)).replace(day=1)
+    return months[::-1]
+
+
+def _report_counts(qs):
+    """Sentiment, rating, and category counts for one period, in one query."""
     F = FeedbackEntry
     c = qs.aggregate(
         total=Count('id'),
@@ -804,8 +843,125 @@ def export_report_excel(request):
         **{f'sent_{v}': Count('id', filter=Q(sentiment=v)) for v in (F.POSITIVE, F.NEUTRAL, F.NEGATIVE, F.PENDING)},
         **{f'cat_{v}': Count('id', filter=Q(category=v)) for v, _ in F.CATEGORY_CHOICES},
     )
+    sentiment = {'pos': c[f'sent_{F.POSITIVE}'], 'neu': c[f'sent_{F.NEUTRAL}'], 'neg': c[f'sent_{F.NEGATIVE}']}
+    analyzed = sum(sentiment.values())
     satisfied = c[f'exp_{F.VERY_SATISFACTORY}'] + c[f'exp_{F.SATISFACTORY}']
-    satisfaction = round(satisfied / c['total'] * 100) if c['total'] else 0
+    categories = {v: c[f'cat_{v}'] for v, _ in F.CATEGORY_CHOICES}
+    return {
+        'total': c['total'],
+        'analyzed': analyzed,
+        'pending': c[f'sent_{F.PENDING}'],
+        'sentiment': sentiment,
+        'sentiment_pct': {k: round(n / analyzed * 100) if analyzed else 0 for k, n in sentiment.items()},
+        'ratings': {v: c[f'exp_{v}'] for v, _ in F.EXPERIENCE_CHOICES},
+        'satisfaction': round(satisfied / c['total'] * 100) if c['total'] else 0,
+        'categories': categories,
+        'categorized': sum(categories.values()),
+    }
+
+
+def _report_trend(qs, period, start, now, end=None):
+    """Sentiment counts per hour (today), day (week), week (month), or month."""
+    keys = {FeedbackEntry.POSITIVE: 'pos', FeedbackEntry.NEUTRAL: 'neu', FeedbackEntry.NEGATIVE: 'neg'}
+    if start is None:
+        first = qs.order_by('created_at').values_list('created_at', flat=True).first()
+        start = timezone.localtime(first) if first else now
+    last_day = (end - timedelta(days=1)).date() if end else now.date()
+
+    if period == 'today':
+        trunc = ExtractHour
+        buckets = list(range(now.hour + 1))
+        label = lambda h: datetime(2000, 1, 1, h).strftime('%I %p').lstrip('0')
+        caption = 'By hour'
+    elif period == 'week':
+        trunc = TruncDate
+        buckets = [start.date() + timedelta(days=i) for i in range((last_day - start.date()).days + 1)]
+        label = lambda d: f'{d:%b} {d.day}'
+        caption = 'By day'
+    elif period == 'month':
+        trunc = TruncWeek
+        first_day = start.date()
+        cursor, buckets = first_day - timedelta(days=first_day.weekday()), []
+        while cursor <= last_day:
+            buckets.append(cursor)
+            cursor += timedelta(days=7)
+
+        def label(d):
+            a, b = max(d, first_day), min(d + timedelta(days=6), last_day)
+            return f'{a:%b} {a.day}' if a == b else f'{a:%b} {a.day} to {b.day}' if a.month == b.month else f'{a:%b} {a.day} to {b:%b} {b.day}'
+        caption = 'By week'
+    else:
+        trunc = TruncMonth
+        cursor, buckets = start.date().replace(day=1), []
+        while cursor <= last_day:
+            buckets.append(cursor)
+            cursor = (cursor + timedelta(days=32)).replace(day=1)
+        label = lambda d: f'{d:%b %Y}'
+        caption = 'By month'
+
+    data = defaultdict(lambda: {'pos': 0, 'neu': 0, 'neg': 0})
+    for row in qs.annotate(bucket=trunc('created_at')).values('bucket', 'sentiment').annotate(n=Count('id')):
+        bucket = row['bucket']
+        bucket = bucket.date() if isinstance(bucket, datetime) else bucket
+        if row['sentiment'] in keys:
+            data[bucket][keys[row['sentiment']]] += row['n']
+    return {
+        'caption': caption,
+        'labels': [label(b) for b in buckets],
+        **{key: [data[b][key] for b in buckets] for key in ('pos', 'neu', 'neg')},
+    }
+
+
+def _report_dates(start, end, now):
+    if not start:
+        return 'All responses'
+    last = (end - timedelta(days=1)) if end else now
+    return f'{start:%b} {start.day}, {start.year} to {last:%b} {last.day}, {last.year}'
+
+
+@staff_required
+def reports(request):
+    """Sentiment report per period: tabs for Daily to Annual, or one chosen month."""
+    now = timezone.localtime(timezone.now())
+    ranges = _report_ranges(now)
+    periods = {key: (tab, ranges[key][0], ranges[key][1], None, f'range={key}') for key, tab in REPORT_TABS}
+    initial = 'month'
+    _, month_label, month_start, month_end, month = _resolve_report_period(request, now, default='month')
+    if month:
+        periods['custom'] = (month_label, month_label, month_start, month_end, f'month={month}')
+        initial = 'custom'
+
+    report = {}
+    for key, (tab, label, start, end, excel_query) in periods.items():
+        qs = _report_queryset(start, end)
+        report[key] = {
+            'tab': tab,
+            'label': label,
+            'dates': _report_dates(start, end, now),
+            'excel': excel_query,
+            **_report_counts(qs),
+            'trend': _report_trend(qs, 'month' if key == 'custom' else key, start, now, end),
+        }
+    return render(request, 'feedback_admin/reports.html', {
+        'report_json': report,
+        'initial_period': initial,
+        'tabs': [(key, report[key]['tab']) for key in report],
+        'month': month,
+        'month_options': _report_month_options(now),
+    })
+
+
+@staff_required
+def export_report_excel(request):
+    """Excel file (summary + responses) for one report period or month."""
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+
+    now = timezone.localtime(timezone.now())
+    period, period_label, start, end, _ = _resolve_report_period(request, now, default='all')
+    qs = _report_queryset(start, end)
+    counts = _report_counts(qs)
+    F = FeedbackEntry
 
     # ── Styles ────────────────────────────────────────────────────────────
     header_font = Font(name='Calibri', bold=True, size=11, color='FFFFFF')
@@ -840,26 +996,24 @@ def export_report_excel(request):
 
     # Overview metrics
     overview_rows = [
-        ('Total Responses', c['total']),
-        ('Satisfaction Rate', f'{satisfaction}%'),
+        ('Total Responses', counts['total']),
+        ('Satisfaction Rate', f"{counts['satisfaction']}%"),
         ('', ''),
         ('Comment Sentiment', ''),
-        ('Positive', c[f'sent_{F.POSITIVE}']),
-        ('Neutral', c[f'sent_{F.NEUTRAL}']),
-        ('Negative', c[f'sent_{F.NEGATIVE}']),
-        ('Pending analysis', c[f'sent_{F.PENDING}']),
+        ('Positive', counts['sentiment']['pos']),
+        ('Neutral', counts['sentiment']['neu']),
+        ('Negative', counts['sentiment']['neg']),
+        ('Pending analysis', counts['pending']),
         ('', ''),
         ('Rating Distribution', ''),
-        ('Very Satisfactory', c[f'exp_{F.VERY_SATISFACTORY}']),
-        ('Satisfactory', c[f'exp_{F.SATISFACTORY}']),
-        ('Unsatisfactory', c[f'exp_{F.UNSATISFACTORY}']),
+        *[(label, counts['ratings'][v]) for v, label in F.EXPERIENCE_CHOICES],
         ('', ''),
         ('Feedback Categories', ''),
-        ('Compliments', c[f'cat_{F.COMPLIMENT}']),
-        ('Suggestions', c[f'cat_{F.SUGGESTION}']),
-        ('Complaints', c[f'cat_{F.COMPLAINT}']),
-        ('Service Concerns', c[f'cat_{F.CONCERN}']),
-        ('Total Categorized', sum(c[f'cat_{v}'] for v, _ in F.CATEGORY_CHOICES)),
+        ('Compliments', counts['categories'][F.COMPLIMENT]),
+        ('Suggestions', counts['categories'][F.SUGGESTION]),
+        ('Complaints', counts['categories'][F.COMPLAINT]),
+        ('Service Concerns', counts['categories'][F.CONCERN]),
+        ('Total Categorized', counts['categorized']),
     ]
     for label, value in overview_rows:
         ws.append([label, value])

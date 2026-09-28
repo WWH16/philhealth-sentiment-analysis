@@ -774,6 +774,10 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
         <span class="material-icons-round">dashboard</span>
         <span class="nav-item-label">Dashboard</span>
       </a>
+      <a href="{% url 'reports' %}" class="nav-item {% block nav_reports %}{% endblock %}" id="nav-reports">
+        <span class="material-icons-round">bar_chart</span>
+        <span class="nav-item-label">Reports</span>
+      </a>
       <div class="nav-section-label">Management</div>
       <a href="{% url 'responses' %}" class="nav-item {% block nav_responses %}{% endblock %}" id="nav-responses">
         <span class="material-icons-round">inbox</span>
