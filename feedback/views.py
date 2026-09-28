@@ -1,20 +1,28 @@
 import json
 
+from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import FeedbackConfiguration, FeedbackEntry
+from .models import FeedbackConfiguration, FeedbackEntry, FeedbackToken
 from .services import analyze_comment_sentiment
+
+TOKEN_INVALID_MESSAGE = 'This feedback link has expired or was already used. Ask the staff for a new QR code.'
 
 
 @ensure_csrf_cookie
 def index(request):
     config = FeedbackConfiguration.get_solo()
+    key = request.GET.get('t', '')
+    token = FeedbackToken.usable().filter(key=key).first() if key else None
     return render(request, 'feedback/index.html', {
         'survey_enabled': config.survey_enabled,
         'offline_message': config.get_survey_offline_message(),
+        'token': token,
+        'token_invalid': bool(key) and token is None,
     })
 
 
@@ -34,6 +42,10 @@ def submit_feedback(request):
     if not isinstance(payload, dict):
         return JsonResponse({'ok': False, 'error': 'Invalid request.'}, status=400)
 
+    key = payload.get('token')
+    if not isinstance(key, str) or not key:
+        return JsonResponse({'ok': False, 'error': TOKEN_INVALID_MESSAGE}, status=400)
+
     experience = payload.get('experience')
     if not isinstance(experience, str) or experience not in dict(FeedbackEntry.EXPERIENCE_CHOICES):
         return JsonResponse({'ok': False, 'error': 'Please select your experience.'}, status=400)
@@ -50,5 +62,16 @@ def submit_feedback(request):
     else:
         sentiment = FeedbackEntry.PENDING
 
-    FeedbackEntry.objects.create(experience=experience, comment=comment, sentiment=sentiment)
+    with transaction.atomic():
+        # Claim the link in one UPDATE so two submits of the same link cannot both pass.
+        if not FeedbackToken.usable().filter(key=key).update(used_at=timezone.now()):
+            return JsonResponse({'ok': False, 'error': TOKEN_INVALID_MESSAGE}, status=410)
+        token = FeedbackToken.objects.get(key=key)
+        FeedbackEntry.objects.create(
+            token=token,
+            ticket_number=token.ticket_number,
+            experience=experience,
+            comment=comment,
+            sentiment=sentiment,
+        )
     return JsonResponse({'ok': True}, status=201)

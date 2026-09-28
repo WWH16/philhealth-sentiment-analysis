@@ -3,14 +3,14 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from .models import FeedbackConfiguration, FeedbackEntry
+from .models import FeedbackConfiguration, FeedbackEntry, FeedbackToken
 
 
 class SubmitFeedbackAutoAnalysisTests(TestCase):
     def _submit(self, payload):
         return self.client.post(
             '/feedback/submit/',
-            data=json.dumps(payload),
+            data=json.dumps({'token': FeedbackToken.issue('1', None).key, **payload}),
             content_type='application/json',
         )
 
@@ -279,7 +279,7 @@ class SurveyAvailabilityTests(TestCase):
         self.assertRedirects(response, '/')
 
     def test_index_renders_form_when_survey_enabled(self):
-        response = self.client.get('/')
+        response = self.client.get('/?t=' + FeedbackToken.issue('23', None).key)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['survey_enabled'])
         self.assertContains(response, 'id="feedbackForm"')
@@ -324,6 +324,7 @@ class SurveyAvailabilityTests(TestCase):
         response = self.client.post(
             '/feedback/submit/',
             data=json.dumps({
+                'token': FeedbackToken.issue('1', None).key,
                 'experience': FeedbackEntry.VERY_SATISFACTORY,
                 'comment': 'Submitting while active.',
             }),

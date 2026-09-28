@@ -335,6 +335,7 @@
               <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" aria-label="Select all rows" style="cursor:pointer;accent-color:var(--g-primary)">
             </th>
             <th style="width:60px">ID</th>
+            <th style="width:70px">Ticket</th>
             <th style="min-width:110px">Date &amp; Time</th>
             <th style="min-width:160px">Rating</th>
             <th style="min-width:120px">Category</th>
@@ -479,6 +480,7 @@ function applyFilters(keepPage = false) {
   filteredRows = ALL_DATA.filter(r => {
     const matchQ    = !q || (r.comment||'').toLowerCase().includes(q)
                          || r.id.toString().includes(q)
+                         || (r.ticket||'') === q
                          || r.rating.toLowerCase().includes(q)
                          || (r.category||'').toLowerCase().includes(q)
                          || r.date.includes(q)
@@ -631,7 +633,7 @@ function renderTable() {
   const end   = Math.min(start + pageSize, filteredRows.length);
   const rows  = filteredRows.slice(start, end);
 
-  const COLS = 9; /* checkbox + id + date + rating + category + sentiment + status + comment + expand */
+  const COLS = 10; /* checkbox + id + ticket + date + rating + category + sentiment + status + comment + expand */
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="${COLS}">
@@ -661,6 +663,7 @@ function renderTable() {
             aria-label="Select response ${r.id}" style="cursor:pointer;accent-color:var(--g-primary)">
         </td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">#${r.id}</td>
+        <td style="font-family:var(--mono);font-size:13px;font-weight:600;">${r.ticket ? '#' + r.ticket : '<span style="color:var(--text-muted)">—</span>'}</td>
         <td class="datetime-cell">
           <div class="datetime-date">${dateStr}</div>
           <div class="datetime-time">${r.time}</div>
@@ -813,9 +816,9 @@ function goPage(p) {
 
 /* ── EXPORT ── */
 function buildCSVRows(data) {
-  const header = ['ID','Date','Time','Rating','Category','Sentiment','Status','Comment'];
+  const header = ['ID','Ticket','Date','Time','Rating','Category','Sentiment','Status','Comment'];
   const body   = data.map(r => [
-    r.id, r.date, r.time, r.rating,
+    r.id, r.ticket || '', r.date, r.time, r.rating,
     r.category || '',
     r.sentiment || '',
     r.status    || '',

@@ -28,7 +28,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
 from django.db.models.functions import ExtractHour, TruncDate, TruncMonth, TruncWeek
-from feedback.models import FeedbackConfiguration, FeedbackEntry
+import segno
+
+from feedback.models import FeedbackConfiguration, FeedbackEntry, FeedbackToken
 from feedback.email_service import send_daily_summary_email
 
 from django.http import FileResponse, Http404
@@ -400,6 +402,34 @@ def responses(request):
     return render(request, 'feedback_admin/responses.html', context)
 
 
+@staff_required
+def client_qr(request):
+    """Staff issue a single-use feedback QR for the client they just served."""
+    if request.method == 'POST':
+        ticket = request.POST.get('ticket_number', '').strip()
+        if not re.fullmatch(r'[0-9]{1,6}', ticket):
+            messages.error(request, 'Enter the ticket number using digits only (up to 6).')
+            return redirect('client_qr')
+        token = FeedbackToken.issue(str(int(ticket)), request.user)
+        return redirect(f"{reverse('client_qr')}?k={token.key}")
+
+    context = {
+        'lifetime_minutes': int(FeedbackToken.LIFETIME.total_seconds() // 60),
+        # A QR pointing at localhost only opens on this PC, never on the client's phone.
+        'local_only': request.get_host().split(':')[0] in ('127.0.0.1', 'localhost'),
+    }
+    token = FeedbackToken.objects.filter(key=request.GET.get('k', '')).first()
+    if token:
+        link = request.build_absolute_uri(f"{reverse('feedback-index')}?t={token.key}")
+        context.update(
+            token=token,
+            link=link,
+            qr_svg=segno.make(link, error='m').svg_inline(scale=8, border=4, light='#fff', omitsize=True),
+            expired=token.used_at is None and token.expires_at <= timezone.now(),
+        )
+    return render(request, 'feedback_admin/client_qr.html', context)
+
+
 _EXP_DISPLAY = dict(FeedbackEntry.EXPERIENCE_CHOICES)
 _CAT_DISPLAY = dict(FeedbackEntry.CATEGORY_CHOICES)
 _STATUS_DISPLAY = dict(FeedbackEntry.STATUS_CHOICES)
@@ -425,6 +455,7 @@ def _entry_to_row(entry, activity=None):
     exp_display = _EXP_DISPLAY.get(entry.experience, entry.experience)
     return {
         'id': entry.id,
+        'ticket': entry.ticket_number,
         'date': local_created.strftime('%Y-%m-%d'),
         'time': local_created.strftime('%H:%M'),
         'rating': exp_display,
@@ -1038,7 +1069,7 @@ def export_report_excel(request):
     ws2 = wb.create_sheet('Responses')
     ws2.sheet_properties.tabColor = '23A455'
 
-    response_headers = ['ID', 'Date', 'Time', 'Experience', 'Category', 'Sentiment', 'Status', 'Comment']
+    response_headers = ['ID', 'Ticket', 'Date', 'Time', 'Experience', 'Category', 'Sentiment', 'Status', 'Comment']
 
     # Write header row
     for col_idx, header_text in enumerate(response_headers, 1):
@@ -1059,6 +1090,7 @@ def export_report_excel(request):
         local_dt = timezone.localtime(entry.created_at) if entry.created_at else None
         row_data = [
             entry.pk,
+            entry.ticket_number,
             local_dt.strftime('%Y-%m-%d') if local_dt else '',
             local_dt.strftime('%I:%M %p') if local_dt else '',
             EXPERIENCE_MAP.get(entry.experience, entry.experience),
@@ -1073,7 +1105,7 @@ def export_report_excel(request):
             cell.border = thin_border
 
     # Auto-size key columns (approximate widths)
-    col_widths = {'A': 8, 'B': 12, 'C': 10, 'D': 18, 'E': 14, 'F': 12, 'G': 12, 'H': 60}
+    col_widths = {'A': 8, 'B': 8, 'C': 12, 'D': 10, 'E': 18, 'F': 14, 'G': 12, 'H': 12, 'I': 60}
     for col_letter, width in col_widths.items():
         ws2.column_dimensions[col_letter].width = width
 

@@ -1,9 +1,38 @@
 import secrets
+from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
+
+
+class FeedbackToken(models.Model):
+    """Single-use feedback link that staff hand to one served client as a QR code.
+
+    Office ticket numbers cycle, so the ticket number alone cannot identify a
+    visit; the random key can, and it only works once and only until it expires.
+    """
+    LIFETIME = timedelta(minutes=15)
+
+    key = models.CharField(max_length=32, unique=True)
+    ticket_number = models.CharField(max_length=6)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def issue(cls, ticket_number, user):
+        return cls.objects.create(
+            key=secrets.token_urlsafe(16),
+            ticket_number=ticket_number,
+            created_by=user,
+            expires_at=timezone.now() + cls.LIFETIME,
+        )
+
+    @classmethod
+    def usable(cls):
+        return cls.objects.filter(used_at__isnull=True, expires_at__gt=timezone.now())
 
 
 class FeedbackEntry(models.Model):
@@ -58,6 +87,10 @@ class FeedbackEntry(models.Model):
     category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, blank=True)
     comment = models.TextField(blank=True, max_length=1000)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=PENDING)
+    # Queue number from the office; numbers cycle, so it is a label, not an identity.
+    ticket_number = models.CharField(max_length=6, blank=True)
+    # One response per QR link, enforced by the database.
+    token = models.OneToOneField(FeedbackToken, on_delete=models.SET_NULL, null=True, blank=True)
 
     # CSM Form Specific Fields
     date_time = models.DateTimeField(null=True, blank=True)

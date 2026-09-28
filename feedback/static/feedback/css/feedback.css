@@ -94,6 +94,12 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 .page .wrap { max-width: 760px; }
 .intro { padding: clamp(28px, 5vw, 48px) 0 22px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .intro h1 { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; text-wrap: balance; }
+.ticket-chip {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0 0 6px; padding: 5px 10px;
+  background: var(--g-light); color: var(--g-forest); font-size: 14px; font-weight: 600;
+}
+.ticket-chip strong { font-weight: 800; font-variant-numeric: tabular-nums; }
+.ticket-chip .material-icons-round { font-size: 18px; }
 .intro-fil { margin: 0; font-size: 18px; font-weight: 500; color: var(--text-secondary); line-height: 1.4; }
 .offline {
   margin: 14px 0 12px; max-width: 60ch; padding: 14px 16px;
@@ -179,7 +185,6 @@ textarea:focus { border-color: var(--g-forest); outline: none; box-shadow: 0 0 0
 .done-mark .material-icons-round { font-size: 32px; }
 .done h2 { margin: 0; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
 .done p { margin: 0; font-size: 17px; color: var(--text-secondary); }
-.done .btn { margin-top: 18px; min-width: 200px; }
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 720px) {

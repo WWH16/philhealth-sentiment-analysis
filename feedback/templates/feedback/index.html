@@ -43,14 +43,28 @@
         <h1>The online form is paused right now</h1>
         <div class="offline" role="status">{{ offline_message }}</div>
       </div>
+      {% elif not token %}
+      <div class="intro">
+        {% if token_invalid %}
+        <h1>This feedback link no longer works</h1>
+        <p class="intro-fil" lang="fil">Hindi na gumagana ang link na ito</p>
+        <div class="offline" role="status">It has expired or was already used. Ask the staff for a new QR code.<br><span lang="fil">Humingi po ng bagong QR code sa aming staff.</span></div>
+        {% else %}
+        <h1>Scan the QR code from our staff</h1>
+        <p class="intro-fil" lang="fil">I-scan ang QR code mula sa aming staff</p>
+        <div class="offline" role="status">After your transaction, the staff at your last counter gives you a QR code. Scan it with your phone camera to open the form.<br><span lang="fil">Pagkatapos ng inyong transaksyon, bibigyan kayo ng QR code ng staff. I-scan ito gamit ang camera ng inyong telepono.</span></div>
+        {% endif %}
+      </div>
       {% else %}
 
       <div class="intro" id="formIntro">
+        <p class="ticket-chip"><span class="material-icons-round" aria-hidden="true">confirmation_number</span>Ticket <strong>#{{ token.ticket_number }}</strong></p>
         <h1 id="formTitle">How was your transaction today?</h1>
         <p class="intro-fil" lang="fil">Kumusta ang inyong transaksyon ngayong araw?</p>
       </div>
 
       <form id="feedbackForm" class="panel" aria-labelledby="formTitle" novalidate>
+        <input type="hidden" name="token" value="{{ token.key }}">
 
         <section class="block" id="group-experience" aria-labelledby="experienceTitle">
           <div class="block-head">
@@ -112,7 +126,6 @@
         <span class="done-mark"><span class="material-icons-round" aria-hidden="true">task_alt</span></span>
         <h2 id="doneTitle">Thank you. Your feedback is recorded.</h2>
         <p lang="fil">Salamat po sa inyong feedback.</p>
-        <button type="button" class="btn btn-primary" id="btnDone">Done</button>
       </section>
 
       {% endif %}

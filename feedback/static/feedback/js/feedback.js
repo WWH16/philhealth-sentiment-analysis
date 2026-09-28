@@ -7,7 +7,6 @@
   var btn = document.getElementById('btnSubmit');
   var btnText = btn.querySelector('.btn-text');
   var submitError = document.getElementById('submitError');
-  var resetTimer = null;
   var attempted = false;
 
   var REQUIRED = [
@@ -48,38 +47,18 @@
     return first;
   }
 
-  function clearErrors() {
-    REQUIRED.forEach(function (field) {
-      document.getElementById(field.group).classList.remove('is-invalid');
-      document.getElementById(field.error).hidden = true;
-    });
-    submitError.hidden = true;
-  }
-
   function setBusy(busy) {
     btn.disabled = busy;
     btnText.textContent = busy ? 'Sending…' : 'Submit feedback';
   }
 
+  // The QR link works once, so the thank-you state is final.
   function showDone() {
     form.hidden = true;
     intro.hidden = true;
     done.hidden = false;
     window.scrollTo(0, 0);
     done.focus();
-    resetTimer = setTimeout(resetForm, 5000);
-  }
-
-  function resetForm() {
-    clearTimeout(resetTimer);
-    form.reset();
-    attempted = false;
-    clearErrors();
-    updateCounts();
-    done.hidden = true;
-    intro.hidden = false;
-    form.hidden = false;
-    window.scrollTo(0, 0);
   }
 
   var commentBox = form.comments_suggestions;
@@ -111,6 +90,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
       body: JSON.stringify({
+        token: form.token.value,
         experience: form.querySelector('input[name="experience"]:checked').value,
         comment: commentBox.value.trim()
       })
@@ -132,5 +112,4 @@
       .then(function () { setBusy(false); });
   });
 
-  document.getElementById('btnDone').addEventListener('click', resetForm);
 })();

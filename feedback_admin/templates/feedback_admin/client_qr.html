@@ -1,0 +1,123 @@
+{% extends 'feedback_admin/base.html' %}
+
+{% block title %}Client QR | CSAS{% endblock %}
+
+{% block nav_client_qr %}active{% endblock %}
+
+{% block extra_styles %}
+.qr-layout { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 767px) { .qr-layout { grid-template-columns: minmax(0, 1fr); } }
+
+.ticket-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+.ticket-field {
+  display: block; width: 100%; height: 56px; padding: 0 14px;
+  font: 700 28px/1 var(--mono); letter-spacing: 0.04em; font-variant-numeric: tabular-nums;
+  border: 1.5px solid var(--border); background: var(--surface-page); color: var(--text-primary);
+  outline: none; border-radius: 0; transition: border-color 120ms;
+}
+.ticket-field:focus { border-color: var(--g-primary); }
+.ticket-hint { font-size: 12px; color: var(--text-muted); margin: 8px 0 16px; }
+.qr-form .btn-ph { width: 100%; justify-content: center; padding: 12px; font-size: 11px; }
+
+.qr-result { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.qr-code { flex: none; width: min(300px, 100%); background: #fff; border: 1px solid var(--border); line-height: 0; }
+.qr-code svg { display: block; width: 100%; height: auto; }
+.qr-info { flex: 1; min-width: 200px; }
+.qr-ticket { font: 800 44px/1 var(--mono); letter-spacing: -0.02em; color: var(--text-primary); margin: 4px 0 12px; }
+.qr-ticket-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.qr-status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 6px 10px; margin-bottom: 14px; }
+.qr-status .material-icons-round { font-size: 16px; }
+.qr-status-live { background: var(--g-xlight); color: var(--g-forest); }
+.qr-status-used { background: #eff6ff; color: #1d4ed8; }
+.qr-status-expired { background: var(--red-bg); color: var(--red); }
+[data-theme="dark"] .qr-status-live { color: #5fcf8a; }
+[data-theme="dark"] .qr-status-used { background: rgba(59,130,246,0.15); color: #93c5fd; }
+[data-theme="dark"] .qr-status-expired { color: #fca5a5; }
+.qr-link { font: 12px/1.5 var(--mono); color: var(--text-secondary); word-break: break-all; margin: 0 0 14px; }
+.qr-warning { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 16px; background: var(--gold-light); color: #7a5500; font-size: 13px; line-height: 1.5; }
+.qr-warning .material-icons-round { font-size: 18px; flex: none; }
+.qr-warning code { font-family: var(--mono); font-size: 12px; }
+[data-theme="dark"] .qr-warning { background: rgba(184,147,58,0.15); color: #d4a840; }
+.qr-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 16px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.qr-empty .material-icons-round { font-size: 40px; color: var(--border); }
+{% endblock %}
+
+{% block page_content %}
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-eyebrow">
+          <span class="material-icons-round">qr_code_2</span>
+          Last counter
+        </div>
+        <h1 class="page-title">Client QR</h1>
+        <p class="page-subtitle">Enter the ticket number of the client you just served, then let them scan the code. Each code opens the feedback form once and expires after {{ lifetime_minutes }} minutes.</p>
+      </div>
+    </div>
+  </div>
+
+  {% if local_only %}
+  <div class="qr-warning" role="status">
+    <span class="material-icons-round">wifi_off</span>
+    <div>This page is open at <strong>{{ request.get_host }}</strong>, so the QR code points to this computer only and phones cannot open it. Start the server with <code>python manage.py runserver 0.0.0.0:8000</code> and open the dashboard with this computer's network address (find it with <code>ipconfig</code>, for example <code>http://192.168.1.20:8000/dashboard/client-qr/</code>). The phone must be on the same Wi-Fi.</div>
+  </div>
+  {% endif %}
+
+  <div class="qr-layout">
+    <section class="card-block" aria-labelledby="qrFormTitle">
+      <div class="card-block-head">
+        <h2 class="card-block-title" id="qrFormTitle"><span class="material-icons-round">confirmation_number</span>New code</h2>
+      </div>
+      <form class="card-block-body qr-form" method="post" action="{% url 'client_qr' %}">
+        {% csrf_token %}
+        <label class="ticket-label" for="ticketNumber">Ticket number</label>
+        <input class="ticket-field" type="text" id="ticketNumber" name="ticket_number"
+          inputmode="numeric" pattern="[0-9]{1,6}" maxlength="6" autocomplete="off" required
+          oninput="this.value = this.value.replace(/[^0-9]/g, '')" {% if not token or token.used_at or expired %}autofocus{% endif %}>
+        <p class="ticket-hint">Digits only, as printed on the client's ticket.</p>
+        <button type="submit" class="btn-ph btn-ph-primary">
+          <span class="material-icons-round">qr_code_2</span>
+          Create QR code
+        </button>
+      </form>
+    </section>
+
+    <section class="card-block" aria-labelledby="qrResultTitle">
+      <div class="card-block-head">
+        <h2 class="card-block-title" id="qrResultTitle"><span class="material-icons-round">smartphone</span>Show this to the client</h2>
+        {% if token %}
+        <a class="btn-ph" href="{% url 'client_qr' %}">
+          <span class="material-icons-round">skip_next</span>
+          Next client
+        </a>
+        {% endif %}
+      </div>
+      <div class="card-block-body">
+        {% if token %}
+        <div class="qr-result">
+          <div class="qr-code" role="img" aria-label="QR code for ticket {{ token.ticket_number }}">{{ qr_svg|safe }}</div>
+          <div class="qr-info">
+            <div class="qr-ticket-label">Ticket</div>
+            <div class="qr-ticket">#{{ token.ticket_number }}</div>
+            {% if token.used_at %}
+            <div class="qr-status qr-status-used"><span class="material-icons-round">task_alt</span>Feedback received at {{ token.used_at|time:"g:i A" }}</div>
+            {% elif expired %}
+            <div class="qr-status qr-status-expired"><span class="material-icons-round">timer_off</span>Expired at {{ token.expires_at|time:"g:i A" }}</div>
+            {% else %}
+            <div class="qr-status qr-status-live"><span class="material-icons-round">schedule</span>Valid until {{ token.expires_at|time:"g:i A" }}</div>
+            {% endif %}
+            <p class="qr-link">{{ link }}</p>
+          </div>
+        </div>
+        {% else %}
+        <div class="qr-empty">
+          <span class="material-icons-round">qr_code_2</span>
+          The QR code appears here after you enter a ticket number.
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+{% endblock %}
