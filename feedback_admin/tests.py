@@ -228,25 +228,37 @@ class ReportsViewTests(TestCase):
         )
         self.client.force_login(self.user)
 
-    def test_reports_view_renders_successfully(self):
+    def test_excel_export_follows_range_and_counts_sentiment(self):
+        from datetime import timedelta
+        from io import BytesIO
+
+        import openpyxl
+        from django.utils import timezone
         from feedback.models import FeedbackEntry
+
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.VERY_SATISFACTORY,
-            category='compliment',
-            comment='Superb staff responsiveness.',
+            sentiment=FeedbackEntry.NEGATIVE,
+            comment='Recent.',
         )
+        old = FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY,
+            sentiment=FeedbackEntry.POSITIVE,
+            comment='Old.',
+        )
+        FeedbackEntry.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=60))
 
-        response = self.client.get(reverse('reports'))
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('report_json', response.context)
-        report_data = response.context['report_json']
-        self.assertIn('daily', report_data)
-        self.assertIn('weekly', report_data)
-        self.assertIn('monthly', report_data)
-        self.assertIn('quarterly', report_data)
-        self.assertIn('annual', report_data)
-        self.assertEqual(report_data['daily']['very_satisfactory'], 1)
-        self.assertContains(response, 'nav-item active')
+        def summary(range_value):
+            response = self.client.get(reverse('export_report_excel') + f'?range={range_value}')
+            self.assertEqual(response.status_code, 200)
+            wb = openpyxl.load_workbook(BytesIO(response.content))
+            rows = {row[0]: row[1] for row in wb['Summary'].iter_rows(values_only=True) if row[0]}
+            return rows, wb['Responses'].max_row - 1
+
+        rows, count = summary('week')
+        self.assertEqual((rows['Total Responses'], rows['Negative'], rows['Positive'], count), (1, 1, 0, 1))
+        rows, count = summary('all')
+        self.assertEqual((rows['Total Responses'], rows['Positive'], count), (2, 1, 2))
 
 
 class ResponsesViewTests(TestCase):
@@ -530,15 +542,15 @@ class RoleBasedAccessControlTests(TestCase):
     def test_staff_can_access_core_operations(self):
         self.client.force_login(self.staff_user)
 
-        # Dashboard, Responses, and Reports
+        # Dashboard, Responses, and Excel export
         res_dash = self.client.get(reverse('dashboard'))
         self.assertEqual(res_dash.status_code, 200)
 
         res_resp = self.client.get(reverse('responses'))
         self.assertEqual(res_resp.status_code, 200)
 
-        res_rep = self.client.get(reverse('reports'))
-        self.assertEqual(res_rep.status_code, 200)
+        res_xls = self.client.get(reverse('export_report_excel') + '?range=week')
+        self.assertEqual(res_xls.status_code, 200)
 
     def test_staff_is_blocked_from_superuser_views(self):
         self.client.force_login(self.staff_user)

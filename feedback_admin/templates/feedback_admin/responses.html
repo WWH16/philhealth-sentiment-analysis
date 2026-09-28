@@ -291,8 +291,11 @@
           <option value="week">This Week</option>
           <option value="month">This Month</option>
         </select>
-        <button type="button" class="btn-ph btn-ph-primary" onclick="exportCSV()">
-          <span class="material-icons-round" aria-hidden="true">download</span> Export CSV
+        <button type="button" class="btn-ph btn-ph-primary" onclick="exportCSV()" title="Download rows matching every filter above as CSV" aria-label="Export CSV">
+          <span class="material-icons-round" aria-hidden="true">download</span> CSV
+        </button>
+        <button type="button" class="btn-ph" onclick="exportExcel()" title="Download a summary sheet plus every response in the selected date range" aria-label="Export Excel">
+          <span class="material-icons-round" aria-hidden="true">download</span> Excel
         </button>
       </div>
     </div>
@@ -819,6 +822,10 @@ function buildCSVRows(data) {
     `"${(r.comment||'').replace(/"/g,'""')}"`
   ]);
   return [header, ...body].map(r => r.join(',')).join('\n');
+}
+function exportExcel() {
+  const range = document.getElementById('dateRangeFilter').value;
+  window.location.href = '{% url "export_report_excel" %}?range=' + encodeURIComponent(range);
 }
 function exportCSV() {
   const blob = new Blob([buildCSVRows(filteredRows)], { type:'text/csv' });

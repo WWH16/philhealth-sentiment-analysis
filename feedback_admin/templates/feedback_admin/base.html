@@ -767,7 +767,7 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
 
   /* Hide application chrome */
   .sidebar, .topbar, .sidebar-overlay,
-  .report-actions, .filter-tabs,
+  .filter-tabs,
   .page-eyebrow,
   .logout-modal-backdrop { display: none !important; }
 
@@ -779,10 +779,6 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
   body, .admin-shell { background: #fff !important; color: #0f172a !important; }
   .card-block { border: 1px solid #cbd5e1 !important; break-inside: avoid; box-shadow: none !important; }
   .stat-card { box-shadow: none !important; transform: none !important; }
-  .metric-tile { border: 1px solid #cbd5e1 !important; }
-
-  /* Show the letterhead */
-  .print-header { display: block !important; }
 
   /* Page break control */
   .row { break-inside: avoid; }
@@ -814,10 +810,6 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
         <span class="nav-item-label">AI Sentiment Analytics</span>
       </a>
       {% endif %}
-      <a href="{% url 'reports' %}" class="nav-item {% block nav_reports %}{% endblock %}">
-        <span class="material-icons-round">bar_chart</span>
-        <span class="nav-item-label">Reports</span>
-      </a>
       <div class="nav-section-label">Management</div>
       <a href="{% url 'responses' %}" class="nav-item {% block nav_responses %}{% endblock %}" id="nav-responses">
         <span class="material-icons-round">inbox</span>

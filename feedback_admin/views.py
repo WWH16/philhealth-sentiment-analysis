@@ -26,7 +26,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
-from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, ExtractHour
+from django.db.models.functions import TruncDate
 from feedback.models import FeedbackConfiguration, FeedbackEntry
 from feedback.email_service import send_daily_summary_email
 
@@ -566,49 +566,6 @@ def _multi_period_sentiment_counts(qs, today_range, week_start, month_start):
     }
 
 
-def _multi_period_report_data(qs, periods_map):
-    """Consolidates metrics for daily, weekly, monthly, quarterly, and annual periods in 1 query."""
-    aggs = {}
-    for prefix, period_q in periods_map.items():
-        aggs[f'{prefix}_total'] = Count('id', filter=period_q)
-        aggs[f'{prefix}_vs'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.VERY_SATISFACTORY))
-        aggs[f'{prefix}_sat'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.SATISFACTORY))
-        aggs[f'{prefix}_unsat'] = Count('id', filter=period_q & Q(experience=FeedbackEntry.UNSATISFACTORY))
-        aggs[f'{prefix}_compliment'] = Count('id', filter=period_q & Q(category='compliment'))
-        aggs[f'{prefix}_suggestion'] = Count('id', filter=period_q & Q(category='suggestion'))
-        aggs[f'{prefix}_complaint'] = Count('id', filter=period_q & Q(category='complaint'))
-        aggs[f'{prefix}_concern'] = Count('id', filter=period_q & Q(category='concern'))
-
-    res = qs.aggregate(**aggs)
-
-    result = {}
-    for prefix in periods_map:
-        total = res[f'{prefix}_total'] or 0
-        vs = res[f'{prefix}_vs'] or 0
-        sat = res[f'{prefix}_sat'] or 0
-        unsat = res[f'{prefix}_unsat'] or 0
-        satisfaction = round((vs + sat) / total * 100) if total else 0
-
-        cat_counts = {
-            'compliment': res[f'{prefix}_compliment'] or 0,
-            'suggestion': res[f'{prefix}_suggestion'] or 0,
-            'complaint': res[f'{prefix}_complaint'] or 0,
-            'concern': res[f'{prefix}_concern'] or 0,
-        }
-        categorized = sum(cat_counts.values())
-
-        result[prefix] = {
-            'total': total,
-            'very_satisfactory': vs,
-            'satisfactory': sat,
-            'unsatisfactory': unsat,
-            'satisfaction': satisfaction,
-            'categorized': categorized,
-            'categories': cat_counts,
-        }
-    return result
-
-
 @staff_required
 @require_POST
 def response_status_update(request, entry_id):
@@ -882,176 +839,36 @@ def sentiment_analysis(request):
 
 
 @staff_required
-def reports(request):
-    now = timezone.localtime(timezone.now())
-    today = now.date()
-    week_start = now - timedelta(days=7)
-    month_start = now - timedelta(days=30)
-    quarter_start = now - timedelta(days=90)
-    year_start = now - timedelta(days=365)
-
-    today_start = timezone.make_aware(datetime.combine(today, time.min))
-    today_end = timezone.make_aware(datetime.combine(today, time.max))
-
-    periods_map = {
-        'daily': Q(created_at__range=(today_start, today_end)),
-        'weekly': Q(created_at__gte=week_start),
-        'monthly': Q(created_at__gte=month_start),
-        'quarterly': Q(created_at__gte=quarter_start),
-        'annual': Q(created_at__gte=year_start),
-    }
-    period_stats = _multi_period_report_data(FeedbackEntry.objects.all(), periods_map)
-    daily_data = period_stats['daily']
-    weekly_data = period_stats['weekly']
-    monthly_data = period_stats['monthly']
-    quarterly_data = period_stats['quarterly']
-    annual_data = period_stats['annual']
-
-    daily_qs = FeedbackEntry.objects.filter(created_at__range=(today_start, today_end))
-    weekly_qs = FeedbackEntry.objects.filter(created_at__gte=week_start)
-    monthly_qs = FeedbackEntry.objects.filter(created_at__gte=month_start)
-    quarterly_qs = FeedbackEntry.objects.filter(created_at__gte=quarter_start)
-    annual_qs = FeedbackEntry.objects.filter(created_at__gte=year_start)
-
-    def _hourly_trend(qs):
-        """Buckets entries by hour-of-day (0–23) — for a single day's queryset."""
-        counts_qs = qs.annotate(hour=ExtractHour('created_at')).values('hour').annotate(count=Count('id'))
-        hour_map = {row['hour']: row['count'] for row in counts_qs if row['hour'] is not None}
-        counts = [hour_map.get(h, 0) for h in range(24)]
-        labels = [datetime(2000, 1, 1, hour).strftime('%I %p').lstrip('0') for hour in range(24)]
-        return labels, counts
-
-    def _daily_trend(qs, start_date, end_date):
-        """Buckets entries by calendar day across an inclusive date range."""
-        counts_qs = qs.annotate(local_date=TruncDate('created_at')).values('local_date').annotate(count=Count('id'))
-        counts = {row['local_date']: row['count'] for row in counts_qs if row['local_date']}
-
-        days, cursor = [], start_date
-        while cursor <= end_date:
-            days.append(cursor)
-            cursor += timedelta(days=1)
-
-        labels = [f'{day:%b} {day.day}' for day in days]
-        data = [counts.get(day, 0) for day in days]
-        return labels, data
-
-    def _weekly_trend(qs, start_date, end_date):
-        """Buckets entries by ISO week (Mon–Sun) across an inclusive date range."""
-        counts_qs = qs.annotate(local_week=TruncWeek('created_at')).values('local_week').annotate(count=Count('id'))
-        counts = {row['local_week'].date() if hasattr(row['local_week'], 'date') else row['local_week']: row['count'] for row in counts_qs if row['local_week']}
-
-        first_week = start_date - timedelta(days=start_date.weekday())
-        last_week = end_date - timedelta(days=end_date.weekday())
-
-        weeks, cursor = [], first_week
-        while cursor <= last_week:
-            weeks.append(cursor)
-            cursor += timedelta(days=7)
-
-        labels = [f'{week:%b} {week.day}' for week in weeks]
-        data = [counts.get(week, 0) for week in weeks]
-        return labels, data
-
-    def _monthly_trend(qs, months_back):
-        """Buckets entries by calendar month for the trailing `months_back` months."""
-        counts_qs = qs.annotate(local_month=TruncMonth('created_at')).values('local_month').annotate(count=Count('id'))
-        counts = {row['local_month'].date().replace(day=1) if hasattr(row['local_month'], 'date') else row['local_month']: row['count'] for row in counts_qs if row['local_month']}
-
-        months, cursor = [], timezone.localdate().replace(day=1)
-        for _ in range(months_back):
-            months.append(cursor)
-            cursor = (cursor - timedelta(days=1)).replace(day=1)
-        months.reverse()
-
-        labels = [f'{month:%b %Y}' for month in months]
-        data = [counts.get(month, 0) for month in months]
-        return labels, data
-
-    # ── Response trend, bucketed at a granularity that fits each period ──
-    daily_data['trendLabels'], daily_data['trendData'] = _hourly_trend(daily_qs)
-    weekly_data['trendLabels'], weekly_data['trendData'] = _daily_trend(
-        weekly_qs, (now - timedelta(days=6)).date(), today)
-    monthly_data['trendLabels'], monthly_data['trendData'] = _daily_trend(
-        monthly_qs, (now - timedelta(days=29)).date(), today)
-    quarterly_data['trendLabels'], quarterly_data['trendData'] = _weekly_trend(
-        quarterly_qs, (now - timedelta(days=89)).date(), today)
-    annual_data['trendLabels'], annual_data['trendData'] = _monthly_trend(annual_qs, 12)
-
-    # For now, let's just use the basic stats in context
-    context = {
-        'daily_total': daily_data['total'],
-        'daily_very_satisfactory': daily_data['very_satisfactory'],
-        'daily_satisfactory': daily_data['satisfactory'],
-        'daily_unsatisfactory': daily_data['unsatisfactory'],
-        'daily_satisfaction': daily_data['satisfaction'],
-
-        'weekly_total': weekly_data['total'],
-        'weekly_very_satisfactory': weekly_data['very_satisfactory'],
-        'weekly_satisfactory': weekly_data['satisfactory'],
-        'weekly_unsatisfactory': weekly_data['unsatisfactory'],
-        'weekly_satisfaction': weekly_data['satisfaction'],
-
-        'monthly_total': monthly_data['total'],
-        'monthly_very_satisfactory': monthly_data['very_satisfactory'],
-        'monthly_satisfactory': monthly_data['satisfactory'],
-        'monthly_unsatisfactory': monthly_data['unsatisfactory'],
-        'monthly_satisfaction': monthly_data['satisfaction'],
-
-        'quarterly_total': quarterly_data['total'],
-        'quarterly_very_satisfactory': quarterly_data['very_satisfactory'],
-        'quarterly_satisfactory': quarterly_data['satisfactory'],
-        'quarterly_unsatisfactory': quarterly_data['unsatisfactory'],
-        'quarterly_satisfaction': quarterly_data['satisfaction'],
-
-        'annual_total': annual_data['total'],
-        'annual_very_satisfactory': annual_data['very_satisfactory'],
-        'annual_satisfactory': annual_data['satisfactory'],
-        'annual_unsatisfactory': annual_data['unsatisfactory'],
-        'annual_satisfaction': annual_data['satisfaction'],
-
-        # Pass the whole structured object for JS
-        'report_json': {
-            'daily': daily_data,
-            'weekly': weekly_data,
-            'monthly': monthly_data,
-            'quarterly': quarterly_data,
-            'annual': annual_data,
-        }
-    }
-
-    return render(request, 'feedback_admin/reports.html', context)
-
-
-@staff_required
 def export_report_excel(request):
-    """Generate and return an .xlsx report for the selected period."""
+    """Excel file (summary + responses) for the Responses page's date range."""
     import openpyxl
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
-    period = request.GET.get('period', 'daily')
     now = timezone.localtime(timezone.now())
-    today = now.date()
+    today_start = timezone.make_aware(datetime.combine(now.date(), time.min))
 
-    # Period date ranges — mirrors the reports() view logic
-    today_start = timezone.make_aware(datetime.combine(today, time.min))
-    today_end = timezone.make_aware(datetime.combine(today, time.max))
-
-    period_ranges = {
-        'daily': (today_start, today_end),
-        'weekly': (now - timedelta(days=7), now),
-        'monthly': (now - timedelta(days=30), now),
-        'quarterly': (now - timedelta(days=90), now),
-        'annual': (now - timedelta(days=365), now),
+    # Same ranges as the Responses page date filter.
+    range_filters = {
+        'all': ('All Time', Q()),
+        'today': ('Today', Q(created_at__gte=today_start)),
+        'week': ('Last 7 Days', Q(created_at__gte=now - timedelta(days=7))),
+        'month': ('This Month', Q(created_at__gte=today_start.replace(day=1))),
     }
-    if period not in period_ranges:
-        period = 'daily'
+    period = request.GET.get('range', 'all')
+    if period not in range_filters:
+        period = 'all'
+    period_label, period_q = range_filters[period]
 
-    start, end = period_ranges[period]
-    qs = FeedbackEntry.objects.filter(created_at__range=(start, end))
-
-    # Compute summary stats (reuse the existing helper)
-    periods_map = {period: Q(created_at__range=(start, end))}
-    stats = _multi_period_report_data(FeedbackEntry.objects.all(), periods_map)[period]
+    qs = FeedbackEntry.objects.filter(period_q)
+    F = FeedbackEntry
+    c = qs.aggregate(
+        total=Count('id'),
+        **{f'exp_{v}': Count('id', filter=Q(experience=v)) for v, _ in F.EXPERIENCE_CHOICES},
+        **{f'sent_{v}': Count('id', filter=Q(sentiment=v)) for v in (F.POSITIVE, F.NEUTRAL, F.NEGATIVE, F.PENDING)},
+        **{f'cat_{v}': Count('id', filter=Q(category=v)) for v, _ in F.CATEGORY_CHOICES},
+    )
+    satisfied = c[f'exp_{F.VERY_SATISFACTORY}'] + c[f'exp_{F.SATISFACTORY}']
+    satisfaction = round(satisfied / c['total'] * 100) if c['total'] else 0
 
     # ── Styles ────────────────────────────────────────────────────────────
     header_font = Font(name='Calibri', bold=True, size=11, color='FFFFFF')
@@ -1064,6 +881,7 @@ def export_report_excel(request):
         bottom=Side(style='thin', color='CBD5E1'),
     )
     label_font = Font(name='Calibri', bold=True, size=11)
+    section_font = Font(name='Calibri', bold=True, size=11, color='0F5A2B')
     value_font = Font(name='Calibri', size=11)
     title_font = Font(name='Calibri', bold=True, size=14, color='0F5A2B')
 
@@ -1076,7 +894,7 @@ def export_report_excel(request):
 
     # Title
     ws.merge_cells('A1:B1')
-    ws['A1'] = f'PhilHealth CSM Report — {period.title()}'
+    ws['A1'] = f'CSAS Feedback Report — {period_label}'
     ws['A1'].font = title_font
     ws['A1'].alignment = Alignment(vertical='center')
     ws['A2'] = f'Generated: {now.strftime("%B %d, %Y at %I:%M %p")}'
@@ -1085,36 +903,34 @@ def export_report_excel(request):
 
     # Overview metrics
     overview_rows = [
-        ('Total Responses', stats['total']),
-        ('Satisfaction Rate', f"{stats['satisfaction']}%"),
+        ('Total Responses', c['total']),
+        ('Satisfaction Rate', f'{satisfaction}%'),
+        ('', ''),
+        ('Comment Sentiment', ''),
+        ('Positive', c[f'sent_{F.POSITIVE}']),
+        ('Neutral', c[f'sent_{F.NEUTRAL}']),
+        ('Negative', c[f'sent_{F.NEGATIVE}']),
+        ('Pending analysis', c[f'sent_{F.PENDING}']),
         ('', ''),
         ('Rating Distribution', ''),
-        ('Very Satisfactory', stats['very_satisfactory']),
-        ('Satisfactory', stats['satisfactory']),
-        ('Unsatisfactory', stats['unsatisfactory']),
+        ('Very Satisfactory', c[f'exp_{F.VERY_SATISFACTORY}']),
+        ('Satisfactory', c[f'exp_{F.SATISFACTORY}']),
+        ('Unsatisfactory', c[f'exp_{F.UNSATISFACTORY}']),
         ('', ''),
         ('Feedback Categories', ''),
-        ('Compliments', stats['categories']['compliment']),
-        ('Suggestions', stats['categories']['suggestion']),
-        ('Complaints', stats['categories']['complaint']),
-        ('Service Concerns', stats['categories']['concern']),
-        ('Total Categorized', stats['categorized']),
+        ('Compliments', c[f'cat_{F.COMPLIMENT}']),
+        ('Suggestions', c[f'cat_{F.SUGGESTION}']),
+        ('Complaints', c[f'cat_{F.COMPLAINT}']),
+        ('Service Concerns', c[f'cat_{F.CONCERN}']),
+        ('Total Categorized', sum(c[f'cat_{v}'] for v, _ in F.CATEGORY_CHOICES)),
     ]
     for label, value in overview_rows:
         ws.append([label, value])
         row_num = ws.max_row
-        ws.cell(row=row_num, column=1).font = label_font if label and value == '' else value_font
+        ws.cell(row=row_num, column=1).font = section_font if label and value == '' else (label_font if label else value_font)
         ws.cell(row=row_num, column=2).font = value_font
-        if label and value != '':
-            ws.cell(row=row_num, column=1).font = label_font
         for col in (1, 2):
             ws.cell(row=row_num, column=col).border = thin_border
-
-    # Section headers (Rating Distribution, Feedback Categories) get bold styling
-    for row_idx in range(1, ws.max_row + 1):
-        cell = ws.cell(row=row_idx, column=1)
-        if cell.value in ('Rating Distribution', 'Feedback Categories'):
-            cell.font = Font(name='Calibri', bold=True, size=11, color='0F5A2B')
 
     ws.column_dimensions['A'].width = 32
     ws.column_dimensions['B'].width = 18
@@ -1166,11 +982,7 @@ def export_report_excel(request):
     ws2.freeze_panes = 'A2'
 
     # ── Return the file ───────────────────────────────────────────────────
-    period_labels = {
-        'daily': 'Daily', 'weekly': 'Weekly', 'monthly': 'Monthly',
-        'quarterly': 'Quarterly', 'annual': 'Annual',
-    }
-    filename = f'PhilHealth-Report-{period_labels[period]}-{today.isoformat()}.xlsx'
+    filename = f'CSAS-Report-{period_label.replace(" ", "-")}-{now.date().isoformat()}.xlsx'
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
