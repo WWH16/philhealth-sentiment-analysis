@@ -40,12 +40,12 @@ def submit_feedback(request):
 
     comment = payload.get('comment')
     comment = comment.strip() if isinstance(comment, str) else ''
+    if not comment:
+        return JsonResponse({'ok': False, 'error': 'Please write a comment.'}, status=400)
     if len(comment) > 1000:
         return JsonResponse({'ok': False, 'error': 'Comments must be 1000 characters or fewer.'}, status=400)
 
-    if not comment:
-        sentiment = FeedbackEntry.NOT_APPLICABLE
-    elif FeedbackConfiguration.auto_analysis_is_enabled():
+    if FeedbackConfiguration.auto_analysis_is_enabled():
         sentiment = analyze_comment_sentiment(comment)
     else:
         sentiment = FeedbackEntry.PENDING

@@ -53,7 +53,6 @@
       <div class="intro" id="formIntro">
         <h1 id="formTitle">How was your transaction today?</h1>
         <p class="intro-fil" lang="fil">Kumusta ang inyong transaksyon ngayong araw?</p>
-        <p class="intro-note">Only the rating is required.</p>
       </div>
 
       <form id="feedbackForm" class="panel" aria-labelledby="formTitle" novalidate>
@@ -88,13 +87,14 @@
           <p class="field-error" id="err-experience" hidden><span class="material-icons-round" aria-hidden="true">error_outline</span>Choose how your transaction went.</p>
         </section>
 
-        <section class="block" aria-labelledby="commentTitle">
+        <section class="block" id="group-comment" aria-labelledby="commentTitle">
           <div class="block-head">
-            <h2 class="panel-title" id="commentTitle"><span class="material-icons-round" aria-hidden="true">chat_bubble</span><label for="commentsSuggestions">Comment</label><span class="opt">Optional</span></h2>
+            <h2 class="panel-title" id="commentTitle"><span class="material-icons-round" aria-hidden="true">chat_bubble</span><label for="commentsSuggestions">Comment</label></h2>
             <p class="block-note" lang="fil">Komento at mungkahi</p>
           </div>
-          <textarea id="commentsSuggestions" name="comments_suggestions" rows="5" maxlength="1000" placeholder="What went well, or what should change? English or Filipino is fine."></textarea>
+          <textarea id="commentsSuggestions" name="comments_suggestions" rows="5" maxlength="1000" aria-required="true" aria-describedby="err-comment" placeholder="What went well, or what should change? English or Filipino is fine."></textarea>
           <p class="count"><span data-count-for="commentsSuggestions">0</span> / 1000</p>
+          <p class="field-error" id="err-comment" hidden><span class="material-icons-round" aria-hidden="true">error_outline</span>Write a short comment about your transaction.</p>
         </section>
 
         <div class="block block-submit">

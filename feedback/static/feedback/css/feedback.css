@@ -106,7 +106,6 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 .intro { padding: clamp(28px, 5vw, 48px) 0 22px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .intro h1 { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; text-wrap: balance; }
 .intro-fil { margin: 0; font-size: 18px; font-weight: 500; color: var(--text-secondary); line-height: 1.4; }
-.intro-note { margin: 6px 0 0; font-size: 15px; color: var(--text-muted); }
 .offline {
   margin: 14px 0 12px; max-width: 60ch; padding: 14px 16px;
   background: var(--neu-bg); border: 1px solid var(--neu-border); color: var(--neu-text); font-size: 16px;
@@ -122,7 +121,6 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 }
 .panel-title .material-icons-round { font-size: 18px; color: var(--g-primary); }
 .panel-title label { cursor: pointer; }
-.opt { margin-left: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--g-forest); }
 .block-note { margin: 4px 0 0 26px; font-size: 14px; color: var(--text-muted); }
 
 /* ── Experience: three faces, the picked one lights up ────────────── */
@@ -178,6 +176,7 @@ textarea:focus { border-color: var(--g-forest); outline: none; box-shadow: 0 0 0
 .field-error { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; font-size: 15px; font-weight: 600; color: var(--neg-text); }
 .field-error .material-icons-round { font-size: 18px; }
 #group-experience.is-invalid .rate-opt { border-color: var(--neg-border); }
+#group-comment.is-invalid textarea { border-color: var(--neg); }
 #group-consent.is-invalid .consent input { outline: 2px solid var(--neg); outline-offset: 1px; }
 .form-error { margin: 14px 0 0; padding: 12px 14px; background: var(--neg-bg); border: 1px solid var(--neg-border); color: var(--neg-text); font-size: 15px; }
 

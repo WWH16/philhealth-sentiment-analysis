@@ -18,6 +18,12 @@
       focusEl: function () { return form.querySelector('input[name="experience"]'); }
     },
     {
+      group: 'group-comment',
+      error: 'err-comment',
+      isValid: function () { return !!form.comments_suggestions.value.trim(); },
+      focusEl: function () { return form.comments_suggestions; }
+    },
+    {
       group: 'group-consent',
       error: 'err-consent',
       isValid: function () { return form.privacyConsent.checked; },

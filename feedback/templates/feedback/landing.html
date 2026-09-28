@@ -248,7 +248,7 @@
         <div class="hero-copy">
           <h1 id="heroTitle">Tell us how we <em>served you</em> today.</h1>
           <p class="hero-fil" lang="fil">Sabihin sa amin kung paano namin kayo napagsilbihan ngayong araw.</p>
-          <p class="hero-lede">A short feedback form from PhilHealth LHIO Cauayan City. Rate your transaction and add a comment if you like.</p>
+          <p class="hero-lede">A short feedback form from PhilHealth LHIO Cauayan City. Rate your transaction and tell us why in a short comment.</p>
           {% if survey_enabled %}
             <div class="hero-actions">
               <a class="btn btn-primary btn-lg" href="{% url 'feedback-index' %}">Give feedback <span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
@@ -369,14 +369,14 @@
           </div>
           <div class="asks">
             <div class="asks-intro">
-              <p>Two short parts, answered on your phone or computer. Only the rating is required.</p>
+              <p>Two short parts, answered on your phone or computer.</p>
               {% if survey_enabled %}
                 <a class="btn btn-primary" href="{% url 'feedback-index' %}">Give feedback <span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
               {% endif %}
             </div>
             <ol class="steps">
               <li><h3>Your experience</h3><p>Pick one: Very Satisfactory, Satisfactory, or Unsatisfactory.</p></li>
-              <li><h3>Comment<span class="opt">Optional</span></h3><p>Tell us what went well or what should change, in English or Filipino.</p></li>
+              <li><h3>Comment</h3><p>Tell us what went well or what should change, in English or Filipino.</p></li>
             </ol>
           </div>
         </section>

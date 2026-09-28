@@ -46,14 +46,14 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(entry.sentiment, FeedbackEntry.PENDING)
         mocked_analyze.assert_not_called()
 
-    def test_submit_feedback_without_comment_sets_sentiment_na(self):
-        response = self._submit({
-            'experience': FeedbackEntry.VERY_SATISFACTORY,
-            'comment': '',
-        })
-        self.assertEqual(response.status_code, 201)
-        entry = FeedbackEntry.objects.get()
-        self.assertEqual(entry.sentiment, FeedbackEntry.NOT_APPLICABLE)
+    def test_submit_feedback_requires_comment(self):
+        for comment in ('', '   ', None):
+            response = self._submit({
+                'experience': FeedbackEntry.VERY_SATISFACTORY,
+                'comment': comment,
+            })
+            self.assertEqual(response.status_code, 400)
+        self.assertEqual(FeedbackEntry.objects.count(), 0)
 
     def test_submit_short_form_without_staff_when_active_staff_exist(self):
         from django.contrib.auth.models import User
