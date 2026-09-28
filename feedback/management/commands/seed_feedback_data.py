@@ -5,76 +5,63 @@ from django.utils import timezone
 from feedback.models import FeedbackConfiguration, FeedbackEntry
 from feedback.services import analyze_comment_sentiment
 
+# Each comment is written so the sentiment model reads it as the group's
+# `sentiment`; feedback/tests.py checks this whenever the model file exists.
 SAMPLE_FEEDBACK = [
-    # Very Satisfactory / Compliments
     {
         'experience': FeedbackEntry.VERY_SATISFACTORY,
         'category': FeedbackEntry.COMPLIMENT,
+        'sentiment': FeedbackEntry.POSITIVE,
         'comments': [
-            "Fast and courteous service at window 3. Very satisfied with the PhilHealth ID processing!",
-            "Nagpapasalamat ako sa mabilis na pag-assist sa aking Member Data Record (MDR) request.",
-            "Clean office environment and helpful security staff guiding senior citizens.",
-            "Efficient transaction today! Less than 15 minutes wait time for contribution updates.",
-            "Very responsive staff at the express lane for pregnant women and PWDs.",
-            "Excellent customer service! All my questions about Konsulta benefits were explained clearly.",
+            "Excellent service! The staff were very kind and helpful.",
+            "Thank you for the friendly and efficient service at window 3.",
+            "Thank you! Fast, friendly, and excellent service.",
+            "Maraming salamat po, excellent ang serbisyo!",
+            "The best experience I have had in a government office. Thank you!",
         ]
     },
-    # Satisfactory / Compliments
     {
         'experience': FeedbackEntry.SATISFACTORY,
         'category': FeedbackEntry.COMPLIMENT,
+        'sentiment': FeedbackEntry.POSITIVE,
         'comments': [
-            "Mabait at maasikaso ang frontline staff sa pag-update ng aking dependents.",
-            "Smooth submission process. The Citizen's Charter guidelines were very clear.",
-            "Process was clear and staff answered all our questions kindly.",
+            "Excellent customer service. Everything was fast and easy.",
+            "Great job to the frontline staff. Very helpful and friendly.",
+            "Friendly guard, helpful staff, and a clean office. Great job!",
+            "Very happy with the fast and friendly service today. Thank you!",
         ]
     },
-    # Satisfactory / Suggestions
     {
         'experience': FeedbackEntry.SATISFACTORY,
-        'category': FeedbackEntry.SUGGESTION,
+        'category': '',
+        'sentiment': FeedbackEntry.NEUTRAL,
         'comments': [
-            "Overall good experience, but please consider adding more chairs in the waiting area.",
-            "Sana ay palakihin pa ang queue display monitor para kitang-kita mula sa dulo.",
-            "Service was fine. It would be better if online appointment system is promoted more.",
-            "Mabilis naman ang proseso, mas maganda sana kung may libreng drinking water sa waiting lounge.",
-            "Clear process, though queueing system ticket printer occasionally stalls.",
-            "Staff was polite. Additional air-conditioning in the main hall would help during peak hours.",
-            "Good service overall. Clearer signage for senior citizen express counter is suggested.",
+            "I dropped off my forms for processing.",
+            "I dropped off my employer documents.",
+            "I dropped off my documents at the front desk.",
+            "I picked up my printed forms.",
+            "I came here to request a copy of my records.",
+            "It was an average visit.",
+            "The office could use more electric fans.",
         ]
     },
-    # Unsatisfactory / Complaints
     {
         'experience': FeedbackEntry.UNSATISFACTORY,
         'category': FeedbackEntry.COMPLAINT,
+        'sentiment': FeedbackEntry.NEGATIVE,
         'comments': [
-            "Medyo matagal ang pila nung umaga. Sana madagdagan ang active counters during peak hours.",
-            "Informational posters regarding updated premium contribution rates were confusing.",
-            "Counters were understaffed during lunch break resulting in long line buildup.",
-            "Matagal ang veripikasyon ng member record. Kailangan po ng karagdagang verification officers.",
+            "The staff were rude and I was very disappointed.",
+            "Unhelpful staff and confusing instructions. I wasted my whole day.",
+            "Delayed again. Very disappointing and confusing process.",
+            "Very disappointed. My claim was delayed again with no explanation.",
+            "Terrible service. I wasted three hours and nobody helped me.",
+            "Worst service. The guard was rude and the queue was a mess.",
+            "Very disappointed with the long delay and the unhelpful staff.",
+            "The system was down and I had to come back another day. Very disappointing.",
+            "Napakabagal ng proseso. Ang tagal naming naghintay.",
+            "Sobrang tagal ng pila at masungit ang staff.",
         ]
     },
-    # Unsatisfactory / Severe Complaints & Concerns
-    {
-        'experience': FeedbackEntry.UNSATISFACTORY,
-        'category': FeedbackEntry.COMPLAINT,
-        'comments': [
-            "Waited over 2 hours just to submit my claim documents. Window 2 was offline for too long.",
-            "Network system interruption for 30 minutes caused unexpected delay.",
-            "System verification error required me to return another day for my MDR update.",
-            "Need clearer step-by-step flowchart at the entrance for first-time walk-in applicants.",
-            "Long waiting time at counter 4 for employer remittance corrections.",
-        ]
-    },
-    # Satisfactory / General Inquiries
-    {
-        'experience': FeedbackEntry.SATISFACTORY,
-        'category': FeedbackEntry.SUGGESTION,
-        'comments': [
-            "Inquired about Konsulta package requirements for non-resident relatives.",
-            "Just picked up printed form guidelines.",
-        ]
-    }
 ]
 
 STATUSES = [FeedbackEntry.PENDING, 'reviewed', 'resolved']
@@ -109,7 +96,7 @@ class Command(BaseCommand):
         for i in range(count):
             group = random.choices(
                 SAMPLE_FEEDBACK,
-                weights=[45, 30, 12, 6, 4, 3],
+                weights=[35, 20, 25, 20],
                 k=1
             )[0]
 

@@ -1,16 +1,12 @@
-/* Public pages (landing and feedback form). Tokens mirror the staff
-   dashboard (feedback_admin/base.html). Landing-only rules stay inline
-   in landing.html. */
+/* Public feedback form. Tokens mirror the staff dashboard
+   (feedback_admin/base.html). */
 :root {
   --g-primary: #23A455;
-  --g-deep:    #1F964B;
   --g-forest:  #0f5a2b;
   --g-dark:    #174d2a;
   --g-light:   #d4f0e1;
-  --g-xlight:  #f0faf5;
 
   --ink:  #1c1e22;
-  --ink2: #2e3238;
   --ink4: #484c53;
   --ink5: #525866;
   --ink7: #e4e7eb;
@@ -25,13 +21,9 @@
   --text-muted: var(--ink5);
 
   /* Text and lines on the dark green bars */
-  --on-dark: #ffffff;
-  --on-dark-soft: #c3e6d0;
   --on-dark-accent: #7fd8a2;
-  --on-dark-line: rgba(255, 255, 255, 0.14);
 
   /* Comment sentiment roles (dashboard chip colors) */
-  --pos: #169651;  --pos-bg: #f0faf5; --pos-text: #0d6e35; --pos-border: #b8e6cb;
   --neu: #d97706;  --neu-bg: #fffbe6; --neu-text: #7a5500; --neu-border: #f5e4a0;
   --neg: #dc2626;  --neg-bg: #fff0f2; --neg-text: #990014; --neg-border: #fca5a5;
 

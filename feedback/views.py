@@ -10,9 +10,9 @@ from .services import analyze_comment_sentiment
 
 
 @ensure_csrf_cookie
-def page(request, template):
+def index(request):
     config = FeedbackConfiguration.get_solo()
-    return render(request, template, {
+    return render(request, 'feedback/index.html', {
         'survey_enabled': config.survey_enabled,
         'offline_message': config.get_survey_offline_message(),
     })

@@ -19,7 +19,7 @@
 
   <header class="topbar">
     <div class="wrap">
-      <a class="brand" href="{% url 'landing' %}" aria-label="CSAS home">
+      <a class="brand" href="{% url 'feedback-index' %}" aria-label="CSAS feedback form">
         <img src="{% static 'img/csas-mark.png' %}" alt="" width="1024" height="1024">
         <span class="brand-text">
           <span class="brand-name">CSAS</span>
@@ -42,7 +42,6 @@
       <div class="intro">
         <h1>The online form is paused right now</h1>
         <div class="offline" role="status">{{ offline_message }}</div>
-        <a class="btn" href="{% url 'landing' %}"><span class="material-icons-round" aria-hidden="true">arrow_back</span>Back to home</a>
       </div>
       {% else %}
 

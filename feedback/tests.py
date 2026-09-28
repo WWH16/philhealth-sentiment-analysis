@@ -96,6 +96,20 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
 
 
 class SentimentServiceTests(TestCase):
+    def test_seed_comments_read_as_their_intended_sentiment(self):
+        from .management.commands.seed_feedback_data import SAMPLE_FEEDBACK
+        from .services import _get_model, analyze_comment_sentiment
+
+        if _get_model() is None:
+            self.skipTest('Sentiment model file is not present (it is gitignored).')
+        wrong = [
+            (group['sentiment'], analyze_comment_sentiment(comment), comment)
+            for group in SAMPLE_FEEDBACK
+            for comment in group['comments']
+            if analyze_comment_sentiment(comment) != group['sentiment']
+        ]
+        self.assertEqual(wrong, [])
+
     def test_analyze_comment_with_form_headers(self):
         from .services import analyze_comment_sentiment
         res = analyze_comment_sentiment('Comments: The staff was very helpful and accommodating.')
@@ -260,25 +274,12 @@ class SurveyAvailabilityTests(TestCase):
         self.config.survey_offline_message = 'Custom offline notice for testing.'
         self.config.save()
 
-    def test_landing_page_links_to_form(self):
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'feedback/landing.html')
-        self.assertContains(response, 'href="/feedback/"')
-        self.assertContains(response, 'Give feedback')
-        self.assertNotContains(response, 'id="feedbackForm"')
-
-    def test_landing_page_shows_offline_notice_when_survey_disabled(self):
-        self.config.survey_enabled = False
-        self.config.save()
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'The online form is paused right now.')
-        self.assertContains(response, 'Custom offline notice for testing.')
-        self.assertNotContains(response, 'href="/feedback/"')
+    def test_form_is_served_at_root_and_old_address_redirects(self):
+        response = self.client.get('/feedback/')
+        self.assertRedirects(response, '/')
 
     def test_index_renders_form_when_survey_enabled(self):
-        response = self.client.get('/feedback/')
+        response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['survey_enabled'])
         self.assertContains(response, 'id="feedbackForm"')
@@ -289,7 +290,7 @@ class SurveyAvailabilityTests(TestCase):
         self.config.survey_enabled = False
         self.config.save()
 
-        response = self.client.get('/feedback/')
+        response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['survey_enabled'])
         self.assertContains(response, 'The online form is paused right now')
