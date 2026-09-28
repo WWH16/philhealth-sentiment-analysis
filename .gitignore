@@ -218,7 +218,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-/feedback/migrations
 /feedback/ml/random_forest_sentiment.pkl
 /feedback/ml/stopwords_en.txt
 .env
