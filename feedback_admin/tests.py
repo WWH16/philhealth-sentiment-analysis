@@ -136,7 +136,7 @@ class DashboardViewTests(TestCase):
         self.assertEqual(response.context['filter_data']['all']['total'], 0)
         # Non-superuser staff get the sentiment sections too.
         self.assertContains(response, 'id="wcCloud"')
-        self.assertContains(response, 'id="xtBody"')
+        self.assertContains(response, 'id="naList"')
         self.assertContains(response, 'id="nav-dashboard"')
         self.assertContains(response, 'nav-item active')
 
@@ -172,24 +172,25 @@ class SentimentAnalysisViewTests(TestCase):
         self.assertEqual(response.context['negative'], 1)
         self.assertContains(response, 'nav-item active')
 
-    def test_rating_matrix_crosses_rating_with_comment_sentiment(self):
+    def test_needs_attention_lists_open_negative_comments(self):
         from feedback.models import FeedbackEntry
-        for experience, sentiment in (
-            (FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.NEGATIVE),
-            (FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.NEGATIVE),
-            (FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.POSITIVE),
-            (FeedbackEntry.UNSATISFACTORY, FeedbackEntry.PENDING),
+        for sentiment, status, comment in (
+            (FeedbackEntry.NEGATIVE, 'pending', 'Older complaint.'),
+            (FeedbackEntry.NEGATIVE, 'reviewed', 'Newer complaint.'),
+            (FeedbackEntry.NEGATIVE, 'resolved', 'Already handled.'),
+            (FeedbackEntry.POSITIVE, 'pending', 'All good.'),
         ):
-            FeedbackEntry.objects.create(experience=experience, sentiment=sentiment, comment='x')
+            FeedbackEntry.objects.create(
+                experience=FeedbackEntry.SATISFACTORY, sentiment=sentiment, status=status, comment=comment,
+            )
 
         response = self.client.get(reverse('dashboard'))
-        matrix = response.context['rating_matrix']
+        needs = response.context['needs_attention']['all']
 
-        self.assertEqual(matrix['all']['vsat'], {'pos': 1, 'neu': 0, 'neg': 2})
-        # Pending comments are not counted in any sentiment column.
-        self.assertEqual(matrix['all']['unsat'], {'pos': 0, 'neu': 0, 'neg': 0})
-        self.assertEqual(matrix['today']['vsat']['neg'], 2)
-        self.assertContains(response, 'id="xtBody"')
+        self.assertEqual(needs['count'], 2)
+        self.assertEqual([item['comment'] for item in needs['items']], ['Newer complaint.', 'Older complaint.'])
+        self.assertEqual(response.context['needs_attention']['today']['count'], 2)
+        self.assertContains(response, 'id="naList"')
 
     def test_word_cloud_counts_analyzed_comment_words(self):
         from feedback.models import FeedbackEntry

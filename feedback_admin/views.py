@@ -370,7 +370,7 @@ def dashboard(request):
         'negative_pct': all_counts['negative_pct'],
         'filter_data': filter_data,
         'rating_data': _multi_period_experience_counts(entries, today_range, week_start, month_start),
-        'rating_matrix': _rating_sentiment_matrix(entries, today_range, week_start, month_start),
+        'needs_attention': _open_negative_comments(entries, today_range, week_start, month_start),
         'word_cloud': _sentiment_word_cloud(entries, today_range[0], week_start, month_start),
         'recent_entries_data': [_entry_to_row(entry, recent_activity) for entry in recent_entries],
         'trend_labels': [f'{day:%b} {day.day}' for day in trend_dates],
@@ -492,27 +492,30 @@ def _multi_period_experience_counts(qs, today_range, week_start, month_start):
     }
 
 
-def _rating_sentiment_matrix(qs, today_range, week_start, month_start):
-    """Counts per rating x comment sentiment, per period, in one query.
-
-    The two measurements stay separate; this only shows them side by side.
-    """
+def _open_negative_comments(qs, today_range, week_start, month_start, limit=5):
+    """Negative comments not yet marked resolved, per period: count plus the newest few."""
+    open_negative = qs.filter(sentiment=FeedbackEntry.NEGATIVE).exclude(status='resolved')
     periods = {
         'all': Q(),
         'today': Q(created_at__range=today_range),
         'week': Q(created_at__gte=week_start),
         'month': Q(created_at__gte=month_start),
     }
-    ratings = [c[0] for c in FeedbackEntry.EXPERIENCE_CHOICES]
-    sentiments = [FeedbackEntry.POSITIVE, FeedbackEntry.NEUTRAL, FeedbackEntry.NEGATIVE]
-    res = qs.aggregate(**{
-        f'{p}__{r}__{s}': Count('id', filter=pq & Q(experience=r, sentiment=s))
-        for p, pq in periods.items() for r in ratings for s in sentiments
-    })
-    return {
-        p: {r: {s: res[f'{p}__{r}__{s}'] or 0 for s in sentiments} for r in ratings}
-        for p in periods
-    }
+    result = {}
+    for name, period_q in periods.items():
+        period_qs = open_negative.filter(period_q)
+        items = []
+        for entry in period_qs.order_by('-created_at')[:limit]:
+            local = timezone.localtime(entry.created_at)
+            items.append({
+                'date': f'{local:%b} {local.day}, {local:%Y}',
+                'time': local.strftime('%H:%M'),
+                'rating': entry.get_experience_display(),
+                'status': entry.get_status_display(),
+                'comment': entry.comment,
+            })
+        result[name] = {'count': period_qs.count(), 'items': items}
+    return result
 
 
 def _multi_period_sentiment_counts(qs, today_range, week_start, month_start):

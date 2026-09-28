@@ -25,21 +25,23 @@
   [data-theme="dark"] .rt-bar { background: rgba(255, 255, 255, 0.08); }
   @media (prefers-reduced-motion: reduce) { .rt-bar span { transition: none; } }
 
-  .xt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .xt { width: 100%; min-width: 520px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  .xt th, .xt td { border: 1px solid var(--border); padding: 0; }
-  .xt thead th { padding: 10px 12px; text-align: center; background: var(--surface-page); }
-  .xt thead th:first-child { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
-  .xt tbody th { padding: 12px 14px; text-align: left; white-space: nowrap; font-weight: 400; }
-  .xt-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 68px; padding: 10px; color: var(--text-primary); text-decoration: none; transition: background-color 120ms ease; }
-  a.xt-cell:hover { background: var(--g-xlight); }
-  a.xt-cell:focus-visible { outline: 2px solid var(--g-primary); outline-offset: -2px; }
-  .xt-count { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
-  .xt-pct { font-size: 11px; color: var(--text-muted); }
-  .xt-cell.is-zero .xt-count { color: var(--ink6); font-weight: 600; }
-  .xt-cell.is-mismatch { background: var(--red-bg); }
-  .xt-cell.is-mismatch .xt-count, .xt-cell.is-mismatch .xt-pct { color: var(--red); }
-  a.xt-cell.is-mismatch:hover { background: var(--red-bg); box-shadow: inset 0 0 0 2px var(--red); }
+  /* Needs attention */
+  .na-head { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .na-count { flex: none; min-width: 40px; padding: 4px 10px; text-align: center; font-size: 20px; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; background: var(--red-bg); color: var(--red); }
+  .na-count.is-zero { background: var(--g-xlight); color: var(--g-forest); }
+  .na-list { list-style: none; margin: 0; padding: 0; }
+  .na-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .na-item:first-child { padding-top: 0; }
+  .na-comment { margin: 0 0 8px; font-size: 13px; line-height: 1.55; color: var(--text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .na-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 11px; color: var(--text-muted); }
+  .na-status { font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .na-rated { display: inline-flex; align-items: center; gap: 6px; }
+  .na-empty { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; color: var(--text-muted); }
+  .na-empty .material-icons-round { font-size: 22px; color: var(--g-primary); }
+  .na-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 14px; font-size: 12px; font-weight: 700; color: var(--g-forest); text-decoration: none; }
+  .na-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .na-more .material-icons-round { font-size: 16px; }
+  [data-theme="dark"] .na-more { color: var(--g-primary); }
   .card-block, .stat-card {
     contain: content;
   }
@@ -256,33 +258,23 @@
     </div>
   </div>
 
-  <!-- RATING x COMMENT SENTIMENT + CLIENT RATINGS -->
+  <!-- NEEDS ATTENTION + CLIENT RATINGS -->
   <div class="row g-3 mb-4">
     <div class="col-12 col-lg-8">
-      <section class="card-block h-100" aria-labelledby="xtTitle">
-        <div class="card-block-head">
+      <section class="card-block h-100" aria-labelledby="naTitle">
+        <div class="card-block-head na-head">
           <div>
-            <h2 class="card-block-title" id="xtTitle" style="margin:0;">
-              <span class="material-icons-round" aria-hidden="true">grid_on</span>
-              Rating vs. Comment Sentiment
+            <h2 class="card-block-title" id="naTitle" style="margin:0;">
+              <span class="material-icons-round" aria-hidden="true">priority_high</span>
+              Needs Attention
             </h2>
-            <p class="wc-caption" id="xtNote">Each response has a rating chosen by the client and a comment sorted by CSAS. The two are measured separately. Red cells are where they disagree; open one to read those comments.</p>
+            <p class="wc-caption">Negative comments not yet marked resolved, newest first.</p>
           </div>
+          <span class="na-count" id="naCount" aria-label="Open negative comments">0</span>
         </div>
         <div class="card-block-body">
-          <div class="xt-wrap">
-            <table class="xt" aria-describedby="xtNote">
-              <thead>
-                <tr>
-                  <th scope="col">Rating / Comment</th>
-                  <th scope="col"><span class="rating-chip chip-pos"><span class="material-icons-round" aria-hidden="true">sentiment_satisfied_alt</span>Positive</span></th>
-                  <th scope="col"><span class="rating-chip chip-neu"><span class="material-icons-round" aria-hidden="true">sentiment_neutral</span>Neutral</span></th>
-                  <th scope="col"><span class="rating-chip chip-neg"><span class="material-icons-round" aria-hidden="true">sentiment_dissatisfied</span>Negative</span></th>
-                </tr>
-              </thead>
-              <tbody id="xtBody"></tbody>
-            </table>
-          </div>
+          <ul class="na-list" id="naList"></ul>
+          <a class="na-more" id="naMore" href="{% url 'responses' %}?sentiment=Negative">Open negative comments in Responses<span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
         </div>
       </section>
     </div>
@@ -336,7 +328,7 @@
 {% block page_scripts %}
 {{ filter_data|json_script:"sentiment-filter-data" }}
 {{ word_cloud|json_script:"word-cloud-data" }}
-{{ rating_matrix|json_script:"rating-matrix-data" }}
+{{ needs_attention|json_script:"needs-attention-data" }}
 {{ rating_data|json_script:"rating-data" }}
 {{ recent_entries_data|json_script:"recent-entries-data" }}
 <script src="{% static 'js/word_cloud.js' %}"></script>
@@ -712,40 +704,40 @@ function renderSentimentTrendForPeriod(period, forceRecreate = false) {
   updateSentimentTrend(f.labels, f.pos, f.neu, f.neg, forceRecreate);
 }
 
-/* ── RATING x COMMENT SENTIMENT ── */
-const RATING_MATRIX = JSON.parse(document.getElementById('rating-matrix-data').textContent);
-const RESPONSES_URL = "{% url 'responses' %}";
-// key: matrix key; field: rating_data field.
 const RATINGS = [
-  { key: 'vsat',  field: 'very_satisfactory', label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied', color: '#169651' },
-  { key: 'sat',   field: 'satisfactory',      label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied',      color: '#10b981' },
-  { key: 'unsat', field: 'unsatisfactory',    label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied',   color: '#dc2626' },
+  { field: 'very_satisfactory', label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied', color: '#169651' },
+  { field: 'satisfactory',      label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied',      color: '#10b981' },
+  { field: 'unsatisfactory',    label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied',   color: '#dc2626' },
 ];
-const XT_SENTIMENTS = [
-  { key: 'pos', label: 'Positive' },
-  { key: 'neu', label: 'Neutral' },
-  { key: 'neg', label: 'Negative' },
-];
-// Rating and comment point opposite ways.
-const XT_MISMATCH = new Set(['vsat:neg', 'unsat:pos']);
 
-function renderRatingMatrix(period) {
-  const m = RATING_MATRIX[period] || RATING_MATRIX.all;
-  document.getElementById('xtBody').innerHTML = RATINGS.map(r => {
-    const row = m[r.key] || {};
-    const rowTotal = XT_SENTIMENTS.reduce((sum, s) => sum + (row[s.key] || 0), 0);
-    const cells = XT_SENTIMENTS.map(s => {
-      const n = row[s.key] || 0;
-      const pct = rowTotal ? Math.round((n / rowTotal) * 100) : 0;
-      const cls = ['xt-cell', n ? '' : 'is-zero', n && XT_MISMATCH.has(r.key + ':' + s.key) ? 'is-mismatch' : ''].join(' ').trim();
-      const inner = `<span class="xt-count">${n}</span><span class="xt-pct">${pct}% of ${r.label}</span>`;
-      if (!n) return `<td><span class="${cls}">${inner}</span></td>`;
-      const params = new URLSearchParams({ rating: r.label, sentiment: s.label });
-      if (period !== 'all') params.set('range', period);
-      return `<td><a class="${cls}" href="${RESPONSES_URL}?${params}" aria-label="${n} ${r.label} responses with a ${s.label.toLowerCase()} comment">${inner}</a></td>`;
-    }).join('');
-    return `<tr><th scope="row"><span class="rating-chip ${r.cls}"><span class="material-icons-round" aria-hidden="true">${r.icon}</span>${r.label}</span></th>${cells}</tr>`;
-  }).join('');
+/* ── NEEDS ATTENTION ── */
+const NEEDS_ATTENTION = JSON.parse(document.getElementById('needs-attention-data').textContent);
+const RESPONSES_URL = "{% url 'responses' %}";
+
+function renderNeedsAttention(period) {
+  const d = NEEDS_ATTENTION[period] || NEEDS_ATTENTION.all;
+  const count = document.getElementById('naCount');
+  count.textContent = d.count;
+  count.classList.toggle('is-zero', !d.count);
+
+  const params = new URLSearchParams({ sentiment: 'Negative' });
+  if (period !== 'all') params.set('range', period);
+  document.getElementById('naMore').href = `${RESPONSES_URL}?${params}`;
+
+  document.getElementById('naList').innerHTML = d.items.length
+    ? d.items.map(item => {
+        const rate = RATING_CHIPS[item.rating] || { cls: 'chip-na', icon: 'help_outline' };
+        return `<li class="na-item">
+          <p class="na-comment" title="${escHtml(item.comment)}">${escHtml(item.comment)}</p>
+          <div class="na-meta">
+            <span class="rating-chip chip-neg" title="Comment sentiment, read by CSAS"><span class="material-icons-round" aria-hidden="true">sentiment_dissatisfied</span>Negative comment</span>
+            <span class="na-rated">Client rated <span class="rating-chip ${rate.cls}"><span class="material-icons-round" aria-hidden="true">${rate.icon}</span>${escHtml(item.rating)}</span></span>
+            <span class="na-status">${escHtml(item.status)}</span>
+            <span>${item.date} · ${item.time}</span>
+          </div>
+        </li>`;
+      }).join('')
+    : '<li class="na-empty"><span class="material-icons-round" aria-hidden="true">check_circle</span>No open negative comments in this period.</li>';
 }
 
 /* ── CLIENT RATINGS (secondary) ── */
@@ -828,7 +820,7 @@ function setSentimentFilter(btn, period) {
   renderRatings(period);
   wcPeriod = period;
   renderWordCloud();
-  renderRatingMatrix(period);
+  renderNeedsAttention(period);
 }
 
 function onThemeChange() {
@@ -842,7 +834,7 @@ function onResize() {
 function pageInit() {
   renderSentimentTrendForPeriod('all');
   renderWordCloud();
-  renderRatingMatrix('all');
+  renderNeedsAttention('all');
   renderRatings('all');
   renderRecent();
 

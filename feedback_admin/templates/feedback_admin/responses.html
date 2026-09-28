@@ -1025,9 +1025,9 @@ document.addEventListener('keydown', function(e) {
 
 /* ── INIT ── */
 function pageInit() {
-  // Links from Sentiment Analysis preset filters: ?rating=…&sentiment=…&range=…
+  // Dashboard links preset filters: ?sentiment=…&range=…
   const params = new URLSearchParams(location.search);
-  const presets = [['rating', 'ratingFilter'], ['sentiment', 'sentimentFilter'], ['range', 'dateRangeFilter']];
+  const presets = [['sentiment', 'sentimentFilter'], ['range', 'dateRangeFilter']];
   let preset = false;
   presets.forEach(([key, id]) => {
     const select = document.getElementById(id);
