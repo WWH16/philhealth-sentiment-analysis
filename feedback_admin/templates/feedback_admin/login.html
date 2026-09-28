@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Login | PhilHealth Cauayan City</title>
-  <meta name="description" content="PhilHealth LHIO Cauayan City — Admin login. Authorized personnel only.">
-  <link rel="icon" type="image/png" href="{% static 'img/philhealth_logo.png' %}">
+  <title>Admin Login | CSAS</title>
+  <meta name="description" content="CSAS, Client Sentiment Analysis System — Admin login. Authorized personnel only.">
+  <link rel="icon" type="image/png" href="{% static 'img/csas-mark.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -433,24 +433,24 @@ body {
   <!-- ── LEFT: BRAND PANEL ── -->
   <aside class="brand-panel" aria-hidden="true">
     <div class="brand-center">
-      <!-- Explicit width/height: 250x250 source at 96px display height. Prevents CLS. -->
+      <!-- Explicit width/height: square CSAS mark at 96px display height. Prevents CLS. -->
       <img
-        src="{% static 'img/philhealth_logo.png' %}"
-        alt="PhilHealth Logo"
+        src="{% static 'img/csas-mark.png' %}"
+        alt="CSAS"
         width="96"
         height="96"
         class="brand-logo"
         loading="eager"
         onerror="this.style.display='none'"
       >
-      <div class="brand-name">PhilHealth</div>
-      <div class="brand-city">Cauayan City</div>
+      <div class="brand-name">CSAS</div>
+      <div class="brand-city">LHIO Cauayan City</div>
 
       <div class="brand-divider"></div>
 
       <h2 class="brand-tagline">
-        Your Partner<br>
-        in <em>Health</em>
+        Client Sentiment<br>
+        Analysis <em>System</em>
       </h2>
     </div>
   </aside>
@@ -462,18 +462,18 @@ body {
 
         <!-- mobile brand (shown only when left panel is hidden) -->
         <div class="mobile-brand">
-          <!-- Explicit width/height: 250x250 source at 56px display height. Prevents CLS. -->
+          <!-- Explicit width/height: square CSAS mark at 56px display height. Prevents CLS. -->
           <img
-            src="{% static 'img/philhealth_logo.png' %}"
-            alt="PhilHealth Logo"
+            src="{% static 'img/csas-mark.png' %}"
+            alt="CSAS"
             width="56"
             height="56"
             loading="eager"
             onerror="this.style.display='none'"
           >
-          <div class="mobile-brand-name">PhilHealth</div>
-          <div class="mobile-brand-tagline">Your Partner in Health</div>
-            <div class="mobile-brand-city">Cauayan City</div>
+          <div class="mobile-brand-name">CSAS</div>
+          <div class="mobile-brand-tagline">Client Sentiment Analysis System</div>
+            <div class="mobile-brand-city">LHIO Cauayan City</div>
         </div>
 
         <h1 class="card-title">Admin Login</h1>
