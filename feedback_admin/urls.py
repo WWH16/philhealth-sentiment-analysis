@@ -11,7 +11,6 @@ urlpatterns = [
     path('responses/<int:entry_id>/status/', views.response_status_update, name='response_status_update'),
     path('responses/<int:entry_id>/category/', views.response_category_update, name='response_category_update'),
     path('responses/<int:entry_id>/notes/add/', views.response_note_add, name='response_note_add'),
-    path('sentiment_analysis/',         views.sentiment_analysis, name='sentiment_analysis'),
     path('reports/export/excel/',        views.export_report_excel, name='export_report_excel'),
     path('activity-log/',               views.activity_log,       name='activity_log'),
 

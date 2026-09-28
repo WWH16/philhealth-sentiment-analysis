@@ -127,12 +127,16 @@ class DashboardViewTests(TestCase):
 
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
-        self.assertIn('filter_data', response.context)
-        self.assertEqual(response.context['total'], 2)
-        self.assertEqual(response.context['very_satisfactory'], 1)
-        self.assertEqual(response.context['satisfactory'], 1)
-        self.assertEqual(response.context['unsatisfactory'], 0)
-        self.assertEqual(response.context['filter_data']['all']['total'], 2)
+        ratings = response.context['rating_data']['all']
+        self.assertEqual(
+            (ratings['total'], ratings['very_satisfactory'], ratings['satisfactory'], ratings['unsatisfactory']),
+            (2, 1, 1, 0),
+        )
+        # Both comments are still pending analysis.
+        self.assertEqual(response.context['filter_data']['all']['total'], 0)
+        # Non-superuser staff get the sentiment sections too.
+        self.assertContains(response, 'id="wcCloud"')
+        self.assertContains(response, 'id="xtBody"')
         self.assertContains(response, 'id="nav-dashboard"')
         self.assertContains(response, 'nav-item active')
 
@@ -147,7 +151,7 @@ class SentimentAnalysisViewTests(TestCase):
         )
         self.client.force_login(self.user)
 
-    def test_sentiment_analysis_view_renders_successfully(self):
+    def test_dashboard_leads_with_comment_sentiment(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.VERY_SATISFACTORY,
@@ -160,7 +164,7 @@ class SentimentAnalysisViewTests(TestCase):
             comment='Delayed processing.',
         )
 
-        response = self.client.get(reverse('sentiment_analysis'))
+        response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['total'], 2)
         self.assertEqual(response.context['positive'], 1)
@@ -178,7 +182,7 @@ class SentimentAnalysisViewTests(TestCase):
         ):
             FeedbackEntry.objects.create(experience=experience, sentiment=sentiment, comment='x')
 
-        response = self.client.get(reverse('sentiment_analysis'))
+        response = self.client.get(reverse('dashboard'))
         matrix = response.context['rating_matrix']
 
         self.assertEqual(matrix['all']['vsat'], {'pos': 1, 'neu': 0, 'neg': 2})
@@ -205,7 +209,7 @@ class SentimentAnalysisViewTests(TestCase):
             comment='Unanalyzed staff remark.',
         )
 
-        response = self.client.get(reverse('sentiment_analysis'))
+        response = self.client.get(reverse('dashboard'))
         cloud = response.context['word_cloud']['all']
         words = {word['t']: word for word in cloud['words']}
 
@@ -555,7 +559,7 @@ class RoleBasedAccessControlTests(TestCase):
     def test_staff_is_blocked_from_superuser_views(self):
         self.client.force_login(self.staff_user)
 
-        for route_name in ['users', 'settings_page', 'activity_log', 'sentiment_analysis']:
+        for route_name in ['users', 'settings_page', 'activity_log']:
             response = self.client.get(reverse(route_name), follow=True)
             self.assertRedirects(response, reverse('dashboard'))
             self.assertContains(response, 'Access restricted to administrators.')

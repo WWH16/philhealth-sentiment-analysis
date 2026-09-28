@@ -1,27 +1,47 @@
 {% extends 'feedback_admin/base.html' %}
 {% load static %}
 
-{% block title %}Admin Dashboard | CSAS{% endblock %}
+{% block title %}Dashboard | CSAS{% endblock %}
 
-{% block head_scripts %}{% endblock %}
+{% block head_scripts %}
+<link rel="stylesheet" href="{% static 'css/sentiment.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+{% endblock %}
 
 {% block nav_dashboard %}active{% endblock %}
 
 {% block extra_styles %}
-<style>
+  /* Rating x comment sentiment table */
+  /* Client ratings (secondary) */
+  .rt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+  .rt-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; }
+  .rt-row .rating-chip { justify-self: start; }
+  .rt-count { font-size: 14px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .rt-count small { margin-left: 4px; font-size: 11px; font-weight: 500; color: var(--text-muted); }
+  .rt-bar { grid-column: 1 / -1; height: 6px; background: var(--ink8); overflow: hidden; }
+  .rt-bar span { display: block; height: 100%; transition: width 300ms ease; }
+  .rt-foot { margin: 18px 0 0; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+  .rt-foot strong { font-size: 15px; color: var(--text-primary); }
+  [data-theme="dark"] .rt-bar { background: rgba(255, 255, 255, 0.08); }
+  @media (prefers-reduced-motion: reduce) { .rt-bar span { transition: none; } }
+
+  .xt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .xt { width: 100%; min-width: 520px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .xt th, .xt td { border: 1px solid var(--border); padding: 0; }
+  .xt thead th { padding: 10px 12px; text-align: center; background: var(--surface-page); }
+  .xt thead th:first-child { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+  .xt tbody th { padding: 12px 14px; text-align: left; white-space: nowrap; font-weight: 400; }
+  .xt-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 68px; padding: 10px; color: var(--text-primary); text-decoration: none; transition: background-color 120ms ease; }
+  a.xt-cell:hover { background: var(--g-xlight); }
+  a.xt-cell:focus-visible { outline: 2px solid var(--g-primary); outline-offset: -2px; }
+  .xt-count { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+  .xt-pct { font-size: 11px; color: var(--text-muted); }
+  .xt-cell.is-zero .xt-count { color: var(--ink6); font-weight: 600; }
+  .xt-cell.is-mismatch { background: var(--red-bg); }
+  .xt-cell.is-mismatch .xt-count, .xt-cell.is-mismatch .xt-pct { color: var(--red); }
+  a.xt-cell.is-mismatch:hover { background: var(--red-bg); box-shadow: inset 0 0 0 2px var(--red); }
   .card-block, .stat-card {
     contain: content;
-  }
-  /* mini-stat-bar: transform-origin for scaleX animation only.
-     will-change removed — static promotion wastes GPU memory for rarely-animated elements.
-     The browser auto-promotes during the transition via the transition property. */
-  .mini-stat-bar {
-    width: 100% !important;
-    transform-origin: left center;
-    transition: transform 300ms cubic-bezier(.4, 0, .2, 1);
-  }
-  .mini-stat-bar-wrap {
-    contain: layout style;
   }
   .chart-type-toggle {
     display: inline-flex;
@@ -62,10 +82,41 @@
     color: #f8fafc;
     background: rgba(255, 255, 255, 0.06);
   }
-  @media (prefers-reduced-motion: reduce) {
-    .mini-stat-bar { transition: none !important; }
+  .btn-chart-toggle:focus-visible {
+    outline: 2px solid var(--g-primary, #23A455);
+    outline-offset: -2px;
   }
-</style>
+
+  /* ── WORD CLOUD (shared styles in css/sentiment.css) ────────────────── */
+  .wc-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .wc-caption {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 62ch;
+  }
+  .wc-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 270px;
+    gap: 24px;
+  }
+  .wc-stage { display: flex; flex-direction: column; min-width: 0; }
+  .wc-rank { border-left: 1px solid var(--border); padding-left: 20px; min-width: 0; }
+  @media (max-width: 991.98px) {
+    .wc-body { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .wc-rank { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 14px; }
+    .wc-rank .wc-rank-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+  }
+  @media (max-width: 575.98px) {
+    .wc-rank .wc-rank-list { grid-template-columns: minmax(0, 1fr); }
+  }
 {% endblock %}
 
 {% block page_content %}
@@ -73,10 +124,9 @@
   <!-- PAGE HEADER -->
   <div class="page-header">
     <div class="page-header-row">
-      <h1 class="page-title">Admin Dashboard</h1>
-      <div class="date-badge">
-        <span class="material-icons-round">today</span>
-        <span id="currentDate">—</span>
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">What clients feel, read from their comments. Client ratings follow as a secondary measure.</p>
       </div>
     </div>
   </div>
@@ -84,125 +134,178 @@
   <!-- FILTER TABS -->
   <div style="margin-bottom:20px;">
     <div class="filter-tabs" role="tablist" aria-label="Dashboard time period filter" style="display:inline-flex;max-width:480px;width:100%">
-      <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="dashboard-stats" class="filter-tab" onclick="setFilter(this,'today')">Today</button>
-      <button type="button" role="tab" id="tab-week" aria-selected="false" aria-controls="dashboard-stats" class="filter-tab" onclick="setFilter(this,'week')">This Week</button>
-      <button type="button" role="tab" id="tab-month" aria-selected="false" aria-controls="dashboard-stats" class="filter-tab" onclick="setFilter(this,'month')">This Month</button>
-      <button type="button" role="tab" id="tab-all" aria-selected="true" aria-controls="dashboard-stats" class="filter-tab active" onclick="setFilter(this,'all')">All Time</button>
+      <button type="button" role="tab" id="tab-today" aria-selected="false" class="filter-tab" onclick="setSentimentFilter(this,'today')">Today</button>
+      <button type="button" role="tab" id="tab-week" aria-selected="false" class="filter-tab" onclick="setSentimentFilter(this,'week')">This Week</button>
+      <button type="button" role="tab" id="tab-month" aria-selected="false" class="filter-tab" onclick="setSentimentFilter(this,'month')">This Month</button>
+      <button type="button" role="tab" id="tab-all" aria-selected="true" class="filter-tab active" onclick="setSentimentFilter(this,'all')">All Time</button>
     </div>
   </div>
 
   <!-- STAT CARDS -->
   <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
-      <div class="stat-card card-sat h-100">
-        <div class="stat-card-icon"><span class="material-icons-round" style="color:var(--g-primary);background:var(--g-xlight)">forum</span></div>
-        <div class="stat-value" id="totalVal">{{ total }}</div>
-        <div class="stat-label">Total Responses</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span>Live database total</span>
+      <div class="stat-card card-vsat h-100">
+        <div class="stat-card-icon"><span class="material-icons-round">sentiment_satisfied_alt</span></div>
+        <div class="stat-value" id="statPosVal">{{ positive }}</div>
+        <div class="stat-label">Positive Comments</div>
+        <span class="stat-delta up" id="statPosDelta"><span class="material-icons-round" aria-hidden="true">arrow_upward</span><span id="statPosPct">{{ positive_pct }}%</span> of analyzed</span>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">sentiment_satisfied_alt</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card card-neu h-100">
+        <div class="stat-card-icon"><span class="material-icons-round">sentiment_neutral</span></div>
+        <div class="stat-value" id="statNeuVal">{{ neutral }}</div>
+        <div class="stat-label">Neutral Comments</div>
+        <span class="stat-delta flat" id="statNeuDelta"><span class="material-icons-round" aria-hidden="true">remove</span><span id="statNeuPct">{{ neutral_pct }}%</span> of analyzed</span>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">sentiment_neutral</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card card-neg h-100">
+        <div class="stat-card-icon"><span class="material-icons-round">sentiment_dissatisfied</span></div>
+        <div class="stat-value" id="statNegVal">{{ negative }}</div>
+        <div class="stat-label">Negative Comments</div>
+        <span class="stat-delta down" id="statNegDelta"><span class="material-icons-round" aria-hidden="true">arrow_downward</span><span id="statNegPct">{{ negative_pct }}%</span> of analyzed</span>
+        <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">sentiment_dissatisfied</span></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card h-100">
+        <div class="stat-card-icon" style="background:var(--g-xlight)"><span class="material-icons-round" style="color:var(--g-primary)">forum</span></div>
+        <div class="stat-value" id="statTotalVal">{{ rating_data.all.total }}</div>
+        <div class="stat-label">Responses</div>
+        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">psychology</span><span id="statAnalyzed">{{ total }}</span>&nbsp;analyzed</span>
         <div class="stat-card-bg-icon" aria-hidden="true"><span class="material-icons-round">forum</span></div>
       </div>
     </div>
-    <div class="col-6 col-lg-3">
-      <div class="stat-card h-100">
-        <div class="stat-card-icon" style="background:#ecfdf5"><span class="material-icons-round" style="color:#169651">sentiment_very_satisfied</span></div>
-        <div class="stat-value" id="vsVal">{{ very_satisfactory }}</div>
-        <div class="stat-label">Very Satisfactory</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="vsPct">{{ very_satisfactory_pct }}%</span> of total</span>
-      </div>
-    </div>
-    <div class="col-6 col-lg-3">
-      <div class="stat-card h-100">
-        <div class="stat-card-icon" style="background:#ecfdf5"><span class="material-icons-round" style="color:#10b981">sentiment_satisfied</span></div>
-        <div class="stat-value" id="satVal">{{ satisfactory }}</div>
-        <div class="stat-label">Satisfactory</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="satPct">{{ satisfactory_pct }}%</span> of total</span>
-      </div>
-    </div>
-    <div class="col-6 col-lg-3">
-      <div class="stat-card h-100">
-        <div class="stat-card-icon" style="background:#fff0f2"><span class="material-icons-round" style="color:#dc2626">sentiment_dissatisfied</span></div>
-        <div class="stat-value" id="unsatVal">{{ unsatisfactory }}</div>
-        <div class="stat-label">Unsatisfactory</div>
-        <span class="stat-delta flat"><span class="material-icons-round" aria-hidden="true">remove</span><span id="unsatPct">{{ unsatisfactory_pct }}%</span> of total</span>
-      </div>
-    </div>
   </div>
 
-  <!-- CHARTS ROW -->
+  <!-- SENTIMENT TRENDS -->
   <div class="row g-3 mb-4">
-    <div class="col-12 col-lg-5">
-      <div class="card-block h-100">
-        <div class="card-block-head">
-          <h2 class="card-block-title">
-            <span class="material-icons-round">donut_large</span>
-            Rating Distribution
-          </h2>
-        </div>
-        <div class="card-block-body">
-          <div class="pie-chart-layout">
-            <div class="pie-chart-col">
-              <div class="chart-wrap" style="height:200px;">
-                <canvas id="pieChart" aria-label="Rating distribution pie chart" role="img"></canvas>
-              </div>
-            </div>
-            <div class="pie-legend-col">
-              <div class="pie-legend" style="gap:8px;">
-                <div class="pie-legend-item">
-                  <div class="pie-legend-dot" style="background:#169651"></div>
-                  <span class="pie-legend-label">Very Satisfactory</span>
-                  <span class="pie-legend-value" id="legendVsVal">{{ very_satisfactory }}</span>
-                  <span class="pie-legend-pct" id="legendVsPct">{{ very_satisfactory_pct }}%</span>
-                </div>
-                <div class="pie-legend-item">
-                  <div class="pie-legend-dot" style="background:#10b981"></div>
-                  <span class="pie-legend-label">Satisfactory</span>
-                  <span class="pie-legend-value" id="legendSatVal">{{ satisfactory }}</span>
-                  <span class="pie-legend-pct" id="legendSatPct">{{ satisfactory_pct }}%</span>
-                </div>
-                <div class="pie-legend-item">
-                  <div class="pie-legend-dot" style="background:#dc2626"></div>
-                  <span class="pie-legend-label">Unsatisfactory</span>
-                  <span class="pie-legend-value" id="legendUnsatVal">{{ unsatisfactory }}</span>
-                  <span class="pie-legend-pct" id="legendUnsatPct">{{ unsatisfactory_pct }}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12 col-lg-7">
-      <div class="card-block h-100">
+    <div class="col-12">
+      <div class="card-block">
         <div class="card-block-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <h2 class="card-block-title" style="margin:0;">
-            <span class="material-icons-round">show_chart</span>
-            Daily Ratings
+            <span class="material-icons-round" aria-hidden="true">show_chart</span>
+            Comment Sentiment Over Time
           </h2>
-          <div class="chart-type-toggle" role="group" aria-label="Chart display type">
-            <button type="button" class="btn-chart-toggle active" id="btnStackedBar" onclick="setTrendChartType('bar')">
-              <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:3px;">bar_chart</span>Stacked
-            </button>
-            <button type="button" class="btn-chart-toggle" id="btnLineTrend" onclick="setTrendChartType('line')">
+          <div class="chart-type-toggle" role="group" aria-label="Sentiment chart display type">
+            <button type="button" class="btn-chart-toggle active" id="btnSentLines" onclick="setSentimentChartType('line')">
               <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:3px;">show_chart</span>Lines
+            </button>
+            <button type="button" class="btn-chart-toggle" id="btnSentBars" onclick="setSentimentChartType('bar')">
+              <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:3px;">bar_chart</span>Stacked
             </button>
           </div>
         </div>
         <div class="card-block-body">
-          <div id="trendEmptyState" class="chart-empty-state d-none" style="height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;color:var(--text-muted,#64748b);">
+          <div id="sentimentEmptyState" class="chart-empty-state d-none" style="height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;color:var(--text-muted,#64748b);">
             <span class="material-icons-round" style="font-size:36px;opacity:0.6;">query_stats</span>
-            <div style="font-weight:700;font-size:13px;color:var(--text-primary,#0f172a);">No feedback recorded for this period</div>
-            <div style="font-size:11px;max-width:280px;">Select "This Week", "This Month", or "All Time" to view feedback volume and satisfaction trends.</div>
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary,#0f172a);">No analyzed sentiment recorded for this period</div>
+            <div style="font-size:11px;max-width:280px;">Select "This Week", "This Month", or "All Time" to view sentiment over time.</div>
           </div>
-          <div class="chart-wrap" id="trendChartWrap" style="height:260px;">
-            <canvas id="lineChart" aria-label="Daily ratings chart" role="img"></canvas>
+          <div class="chart-wrap" id="sentimentChartWrap" style="height:280px;">
+            <canvas id="sentimentTrendChart" aria-label="Sentiment trends over time" role="img"></canvas>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- RECENT RESPONSES TABLE -->
+  <!-- WORD CLOUD -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <section class="card-block sx" aria-labelledby="wcTitle">
+        <div class="card-block-head wc-head">
+          <div>
+            <h2 class="card-block-title" id="wcTitle" style="margin:0;">
+              <span class="material-icons-round" aria-hidden="true">forum</span>
+              What Clients Are Saying
+            </h2>
+            <p class="wc-caption" id="wcCaption">Most frequent words in analyzed comments. Color shows the sentiment of the comments each word came from.</p>
+          </div>
+          <div class="sx-seg" role="group" aria-label="Show words from">
+            <button type="button" class="active" data-wc-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-wc-filter="pos" aria-pressed="false">Positive</button>
+            <button type="button" data-wc-filter="neu" aria-pressed="false">Neutral</button>
+            <button type="button" data-wc-filter="neg" aria-pressed="false">Negative</button>
+          </div>
+        </div>
+        <div class="card-block-body wc-body">
+          <div class="wc-stage">
+            <div class="wc-canvas" id="wcCanvas" aria-hidden="true"></div>
+            <ul class="visually-hidden" id="wcCloud" aria-label="Most frequent words"></ul>
+            <div class="sx-empty d-none" id="wcEmpty">
+              <span class="material-icons-round" aria-hidden="true">chat_bubble_outline</span>
+              <div class="sx-empty-title">No analyzed comments for this view</div>
+              <div class="sx-empty-text">Words appear here once comments in this period are classified as Positive, Neutral, or Negative.</div>
+            </div>
+            <div class="wc-legend" aria-hidden="true">
+              <span><i style="background:var(--sx-pos-fill)"></i>Mostly positive</span>
+              <span><i style="background:var(--sx-neu-fill)"></i>Mostly neutral</span>
+              <span><i style="background:var(--sx-neg-fill)"></i>Mostly negative</span>
+            </div>
+          </div>
+          <div class="wc-rank">
+            <h3 class="wc-rank-title">Top words</h3>
+            <ul class="wc-rank-list" id="wcRank"></ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- RATING x COMMENT SENTIMENT + CLIENT RATINGS -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-8">
+      <section class="card-block h-100" aria-labelledby="xtTitle">
+        <div class="card-block-head">
+          <div>
+            <h2 class="card-block-title" id="xtTitle" style="margin:0;">
+              <span class="material-icons-round" aria-hidden="true">grid_on</span>
+              Rating vs. Comment Sentiment
+            </h2>
+            <p class="wc-caption" id="xtNote">Each response has a rating chosen by the client and a comment sorted by CSAS. The two are measured separately. Red cells are where they disagree; open one to read those comments.</p>
+          </div>
+        </div>
+        <div class="card-block-body">
+          <div class="xt-wrap">
+            <table class="xt" aria-describedby="xtNote">
+              <thead>
+                <tr>
+                  <th scope="col">Rating / Comment</th>
+                  <th scope="col"><span class="rating-chip chip-pos"><span class="material-icons-round" aria-hidden="true">sentiment_satisfied_alt</span>Positive</span></th>
+                  <th scope="col"><span class="rating-chip chip-neu"><span class="material-icons-round" aria-hidden="true">sentiment_neutral</span>Neutral</span></th>
+                  <th scope="col"><span class="rating-chip chip-neg"><span class="material-icons-round" aria-hidden="true">sentiment_dissatisfied</span>Negative</span></th>
+                </tr>
+              </thead>
+              <tbody id="xtBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="col-12 col-lg-4">
+      <section class="card-block h-100" aria-labelledby="rtTitle">
+        <div class="card-block-head">
+          <div>
+            <h2 class="card-block-title" id="rtTitle" style="margin:0;">
+              <span class="material-icons-round" aria-hidden="true">how_to_vote</span>
+              Client Ratings
+            </h2>
+            <p class="wc-caption">Chosen by the client on the form. A secondary measure next to comment sentiment.</p>
+          </div>
+        </div>
+        <div class="card-block-body">
+          <ul class="rt-list" id="rtList"></ul>
+          <p class="rt-foot" id="rtFoot"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- RECENT RESPONSES -->
   <div class="section-head">
     <h2 class="section-title">Recent Responses</h2>
     <div class="section-actions">
@@ -211,16 +314,15 @@
       </a>
     </div>
   </div>
-
   <div class="card-block">
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
       <table class="ph-table" aria-label="Recent feedback responses">
         <thead>
           <tr>
             <th style="min-width:100px">Date &amp; Time</th>
+            <th style="min-width:120px">Sentiment</th>
+            <th>Comment</th>
             <th style="min-width:160px">Rating</th>
-            <th style="min-width:120px">Category</th>
-            <th>Feedback / Comment</th>
           </tr>
         </thead>
         <tbody id="recentTableBody"></tbody>
@@ -228,189 +330,183 @@
     </div>
   </div>
 
+
 {% endblock %}
 
 {% block page_scripts %}
+{{ filter_data|json_script:"sentiment-filter-data" }}
+{{ word_cloud|json_script:"word-cloud-data" }}
+{{ rating_matrix|json_script:"rating-matrix-data" }}
+{{ rating_data|json_script:"rating-data" }}
 {{ recent_entries_data|json_script:"recent-entries-data" }}
-{{ filter_data|json_script:"filter-data" }}
-<!-- Chart.js loaded here (end of body) — non-render-blocking. Initializes via pageInit() on DOMContentLoaded. -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/word_cloud.js' %}"></script>
 <script>
-const RATING_CONFIG = {
-  'Very Satisfactory': { cls: 'chip-vs',    icon: 'sentiment_very_satisfied' },
-  'Satisfactory':      { cls: 'chip-sat',   icon: 'sentiment_satisfied' },
-  'Unsatisfactory':    { cls: 'chip-unsat', icon: 'sentiment_dissatisfied' },
-};
-const RATING_FALLBACK = { cls: 'chip-na', icon: 'help_outline' };
+/* ── WORD CLOUD ── */
+const WORD_CLOUD = JSON.parse(document.getElementById('word-cloud-data').textContent);
+const WC_TONE_NAMES = { pos: 'positive', neu: 'neutral', neg: 'negative' };
+let wcPeriod = 'all';
+let wcFilter = 'all';
+const WC_MAX_WORDS = 60;
+let wcLastWidth = 0;
 
-const RECENT_DATA = JSON.parse(document.getElementById('recent-entries-data').textContent);
-const FILTER_DATA = JSON.parse(document.getElementById('filter-data').textContent);
-const TREND_LABELS = {{ trend_labels|safe }};
-const TREND_DATES  = {{ trend_dates|safe }};
-const TREND_VS     = {{ trend_very_satisfactory|default:"[]"|safe }};
-const TREND_SAT    = {{ trend_satisfactory|default:"[]"|safe }};
-const TREND_UNSAT  = {{ trend_unsatisfactory|default:"[]"|safe }};
-
-const CHART_ANIM_DURATION = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300;
-
-let currentFilterPeriod = 'all';
-
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function renderRecent() {
-  const body = document.getElementById('recentTableBody');
-  body.innerHTML = RECENT_DATA.map(r => {
-    const cfg     = RATING_CONFIG[r.experience] || RATING_FALLBACK;
-    const dateStr = new Date(r.date).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
-    const comment = r.comment
-      ? `<div class="comment-text" title="${escHtml(r.comment)}">${escHtml(r.comment)}</div>`
-      : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment (older entry)</span>`;
-    return `<tr>
-      <td class="datetime-cell">
-        <div class="datetime-date">${dateStr}</div>
-        <div class="datetime-time">${r.time}</div>
-      </td>
-      <td><span class="rating-chip ${cfg.cls}"><span class="material-icons-round">${cfg.icon}</span>${r.experience}</span></td>
-      <td>
-        <span style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">
-          ${escHtml(r.category || '—')}
-        </span>
-      </td>
-      <td class="comment-cell">${comment}</td>
-    </tr>`;
-  }).join('');
+function wcEsc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/* ── CHARTS ── */
-let pieChart, lineChart;
+function wcDominant(w) {
+  // Ties lean toward the more urgent signal: negative, then neutral.
+  if (w.neg >= w.pos && w.neg >= w.neu) return 'neg';
+  if (w.neu >= w.pos) return 'neu';
+  return 'pos';
+}
 
-function pctOf(value, total) { return total ? Math.round((value / total) * 100) : 0; }
+function wcSplitText(w) {
+  return `${w.pos} positive, ${w.neu} neutral, ${w.neg} negative`;
+}
 
-function updatePieChart(data, forceRecreate = false) {
-  const canvas = document.getElementById('pieChart');
-  if (!canvas) return;
-  const ctx    = canvas.getContext('2d');
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const datasetData = [data.very_satisfactory || 0, data.satisfactory || 0, data.unsatisfactory || 0];
+function renderWordCloud(animate = true) {
+  const period = WORD_CLOUD[wcPeriod] || { comments: 0, words: [] };
+  const stage  = document.getElementById('wcCanvas');
+  const list   = document.getElementById('wcCloud');
+  const empty  = document.getElementById('wcEmpty');
+  const legend = document.querySelector('.wc-legend');
+  const rank   = document.getElementById('wcRank');
+  const caption = document.getElementById('wcCaption');
+  if (!stage) return;
 
-  if (pieChart && !forceRecreate) {
-    pieChart.data.datasets[0].data = datasetData;
-    pieChart.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
-    pieChart.update();
+  // Size by the chosen sentiment's count; "All" sizes by total mentions.
+  const weightOf = w => (wcFilter === 'all' ? w.n : w[wcFilter]);
+  const limit = stage.clientWidth < 520 ? 35 : WC_MAX_WORDS;
+  const words = period.words
+    .filter(w => weightOf(w) > 0)
+    .sort((a, b) => weightOf(b) - weightOf(a) || a.t.localeCompare(b.t))
+    .slice(0, limit);
+
+  const noun = period.comments === 1 ? 'comment' : 'comments';
+  caption.textContent = wcFilter === 'all'
+    ? `Most frequent words in ${period.comments.toLocaleString()} analyzed ${noun}. Size shows how many comments use a word; color shows their sentiment.`
+    : `Most frequent words in ${WC_TONE_NAMES[wcFilter]} comments, from ${period.comments.toLocaleString()} analyzed ${noun} in this period.`;
+
+  const isEmpty = words.length === 0;
+  stage.classList.toggle('d-none', isEmpty);
+  legend.classList.toggle('d-none', isEmpty);
+  empty.classList.toggle('d-none', !isEmpty);
+  if (isEmpty) {
+    stage.innerHTML = '';
+    list.innerHTML = '';
+    rank.innerHTML = '<li class="wc-rank-empty">No words to rank yet.</li>';
     return;
   }
 
-  if (pieChart) pieChart.destroy();
-
-  const centerTextPlugin = {
-    id: 'centerText',
-    beforeDraw(chart) {
-      const { width, height, ctx } = chart;
-      const dataset = chart.data.datasets[0];
-      const t = dataset.data.reduce((acc, b) => acc + b, 0);
-      const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const centerX = width / 2;
-      const centerY = height / 2;
-
-      ctx.font = '700 22px "IBM Plex Sans", sans-serif';
-      ctx.fillStyle = isDarkMode ? '#f8fafc' : '#0f172a';
-      ctx.fillText(t.toLocaleString(), centerX, centerY - 8);
-
-      ctx.font = '600 10px "IBM Plex Sans", sans-serif';
-      ctx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
-      ctx.fillText('Total Responses', centerX, centerY + 12);
-      ctx.restore();
-    }
-  };
-
-  pieChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Very Satisfactory', 'Satisfactory', 'Unsatisfactory'],
-      datasets: [{
-        data: datasetData,
-        backgroundColor: ['#169651', '#10b981', '#dc2626'],
-        borderColor: isDark ? '#1e293b' : '#ffffff',
-        borderWidth: 2,
-        hoverOffset: 6
-      }]
-    },
-    plugins: [centerTextPlugin],
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '72%',
-      animation: {
-        duration: CHART_ANIM_DURATION,
-        animateRotate: true,
-        animateScale: true
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: isDark ? '#0f172a' : '#1e293b',
-          titleColor: '#ffffff',
-          bodyColor: '#f1f5f9',
-          padding: 10,
-          cornerRadius: 4,
-          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
-          bodyFont: { family: "'IBM Plex Sans'", size: 12 },
-          callbacks: {
-            label: function(ctx) {
-              const t = ctx.dataset.data.reduce((acc, b) => acc + b, 0);
-              const pct = t ? Math.round((ctx.parsed / t) * 100) : 0;
-              return `  ${ctx.label}: ${ctx.parsed} (${pct}%)`;
-            }
-          }
-        }
-      }
-    }
+  const result = SentimentWordCloud.render(stage, words, {
+    weightOf,
+    toneOf: w => (wcFilter === 'all' ? wcDominant(w) : wcFilter),
+    titleOf: w => `${w.t}: ${weightOf(w)} ${weightOf(w) === 1 ? 'comment' : 'comments'} (${wcSplitText(w)})`,
+    animate: animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   });
+  wcLastWidth = result ? result.width : 0;
+
+  list.innerHTML = words.map(w => {
+    const count = weightOf(w);
+    return `<li>${wcEsc(w.t)}, ${count} ${count === 1 ? 'comment' : 'comments'}, ${wcSplitText(w)}</li>`;
+  }).join('');
+
+  const top = words.slice(0, 8);
+  const topMax = weightOf(top[0]);
+  rank.innerHTML = top.map((w, i) => {
+    const count = weightOf(w);
+    const seg = key => {
+      const width = (w[key] / topMax) * 100;
+      return width > 0 ? `<span style="width:${width.toFixed(1)}%;background:var(--sx-${key}-fill)"></span>` : '';
+    };
+    const bar = wcFilter === 'all' ? seg('pos') + seg('neu') + seg('neg') : seg(wcFilter);
+    return `<li class="wc-rank-row">
+      <span class="wc-rank-num">${i + 1}</span>
+      <span class="wc-rank-word">${wcEsc(w.t)}</span>
+      <span class="wc-rank-count">${count}<span class="visually-hidden"> ${count === 1 ? 'comment' : 'comments'}, ${wcSplitText(w)}</span></span>
+      <span class="sx-split" aria-hidden="true">${bar}</span>
+    </li>`;
+  }).join('');
 }
 
-function updatePieAndLegend(data, forceRecreate = false) {
-  const total = data.total || 0;
-  const vs    = data.very_satisfactory || 0;
-  const sat   = data.satisfactory || 0;
-  const unsat = data.unsatisfactory || 0;
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-wc-filter]');
+  if (!btn) return;
+  wcFilter = btn.dataset.wcFilter;
+  document.querySelectorAll('[data-wc-filter]').forEach(b => {
+    const on = b === btn;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  renderWordCloud();
+});
 
-  updatePieChart(data, forceRecreate);
+(function () {
+  let timer;
+  const stage = document.getElementById('wcCanvas');
+  if (stage && 'ResizeObserver' in window) {
+    new ResizeObserver(() => {
+      if (Math.abs(stage.clientWidth - wcLastWidth) < 24) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => renderWordCloud(false), 150);
+    }).observe(stage);
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { if (wcLastWidth) renderWordCloud(false); });
+  }
+})();
+</script>
+<script>
+const FILTER_DATA    = JSON.parse(document.getElementById('sentiment-filter-data').textContent);
+const TREND_LABELS   = {{ trend_labels|safe }};
+const TREND_DATES    = {{ trend_dates|default:"[]"|safe }};
+const TREND_POSITIVE = {{ trend_positive|safe }};
+const TREND_NEUTRAL  = {{ trend_neutral|safe }};
+const TREND_NEGATIVE = {{ trend_negative|safe }};
 
-  const setElemText = (id, txt) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = txt;
-  };
+const CHART_ANIM_DURATION = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300;
 
-  setElemText('legendVsVal', vs);
-  setElemText('legendVsPct', pctOf(vs, total) + '%');
-  setElemText('legendSatVal', sat);
-  setElemText('legendSatPct', pctOf(sat, total) + '%');
-  setElemText('legendUnsatVal', unsat);
-  setElemText('legendUnsatPct', pctOf(unsat, total) + '%');
+let currentSentimentFilterPeriod = 'all';
+let currentSentimentChartType = 'line';
+let sentimentTrendChart;
+
+function animateCount(elemId, target) {
+  const el = document.getElementById(elemId);
+  if (!el) return;
+  const start = parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
+  if (start === target) { el.textContent = target; return; }
+  const duration = 400;
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(start + (target - start) * ease);
+    if (progress < 1) requestAnimationFrame(update);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(update);
 }
 
-let currentTrendChartType = 'bar';
-
-function setTrendChartType(type) {
-  if (currentTrendChartType === type) return;
-  currentTrendChartType = type;
-  const btnBar = document.getElementById('btnStackedBar');
-  const btnLine = document.getElementById('btnLineTrend');
-  if (btnBar) btnBar.classList.toggle('active', type === 'bar');
+function setSentimentChartType(type) {
+  if (currentSentimentChartType === type) return;
+  currentSentimentChartType = type;
+  const btnLine = document.getElementById('btnSentLines');
+  const btnBar  = document.getElementById('btnSentBars');
   if (btnLine) btnLine.classList.toggle('active', type === 'line');
-  renderTrendForPeriod(currentFilterPeriod, true);
+  if (btnBar)  btnBar.classList.toggle('active', type === 'bar');
+  renderSentimentTrendForPeriod(currentSentimentFilterPeriod, true);
 }
 
-function updateLineChart(labels, vs, sat, unsat, forceRecreate = false) {
-  const canvas = document.getElementById('lineChart');
-  const emptyEl = document.getElementById('trendEmptyState');
-  const wrapEl = document.getElementById('trendChartWrap');
+function updateSentimentTrend(labels, pos, neu, neg, forceRecreate = false) {
+  const canvas  = document.getElementById('sentimentTrendChart');
+  const emptyEl = document.getElementById('sentimentEmptyState');
+  const wrapEl  = document.getElementById('sentimentChartWrap');
   if (!canvas) return;
 
-  const totalSum = [...vs, ...sat, ...unsat].reduce((acc, v) => acc + v, 0);
+  const totalSum = pos.reduce((acc, v) => acc + v, 0) +
+                   neu.reduce((acc, v) => acc + v, 0) +
+                   neg.reduce((acc, v) => acc + v, 0);
 
   if (labels.length === 0 || totalSum === 0) {
     if (emptyEl) emptyEl.classList.remove('d-none');
@@ -425,47 +521,113 @@ function updateLineChart(labels, vs, sat, unsat, forceRecreate = false) {
   const isDark    = document.documentElement.getAttribute('data-theme') === 'dark';
   const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
   const textColor = isDark ? '#cbd5e1' : '#475569';
-  const isBar     = currentTrendChartType === 'bar';
+  const ptBgColor = isDark ? '#0f172a' : '#ffffff';
+  const isBar     = currentSentimentChartType === 'bar';
 
-  if (lineChart && !forceRecreate && lineChart.config.type === (isBar ? 'bar' : 'line')) {
-    lineChart.data.labels = labels;
-    lineChart.data.datasets[0].data = vs;
-    lineChart.data.datasets[1].data = sat;
-    lineChart.data.datasets[2].data = unsat;
-    lineChart.update();
+  if (sentimentTrendChart && !forceRecreate && sentimentTrendChart.config.type === (isBar ? 'bar' : 'line')) {
+    sentimentTrendChart.data.labels = labels;
+    sentimentTrendChart.data.datasets[0].data = pos;
+    sentimentTrendChart.data.datasets[1].data = neu;
+    sentimentTrendChart.data.datasets[2].data = neg;
+    sentimentTrendChart.update();
     return;
   }
 
-  if (lineChart) lineChart.destroy();
+  if (sentimentTrendChart) sentimentTrendChart.destroy();
 
-  const series = [
-    { label: 'Very Satisfactory', data: vs,    color: '#169651' },
-    { label: 'Satisfactory',      data: sat,   color: '#10b981' },
-    { label: 'Unsatisfactory',    data: unsat, color: '#dc2626' },
-  ];
-  const datasets = series.map(s => isBar
-    ? { label: s.label, data: s.data, backgroundColor: s.color, borderRadius: 2, stack: 'sqd', maxBarThickness: 56 }
-    : { label: s.label, data: s.data, borderColor: s.color, backgroundColor: 'transparent', tension: 0.25, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: s.color, borderWidth: 2 });
+  const posColor = isDark ? '#22c55e' : '#169651';
 
-  lineChart = new Chart(ctx, {
+  let datasets;
+  if (isBar) {
+    datasets = [
+      { label: 'Positive', data: pos, backgroundColor: posColor, borderRadius: 2, stack: 'sent', maxBarThickness: 56 },
+      { label: 'Neutral', data: neu, backgroundColor: '#d97706', borderRadius: 2, stack: 'sent', maxBarThickness: 56 },
+      { label: 'Negative', data: neg, backgroundColor: '#dc2626', borderRadius: 2, stack: 'sent', maxBarThickness: 56 }
+    ];
+  } else {
+    const gradPos = ctx.createLinearGradient(0, 0, 0, 240);
+    gradPos.addColorStop(0, isDark ? 'rgba(34, 197, 94, 0.25)' : 'rgba(22, 150, 81, 0.20)');
+    gradPos.addColorStop(1, 'rgba(22, 150, 81, 0.0)');
+
+    const gradNeu = ctx.createLinearGradient(0, 0, 0, 240);
+    gradNeu.addColorStop(0, 'rgba(217, 119, 6, 0.20)');
+    gradNeu.addColorStop(1, 'rgba(217, 119, 6, 0.0)');
+
+    const gradNeg = ctx.createLinearGradient(0, 0, 0, 240);
+    gradNeg.addColorStop(0, 'rgba(220, 38, 38, 0.20)');
+    gradNeg.addColorStop(1, 'rgba(220, 38, 38, 0.0)');
+
+    datasets = [
+      {
+        label: 'Positive',
+        data: pos,
+        borderColor: posColor,
+        backgroundColor: gradPos,
+        tension: 0.25,
+        fill: true,
+        pointBackgroundColor: posColor,
+        pointBorderColor: ptBgColor,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHitRadius: 10,
+        pointHoverRadius: 6,
+        borderWidth: 2.5
+      },
+      {
+        label: 'Neutral',
+        data: neu,
+        borderColor: '#d97706',
+        backgroundColor: gradNeu,
+        tension: 0.25,
+        fill: true,
+        pointBackgroundColor: '#d97706',
+        pointBorderColor: ptBgColor,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHitRadius: 10,
+        pointHoverRadius: 6,
+        borderWidth: 2.5
+      },
+      {
+        label: 'Negative',
+        data: neg,
+        borderColor: '#dc2626',
+        backgroundColor: gradNeg,
+        tension: 0.25,
+        fill: true,
+        pointBackgroundColor: '#dc2626',
+        pointBorderColor: ptBgColor,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHitRadius: 10,
+        pointHoverRadius: 6,
+        borderWidth: 2.5
+      }
+    ];
+  }
+
+  sentimentTrendChart = new Chart(ctx, {
     type: isBar ? 'bar' : 'line',
     data: { labels: labels, datasets: datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { right: 28, left: 8, top: 4, bottom: 4 }
+      },
       animation: { duration: CHART_ANIM_DURATION },
       interaction: { mode: 'index', intersect: false },
       scales: {
         x: {
           stacked: isBar,
-          grid: { color: gridColor, drawTicks: false },
+          grid: { color: gridColor, borderDash: [], drawTicks: false },
           ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, maxTicksLimit: 10 },
           border: { display: false }
         },
         y: {
           stacked: isBar,
           beginAtZero: true,
-          grid: { color: gridColor, drawTicks: false },
+          grid: { color: gridColor, borderDash: [], drawTicks: false },
           ticks: { color: textColor, font: { family: "'IBM Plex Sans'", size: 11, weight: '600' }, precision: 0 },
           border: { display: false }
         }
@@ -476,25 +638,35 @@ function updateLineChart(labels, vs, sat, unsat, forceRecreate = false) {
           align: 'end',
           labels: {
             color: textColor,
-            font: { family: "'IBM Plex Sans'", size: 10, weight: '600' },
+            font: { family: "'IBM Plex Sans'", size: 11, weight: '600' },
             boxWidth: 8,
             boxHeight: 8,
-            padding: 8,
+            padding: 12,
             usePointStyle: true,
-            pointStyle: 'circle'
+            pointStyle: 'circle',
+            generateLabels(chart) {
+              const original = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+              return original.map(item => {
+                item.strokeStyle = item.fillStyle;
+                item.lineWidth = 0;
+                return item;
+              });
+            }
           }
         },
         tooltip: {
           backgroundColor: isDark ? '#0f172a' : '#1e293b',
           titleColor: '#ffffff',
           bodyColor: '#f1f5f9',
-          padding: 10,
+          padding: 12,
           cornerRadius: 4,
+          titleFont: { family: "'IBM Plex Sans'", weight: '700', size: 11 },
+          bodyFont: { family: "'IBM Plex Sans'", size: 12 },
           callbacks: {
             footer: function(items) {
               if (isBar) {
                 const dayTotal = items.reduce((acc, curr) => acc + (curr.parsed.y || 0), 0);
-                return `Total Responses: ${dayTotal}`;
+                return `Total Sentiments: ${dayTotal}`;
               }
               return '';
             }
@@ -505,22 +677,22 @@ function updateLineChart(labels, vs, sat, unsat, forceRecreate = false) {
   });
 }
 
-function filterTrendByPeriod(period) {
+function filterSentimentTrendByPeriod(period) {
   if (period === 'all' || TREND_DATES.length === 0) {
-    return { labels: TREND_LABELS, vs: TREND_VS, sat: TREND_SAT, unsat: TREND_UNSAT };
+    return { labels: TREND_LABELS, pos: TREND_POSITIVE, neu: TREND_NEUTRAL, neg: TREND_NEGATIVE };
   }
 
   if (period === 'today') {
     const todayStr = new Date().toLocaleDateString('en-CA');
-    const i = TREND_DATES.indexOf(todayStr);
-    if (i === -1) {
-      return { labels: [], vs: [], sat: [], unsat: [] };
+    const idx = TREND_DATES.reduce((acc, d, i) => { if (d === todayStr) acc.push(i); return acc; }, []);
+    if (idx.length === 0) {
+      return { labels: [], pos: [], neu: [], neg: [] };
     }
     return {
-      labels: ['Today (' + TREND_LABELS[i] + ')'],
-      vs:    [TREND_VS[i] || 0],
-      sat:   [TREND_SAT[i] || 0],
-      unsat: [TREND_UNSAT[i] || 0],
+      labels: ['Today (' + TREND_LABELS[idx[0]] + ')'],
+      pos: [TREND_POSITIVE[idx[0]] || 0],
+      neu: [TREND_NEUTRAL[idx[0]] || 0],
+      neg: [TREND_NEGATIVE[idx[0]] || 0]
     };
   }
 
@@ -529,94 +701,169 @@ function filterTrendByPeriod(period) {
   const idx    = TREND_DATES.reduce((acc, d, i) => { if (new Date(d + 'T00:00:00').getTime() >= cutoff) acc.push(i); return acc; }, []);
   return {
     labels: idx.map(i => TREND_LABELS[i]),
-    vs:    idx.map(i => TREND_VS[i] || 0),
-    sat:   idx.map(i => TREND_SAT[i] || 0),
-    unsat: idx.map(i => TREND_UNSAT[i] || 0),
+    pos: idx.map(i => TREND_POSITIVE[i] || 0),
+    neu: idx.map(i => TREND_NEUTRAL[i] || 0),
+    neg: idx.map(i => TREND_NEGATIVE[i] || 0)
   };
 }
 
-function renderTrendForPeriod(period, forceRecreate = false) {
-  const f = filterTrendByPeriod(period);
-  updateLineChart(f.labels, f.vs, f.sat, f.unsat, forceRecreate);
+function renderSentimentTrendForPeriod(period, forceRecreate = false) {
+  const f = filterSentimentTrendByPeriod(period);
+  updateSentimentTrend(f.labels, f.pos, f.neu, f.neg, forceRecreate);
 }
 
-function setFilter(btn, period) {
+/* ── RATING x COMMENT SENTIMENT ── */
+const RATING_MATRIX = JSON.parse(document.getElementById('rating-matrix-data').textContent);
+const RESPONSES_URL = "{% url 'responses' %}";
+const XT_RATINGS = [
+  { key: 'vsat',  label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied' },
+  { key: 'sat',   label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied' },
+  { key: 'unsat', label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied' },
+];
+const XT_SENTIMENTS = [
+  { key: 'pos', label: 'Positive' },
+  { key: 'neu', label: 'Neutral' },
+  { key: 'neg', label: 'Negative' },
+];
+// Rating and comment point opposite ways.
+const XT_MISMATCH = new Set(['vsat:neg', 'unsat:pos']);
+
+function renderRatingMatrix(period) {
+  const m = RATING_MATRIX[period] || RATING_MATRIX.all;
+  document.getElementById('xtBody').innerHTML = XT_RATINGS.map(r => {
+    const row = m[r.key] || {};
+    const rowTotal = XT_SENTIMENTS.reduce((sum, s) => sum + (row[s.key] || 0), 0);
+    const cells = XT_SENTIMENTS.map(s => {
+      const n = row[s.key] || 0;
+      const pct = rowTotal ? Math.round((n / rowTotal) * 100) : 0;
+      const cls = ['xt-cell', n ? '' : 'is-zero', n && XT_MISMATCH.has(r.key + ':' + s.key) ? 'is-mismatch' : ''].join(' ').trim();
+      const inner = `<span class="xt-count">${n}</span><span class="xt-pct">${pct}% of ${r.label}</span>`;
+      if (!n) return `<td><span class="${cls}">${inner}</span></td>`;
+      const params = new URLSearchParams({ rating: r.label, sentiment: s.label });
+      if (period !== 'all') params.set('range', period);
+      return `<td><a class="${cls}" href="${RESPONSES_URL}?${params}" aria-label="${n} ${r.label} responses with a ${s.label.toLowerCase()} comment">${inner}</a></td>`;
+    }).join('');
+    return `<tr><th scope="row"><span class="rating-chip ${r.cls}"><span class="material-icons-round" aria-hidden="true">${r.icon}</span>${r.label}</span></th>${cells}</tr>`;
+  }).join('');
+}
+
+/* ── CLIENT RATINGS (secondary) ── */
+const RATING_DATA = JSON.parse(document.getElementById('rating-data').textContent);
+const RT_ROWS = [
+  { key: 'very_satisfactory', label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied', color: '#169651' },
+  { key: 'satisfactory',      label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied',      color: '#10b981' },
+  { key: 'unsatisfactory',    label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied',   color: '#dc2626' },
+];
+
+function renderRatings(period) {
+  const d = RATING_DATA[period] || RATING_DATA.all;
+  const pctOf = n => (d.total ? Math.round((n / d.total) * 100) : 0);
+  document.getElementById('rtList').innerHTML = RT_ROWS.map(r => {
+    const n = d[r.key] || 0;
+    return `<li class="rt-row">
+      <span class="rating-chip ${r.cls}"><span class="material-icons-round" aria-hidden="true">${r.icon}</span>${r.label}</span>
+      <span class="rt-count">${n}<small>${pctOf(n)}%</small></span>
+      <span class="rt-bar" aria-hidden="true"><span style="width:${pctOf(n)}%;background:${r.color}"></span></span>
+    </li>`;
+  }).join('');
+  const satisfied = pctOf((d.very_satisfactory || 0) + (d.satisfactory || 0));
+  document.getElementById('rtFoot').innerHTML = d.total
+    ? `<strong>${satisfied}%</strong> rated Satisfactory or better, from ${d.total} ${d.total === 1 ? 'response' : 'responses'}.`
+    : 'No responses in this period.';
+}
+
+/* ── RECENT RESPONSES ── */
+const RECENT_DATA = JSON.parse(document.getElementById('recent-entries-data').textContent);
+const SENTIMENT_CHIPS = {
+  'Positive': { cls: 'chip-pos', icon: 'sentiment_satisfied_alt' },
+  'Neutral':  { cls: 'chip-neu', icon: 'sentiment_neutral' },
+  'Negative': { cls: 'chip-neg', icon: 'sentiment_dissatisfied' },
+  'Pending':  { cls: 'chip-na',  icon: 'hourglass_empty' },
+};
+const RATING_CHIPS = Object.fromEntries(RT_ROWS.map(r => [r.label, r]));
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderRecent() {
+  const body = document.getElementById('recentTableBody');
+  if (!RECENT_DATA.length) {
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No responses yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = RECENT_DATA.map(r => {
+    const sent = SENTIMENT_CHIPS[r.sentiment] || { cls: 'chip-na', icon: '' };
+    const rate = RATING_CHIPS[r.rating] || { cls: 'chip-na', icon: 'help_outline' };
+    const dateStr = new Date(r.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+    const comment = r.comment
+      ? `<div class="comment-text" title="${escHtml(r.comment)}">${escHtml(r.comment)}</div>`
+      : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment (older entry)</span>`;
+    return `<tr>
+      <td class="datetime-cell"><div class="datetime-date">${dateStr}</div><div class="datetime-time">${r.time}</div></td>
+      <td><span class="rating-chip ${sent.cls}">${sent.icon ? `<span class="material-icons-round" aria-hidden="true">${sent.icon}</span>` : ''}${escHtml(r.sentiment)}</span></td>
+      <td class="comment-cell">${comment}</td>
+      <td><span class="rating-chip ${rate.cls}"><span class="material-icons-round" aria-hidden="true">${rate.icon}</span>${escHtml(r.rating)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function setSentimentFilter(btn, period) {
   document.querySelectorAll('.filter-tab').forEach(t => {
     t.classList.remove('active');
     t.setAttribute('aria-selected', 'false');
   });
   btn.classList.add('active');
   btn.setAttribute('aria-selected', 'true');
-  currentFilterPeriod = period;
+  currentSentimentFilterPeriod = period;
 
-  const d = FILTER_DATA[period];
-  animateCount('totalVal', d.total || 0);
-  animateCount('vsVal',    d.very_satisfactory || 0);
-  animateCount('satVal',   d.satisfactory || 0);
-  animateCount('unsatVal', d.unsatisfactory || 0);
+  const d = FILTER_DATA[period] || { positive: 0, neutral: 0, negative: 0, total: 0, positive_pct: 0, neutral_pct: 0, negative_pct: 0 };
+  animateCount('statPosVal', d.positive || 0);
+  animateCount('statNeuVal', d.neutral || 0);
+  animateCount('statNegVal', d.negative || 0);
 
-  const setElemText = (id, txt) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = txt;
-  };
-  setElemText('vsPct', pctOf(d.very_satisfactory || 0, d.total || 0) + '%');
-  setElemText('satPct', pctOf(d.satisfactory || 0, d.total || 0) + '%');
-  setElemText('unsatPct', pctOf(d.unsatisfactory || 0, d.total || 0) + '%');
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  setTxt('statPosPct', (d.positive_pct || 0) + '%');
+  setTxt('statNeuPct', (d.neutral_pct || 0) + '%');
+  setTxt('statNegPct', (d.negative_pct || 0) + '%');
 
-  updatePieAndLegend(d);
-  renderTrendForPeriod(period);
+  animateCount('statTotalVal', (RATING_DATA[period] || {}).total || 0);
+  setTxt('statAnalyzed', d.total || 0);
+
+  renderSentimentTrendForPeriod(period);
+  renderRatings(period);
+  wcPeriod = period;
+  renderWordCloud();
+  renderRatingMatrix(period);
 }
 
 function onThemeChange() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (pieChart) {
-    pieChart.data.datasets[0].borderColor = isDark ? '#1e293b' : '#ffffff';
-    if (pieChart.options && pieChart.options.plugins && pieChart.options.plugins.tooltip) {
-      pieChart.options.plugins.tooltip.backgroundColor = isDark ? '#0f172a' : '#1e293b';
-    }
-    pieChart.update('none');
-  }
-  if (lineChart) {
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
-    const textColor = isDark ? '#cbd5e1' : '#475569';
-    if (lineChart.options && lineChart.options.scales) {
-      if (lineChart.options.scales.x) {
-        lineChart.options.scales.x.grid.color = gridColor;
-        lineChart.options.scales.x.ticks.color = textColor;
-      }
-      if (lineChart.options.scales.y) {
-        lineChart.options.scales.y.grid.color = gridColor;
-        lineChart.options.scales.y.ticks.color = textColor;
-      }
-    }
-    if (lineChart.options && lineChart.options.plugins && lineChart.options.plugins.tooltip) {
-      lineChart.options.plugins.tooltip.backgroundColor = isDark ? '#0f172a' : '#1e293b';
-    }
-    lineChart.update('none');
-  }
+  renderSentimentTrendForPeriod(currentSentimentFilterPeriod, true);
 }
 
 function onResize() {
-  // Chart.js automatically handles container resize events smoothly
-}
-
-// Cache Intl formatters — creating new Date format objects every second is expensive.
-const _clockFmt = new Intl.DateTimeFormat('en-PH', {
-  timeZone: 'Asia/Manila', weekday: 'short', year: 'numeric',
-  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  second: '2-digit', hour12: true
-});
-function tickClock() {
-  const dateBadge = document.getElementById('currentDate');
-  if (dateBadge) dateBadge.textContent = _clockFmt.format(new Date());
+  if (sentimentTrendChart) sentimentTrendChart.resize();
 }
 
 function pageInit() {
-  tickClock();
-  setInterval(tickClock, 1000);
-  updatePieAndLegend(FILTER_DATA.all);
-  renderTrendForPeriod('all');
+  renderSentimentTrendForPeriod('all');
+  renderWordCloud();
+  renderRatingMatrix('all');
+  renderRatings('all');
   renderRecent();
+
+  // Stabilize chart layout once scrollbars and layout geometry settle
+  requestAnimationFrame(() => {
+    if (sentimentTrendChart) sentimentTrendChart.resize();
+  });
+  setTimeout(() => {
+    if (sentimentTrendChart) sentimentTrendChart.resize();
+  }, 100);
+
+  // Redraw when custom web fonts finish loading so legend width measurements are exact
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      if (sentimentTrendChart) sentimentTrendChart.update('none');
+    });
+  }
 }
 </script>
 {% endblock %}

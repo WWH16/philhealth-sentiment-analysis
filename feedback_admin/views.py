@@ -323,65 +323,61 @@ def response_note_add(request, entry_id):
 
 @staff_required
 def dashboard(request):
-    qs = FeedbackEntry.objects.all()
+    """Comment sentiment first; the client's rating is shown as secondary."""
+    entries = FeedbackEntry.objects.all()
     now = timezone.localtime(timezone.now())
     today = now.date()
     week_start = now - timedelta(days=7)
     month_start = now - timedelta(days=30)
-    recent_entries = qs.order_by('-created_at')[:5]
+    today_range = (
+        timezone.make_aware(datetime.combine(today, time.min)),
+        timezone.make_aware(datetime.combine(today, time.max)),
+    )
 
-    today_start = timezone.make_aware(datetime.combine(today, time.min))
-    today_end = timezone.make_aware(datetime.combine(today, time.max))
-
-    filter_data = _multi_period_experience_counts(qs, (today_start, today_end), week_start, month_start)
+    filter_data = _multi_period_sentiment_counts(entries, today_range, week_start, month_start)
     all_counts = filter_data['all']
-    total = all_counts['total']
-    vs = all_counts['very_satisfactory']
-    sat = all_counts['satisfactory']
-    unsat = all_counts['unsatisfactory']
 
     trend_counts = (
-        qs.annotate(local_date=TruncDate('created_at'))
-        .values('local_date', 'experience')
+        entries.exclude(sentiment=FeedbackEntry.PENDING)
+        .annotate(local_date=TruncDate('created_at'))
+        .values('local_date', 'sentiment')
         .annotate(count=Count('id'))
     )
     trend_data_map = defaultdict(lambda: defaultdict(int))
     for row in trend_counts:
         if row['local_date']:
-            trend_data_map[row['local_date']][row['experience']] += row['count']
+            trend_data_map[row['local_date']][row['sentiment']] = row['count']
 
     if trend_data_map:
-        earliest_date = min(trend_data_map.keys())
-        start_date = min(earliest_date, today - timedelta(days=6))
-        total_days = (today - start_date).days + 1
-        trend_dates = [start_date + timedelta(days=i) for i in range(total_days)]
+        start_date = min(min(trend_data_map.keys()), today - timedelta(days=6))
+        trend_dates = [start_date + timedelta(days=i) for i in range((today - start_date).days + 1)]
     else:
         trend_dates = [today - timedelta(days=i) for i in range(6, -1, -1)]
 
-    def pct(value):
-        return round((value / total) * 100) if total else 0
+    def trend_for(sentiment):
+        return [trend_data_map[day][sentiment] for day in trend_dates]
 
-    def trend_for(experience):
-        return [trend_data_map[day][experience] for day in trend_dates]
-
-    recent_entries_data = list(recent_entries)
-    recent_activity = _build_feedback_activity_map([entry.pk for entry in recent_entries_data])
+    recent_entries = list(entries.order_by('-created_at')[:5])
+    recent_activity = _build_feedback_activity_map([entry.pk for entry in recent_entries])
 
     context = {
-        'total': total,
-        'very_satisfactory': vs,
-        'satisfactory': sat,
-        'unsatisfactory': unsat,
-        'very_satisfactory_pct': pct(vs),
-        'satisfactory_pct': pct(sat),
-        'unsatisfactory_pct': pct(unsat),
-        'recent_entries_data': [_entry_to_row(entry, recent_activity) for entry in recent_entries_data],
+        'total': all_counts['total'],
+        'positive': all_counts['positive'],
+        'neutral': all_counts['neutral'],
+        'negative': all_counts['negative'],
+        'positive_pct': all_counts['positive_pct'],
+        'neutral_pct': all_counts['neutral_pct'],
+        'negative_pct': all_counts['negative_pct'],
         'filter_data': filter_data,
+        'rating_data': _multi_period_experience_counts(entries, today_range, week_start, month_start),
+        'rating_matrix': _rating_sentiment_matrix(entries, today_range, week_start, month_start),
+        'word_cloud': _sentiment_word_cloud(entries, today_range[0], week_start, month_start),
+        'recent_entries_data': [_entry_to_row(entry, recent_activity) for entry in recent_entries],
         'trend_labels': [f'{day:%b} {day.day}' for day in trend_dates],
         'trend_dates': [day.isoformat() for day in trend_dates],
-        'trend_very_satisfactory': trend_for(FeedbackEntry.VERY_SATISFACTORY),
-        'trend_satisfactory': trend_for(FeedbackEntry.SATISFACTORY),
-        'trend_unsatisfactory': trend_for(FeedbackEntry.UNSATISFACTORY),
+        'trend_positive': trend_for(FeedbackEntry.POSITIVE),
+        'trend_neutral': trend_for(FeedbackEntry.NEUTRAL),
+        'trend_negative': trend_for(FeedbackEntry.NEGATIVE),
     }
     return render(request, 'feedback_admin/dashboard.html', context)
 
@@ -775,67 +771,6 @@ def _sentiment_word_cloud(entries, today_start, week_start, month_start):
             'words': sorted(kept.values(), key=lambda word: (-word['n'], word['t'])),
         }
     return cloud
-
-
-@superuser_required
-def sentiment_analysis(request):
-    entries = FeedbackEntry.objects.all()
-    now = timezone.localtime(timezone.now())
-    today = now.date()
-    week_start = now - timedelta(days=7)
-    month_start = now - timedelta(days=30)
-    today_start = timezone.make_aware(datetime.combine(today, time.min))
-    today_end = timezone.make_aware(datetime.combine(today, time.max))
-
-    filter_data = _multi_period_sentiment_counts(entries, (today_start, today_end), week_start, month_start)
-    all_counts = filter_data['all']
-    rating_matrix = _rating_sentiment_matrix(entries, (today_start, today_end), week_start, month_start)
-
-    trend_counts = (
-        entries.exclude(sentiment=FeedbackEntry.PENDING)
-        .annotate(local_date=TruncDate('created_at'))
-        .values('local_date', 'sentiment')
-        .annotate(count=Count('id'))
-    )
-    trend_data_map = defaultdict(lambda: defaultdict(int))
-    for row in trend_counts:
-        if row['local_date']:
-            trend_data_map[row['local_date']][row['sentiment']] = row['count']
-
-    if trend_data_map:
-        earliest_date = min(trend_data_map.keys())
-        start_date = min(earliest_date, today - timedelta(days=6))
-        total_days = (today - start_date).days + 1
-        trend_dates = [start_date + timedelta(days=i) for i in range(total_days)]
-    else:
-        trend_dates = [today - timedelta(days=i) for i in range(6, -1, -1)]
-
-    trend_labels = [f'{day:%b} {day.day}' for day in trend_dates]
-
-    def trend_for(sentiment):
-        return [trend_data_map[day][sentiment] for day in trend_dates]
-
-    word_cloud = _sentiment_word_cloud(entries, today_start, week_start, month_start)
-
-    context = {
-        'word_cloud': word_cloud,
-        'rating_matrix': rating_matrix,
-        'total': all_counts['total'],
-        'positive': all_counts['positive'],
-        'neutral': all_counts['neutral'],
-        'negative': all_counts['negative'],
-        'positive_pct': all_counts['positive_pct'],
-        'neutral_pct': all_counts['neutral_pct'],
-        'negative_pct': all_counts['negative_pct'],
-        'filter_data': filter_data,
-
-        'trend_labels': trend_labels,
-        'trend_dates': [day.isoformat() for day in trend_dates],
-        'trend_positive': trend_for(FeedbackEntry.POSITIVE),
-        'trend_neutral': trend_for(FeedbackEntry.NEUTRAL),
-        'trend_negative': trend_for(FeedbackEntry.NEGATIVE),
-    }
-    return render(request, 'feedback_admin/sentiment_analysis.html', context)
 
 
 @staff_required
