@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CSAS: Client Sentiment Analysis System | PhilHealth LHIO Cauayan City</title>
-  <meta name="description" content="Tell PhilHealth LHIO Cauayan City how you were served. Answer the official Client Satisfaction Measurement (CSM) form and see what the office does with your feedback.">
+  <meta name="description" content="Tell PhilHealth LHIO Cauayan City how you were served. Rate your transaction, leave a comment, and see what the office does with your feedback.">
   <meta name="theme-color" content="#174d2a">
   <link rel="icon" type="image/png" href="{% static 'img/csas-mark.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/csas-mark.png' %}">
@@ -343,7 +343,7 @@
         <div class="hero-copy">
           <h1 id="heroTitle">Tell us how we <em>served you</em> today.</h1>
           <p class="hero-fil" lang="fil">Sabihin sa amin kung paano namin kayo napagsilbihan ngayong araw.</p>
-          <p class="hero-lede">The official CSM form of PhilHealth LHIO Cauayan City. Rate your transaction and add a comment if you like.</p>
+          <p class="hero-lede">A short feedback form from PhilHealth LHIO Cauayan City. Rate your transaction and add a comment if you like.</p>
           {% if survey_enabled %}
             <div class="hero-actions">
               <a class="btn btn-primary btn-lg" href="{% url 'feedback-index' %}">Give feedback <span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
@@ -397,7 +397,7 @@
               <blockquote lang="fil">Mabilis at magalang ang staff sa window 3. Salamat po!</blockquote>
               <figcaption>Example comment</figcaption>
             </figure>
-            <p class="field-does"><strong>What the office does</strong>Records it with the staff member who assisted you, so the office can see who was commended.</p>
+            <p class="field-does"><strong>What the office does</strong>Records it on the dashboard, so the office can see what and who clients commend.</p>
           </article>
           <article class="field f-neu" aria-labelledby="neuTitle">
             <div class="field-head">
@@ -436,7 +436,7 @@
           <div class="apart">
             <div>
               <h3>Your rating</h3>
-              <p class="who">You choose it for each service question.</p>
+              <p class="who">You pick one for your visit.</p>
               <div class="chips" aria-label="Rating choices on the form">
                 <span class="chip chip-vs"><span class="material-icons-round" aria-hidden="true">sentiment_very_satisfied</span>Very Satisfactory</span>
                 <span class="chip chip-sat"><span class="material-icons-round" aria-hidden="true">sentiment_satisfied</span>Satisfactory</span>
@@ -464,16 +464,14 @@
           </div>
           <div class="asks">
             <div class="asks-intro">
-              <p>The same Client Satisfaction Measurement form used in government offices, answered on your phone or computer.</p>
+              <p>Two short parts, answered on your phone or computer. Only the rating is required.</p>
               {% if survey_enabled %}
                 <a class="btn btn-primary" href="{% url 'feedback-index' %}">Give feedback <span class="material-icons-round" aria-hidden="true">arrow_forward</span></a>
               {% endif %}
             </div>
             <ol class="steps">
-              <li><h3>About you and your visit</h3><p>Client type, the service you availed, and the staff member who assisted you.</p></li>
-              <li><h3>Citizen’s Charter</h3><p>Three questions on whether you knew about and used the office’s Citizen’s Charter.</p></li>
-              <li><h3>Service quality</h3><p>Rate nine statements about the service: Very Satisfactory, Satisfactory, or Unsatisfactory.</p></li>
-              <li><h3>Comments and commendation<span class="opt">Optional</span></h3><p>Tell us what went well or what should change, in English or Filipino.</p></li>
+              <li><h3>Your experience</h3><p>Pick one: Very Satisfactory, Satisfactory, or Unsatisfactory.</p></li>
+              <li><h3>Comment<span class="opt">Optional</span></h3><p>Tell us what went well or what should change, in English or Filipino.</p></li>
             </ol>
           </div>
         </section>

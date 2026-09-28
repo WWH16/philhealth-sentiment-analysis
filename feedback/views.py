@@ -22,18 +22,9 @@ def landing(request):
 @ensure_csrf_cookie
 def index(request):
     config = FeedbackConfiguration.get_solo()
-    survey_enabled = config.survey_enabled
-    offline_message = config.get_survey_offline_message()
-
-    staff_members = User.objects.filter(
-        is_active=True,
-        is_staff=True,
-        is_superuser=False,
-    ).only('id', 'first_name', 'last_name', 'username').order_by('first_name', 'last_name', 'username')
     return render(request, 'feedback/index.html', {
-        'staff_members': staff_members,
-        'survey_enabled': survey_enabled,
-        'offline_message': offline_message,
+        'survey_enabled': config.survey_enabled,
+        'offline_message': config.get_survey_offline_message(),
     })
 
 
@@ -65,18 +56,8 @@ def submit_feedback(request):
     if experience not in valid_experiences:
         return JsonResponse({'ok': False, 'error': 'Please select your experience.'}, status=400)
 
-    # 2. Comment handling (supports comment, comments_suggestions, commendation)
-    comment = (payload.get('comment') or '').strip()
-    comments_suggestions = (payload.get('comments_suggestions') or '').strip()
-    commendation = (payload.get('commendation') or '').strip()
-
-    if not comment:
-        parts = []
-        if comments_suggestions:
-            parts.append(f"Comments: {comments_suggestions}")
-        if commendation:
-            parts.append(f"Commendation: {commendation}")
-        comment = " | ".join(parts)
+    # 2. Comment (older clients sent it as comments_suggestions)
+    comment = (payload.get('comment') or payload.get('comments_suggestions') or '').strip()
 
     if len(comment) > 1000:
         return JsonResponse({'ok': False, 'error': 'Comments must be 1000 characters or fewer.'}, status=400)
@@ -123,15 +104,6 @@ def submit_feedback(request):
         except (ValueError, TypeError):
             pass
 
-    has_active_staff = User.objects.filter(
-        is_active=True,
-        is_staff=True,
-        is_superuser=False,
-    ).exists()
-
-    if has_active_staff and not staff_user:
-        return JsonResponse({'ok': False, 'error': 'Please select the staff member who assisted you.'}, status=400)
-
     entry = FeedbackEntry.objects.create(
         experience=experience,
         comment=comment,
@@ -158,8 +130,6 @@ def submit_feedback(request):
         sqd6=safe_int(payload.get('sqd6')),
         sqd7=safe_int(payload.get('sqd7')),
         sqd8=safe_int(payload.get('sqd8')),
-        comments_suggestions=comments_suggestions,
-        commendation=commendation,
     )
 
     return JsonResponse({

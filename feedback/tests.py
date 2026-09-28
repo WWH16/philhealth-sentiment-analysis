@@ -69,7 +69,6 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
             'sqd7': 3,
             'sqd8': 3,
             'comments_suggestions': 'Keep up the good work!',
-            'commendation': 'Kudos to Frontdesk Staff Maria!'
         }
 
         response = self._submit(payload)
@@ -86,8 +85,7 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(entry.services_availed, ['KonSulTa Registration (5)', 'Claims Filing (8)'])
         self.assertEqual(entry.sqd0, 3)
         self.assertEqual(entry.experience, FeedbackEntry.VERY_SATISFACTORY)
-        self.assertIn('Comments: Keep up the good work!', entry.comment)
-        self.assertIn('Commendation: Kudos to Frontdesk Staff Maria!', entry.comment)
+        self.assertEqual(entry.comment, 'Keep up the good work!')
 
 
     def test_submit_feedback_without_comment_sets_sentiment_na(self):
@@ -128,31 +126,6 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(entry.staff_name, 'Maria Santos')
         self.assertEqual(entry.attending_staff_display, 'Maria Santos')
 
-    def test_index_page_renders_active_staff_only_and_excludes_superusers(self):
-        from django.contrib.auth.models import User
-        # Staff member (should appear)
-        User.objects.create_user(
-            username='clerk_pedro',
-            first_name='Pedro',
-            last_name='Penduko',
-            is_staff=True,
-            is_superuser=False,
-            is_active=True,
-        )
-        # Superuser / Administrator (should NOT appear)
-        User.objects.create_superuser(
-            username='boss_admin',
-            email='boss@philhealth.gov.ph',
-            password='password123',
-            first_name='Boss',
-            last_name='Administrator',
-        )
-        response = self.client.get('/feedback/')
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Pedro Penduko')
-        self.assertNotContains(response, 'Boss Administrator')
-        self.assertContains(response, 'id="staffAssisted"')
-
     def test_submit_feedback_authoritative_staff_name_overrides_spoofed_payload(self):
         from django.contrib.auth.models import User
         staff_user = User.objects.create_user(
@@ -174,15 +147,7 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(entry.staff_assisted, staff_user)
         self.assertEqual(entry.staff_name, 'Clara Reyes')
 
-    def test_index_page_empty_staff_shows_disabled_placeholder(self):
-        from django.contrib.auth.models import User
-        User.objects.filter(is_staff=True, is_superuser=False).delete()
-        response = self.client.get('/feedback/')
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'disabled')
-        self.assertContains(response, '-- No Attending Staff Listed --')
-
-    def test_submit_feedback_requires_staff_selection_when_active_staff_exist(self):
+    def test_submit_short_form_without_staff_when_active_staff_exist(self):
         from django.contrib.auth.models import User
         User.objects.create_user(
             username='staff_test',
@@ -192,15 +157,27 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
             is_active=True,
             is_superuser=False,
         )
-        payload = {
-            'comment': 'Good service',
-            'sqd0': 3,
-        }
-        response = self._submit(payload)
+        response = self._submit({
+            'experience': FeedbackEntry.UNSATISFACTORY,
+            'comment': 'Mahaba ang pila.',
+        })
+        self.assertEqual(response.status_code, 201)
+        entry = FeedbackEntry.objects.get()
+        self.assertEqual(entry.experience, FeedbackEntry.UNSATISFACTORY)
+        self.assertEqual(entry.comment, 'Mahaba ang pila.')
+        self.assertIsNone(entry.staff_assisted)
+
+    def test_submit_limits_comment_to_1000_characters(self):
+        response = self._submit({
+            'experience': FeedbackEntry.SATISFACTORY,
+            'comment': 'a' * 1000,
+        })
+        self.assertEqual(response.status_code, 201)
+        response = self._submit({
+            'experience': FeedbackEntry.SATISFACTORY,
+            'comment': 'a' * 1001,
+        })
         self.assertEqual(response.status_code, 400)
-        data = json.loads(response.content.decode('utf-8'))
-        self.assertFalse(data.get('ok'))
-        self.assertEqual(data.get('error'), 'Please select the staff member who assisted you.')
 
 
     def test_submit_maps_sqd0_to_three_point_rating(self):
@@ -392,7 +369,7 @@ class SurveyAvailabilityTests(TestCase):
         self.assertTemplateUsed(response, 'feedback/landing.html')
         self.assertContains(response, 'href="/feedback/"')
         self.assertContains(response, 'Give feedback')
-        self.assertNotContains(response, 'id="csmForm"')
+        self.assertNotContains(response, 'id="feedbackForm"')
 
     def test_landing_page_shows_offline_notice_when_survey_disabled(self):
         self.config.survey_enabled = False
@@ -407,8 +384,9 @@ class SurveyAvailabilityTests(TestCase):
         response = self.client.get('/feedback/')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['survey_enabled'])
-        self.assertContains(response, 'id="csmForm"')
-        self.assertNotContains(response, 'Online Feedback Form is Currently Unavailable')
+        self.assertContains(response, 'id="feedbackForm"')
+        self.assertContains(response, 'name="experience"', count=3)
+        self.assertNotContains(response, 'The online form is paused right now')
 
     def test_index_renders_offline_notice_when_survey_disabled(self):
         self.config.survey_enabled = False
@@ -417,9 +395,9 @@ class SurveyAvailabilityTests(TestCase):
         response = self.client.get('/feedback/')
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['survey_enabled'])
-        self.assertContains(response, 'Online Feedback Form is Currently Unavailable')
+        self.assertContains(response, 'The online form is paused right now')
         self.assertContains(response, 'Custom offline notice for testing.')
-        self.assertNotContains(response, 'id="csmForm"')
+        self.assertNotContains(response, 'id="feedbackForm"')
 
     def test_submit_feedback_blocked_when_survey_disabled(self):
         self.config.survey_enabled = False

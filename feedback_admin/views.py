@@ -1107,7 +1107,7 @@ def export_report_excel(request):
         'CC1', 'CC2', 'CC3',
         'SQD0', 'SQD1', 'SQD2', 'SQD3', 'SQD4', 'SQD5', 'SQD6', 'SQD7', 'SQD8',
         'Experience', 'Category', 'Sentiment', 'Status',
-        'Staff Assisted', 'Comment', 'Suggestions', 'Commendation',
+        'Staff Assisted', 'Comment', 'Suggestions',
     ]
 
     # Write header row
@@ -1148,7 +1148,6 @@ def export_report_excel(request):
             entry.attending_staff_display,
             entry.comment,
             entry.comments_suggestions,
-            entry.commendation,
         ]
         for col_idx, value in enumerate(row_data, 1):
             cell = ws2.cell(row=row_idx, column=col_idx, value=value)
@@ -1161,7 +1160,7 @@ def export_report_excel(request):
         'H': 6, 'I': 6, 'J': 6,
         'K': 6, 'L': 6, 'M': 6, 'N': 6, 'O': 6, 'P': 6, 'Q': 6, 'R': 6, 'S': 6,
         'T': 18, 'U': 14, 'V': 12, 'W': 12,
-        'X': 22, 'Y': 36, 'Z': 36, 'AA': 36,
+        'X': 22, 'Y': 36, 'Z': 36,
     }
     for col_letter, width in col_widths.items():
         ws2.column_dimensions[col_letter].width = width
