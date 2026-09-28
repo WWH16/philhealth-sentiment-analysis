@@ -479,11 +479,11 @@ function applyFilters(keepPage = false) {
   filteredRows = ALL_DATA.filter(r => {
     const matchQ    = !q || (r.comment||'').toLowerCase().includes(q)
                          || r.id.toString().includes(q)
-                         || r.experience.toLowerCase().includes(q)
+                         || r.rating.toLowerCase().includes(q)
                          || (r.category||'').toLowerCase().includes(q)
                          || r.date.includes(q)
                          || (r.sentiment||'').toLowerCase().includes(q);
-    const matchE    = !experience || r.experience === experience;
+    const matchE    = !experience || r.rating === experience;
     const matchC    = !category   || r.category   === category;
     const matchS    = !sentiment  || r.sentiment  === sentiment;
     const matchSt   = !status     || r.status     === status;

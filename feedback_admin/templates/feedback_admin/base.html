@@ -337,8 +337,6 @@ input:not(:checked) + .slider .sun {
 .page-title { font-size: 26px; font-weight: 800; letter-spacing: -0.04em; color: var(--text-primary); margin: 0 0 6px; line-height: 1.1; }
 .page-subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
 .page-header-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.date-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: var(--text-muted); background: var(--surface-card); border: 1px solid var(--border); padding: 7px 12px; white-space: nowrap; }
-.date-badge .material-icons-round { font-size: 14px; color: var(--g-primary); }
 
 /* ── STAT CARDS ───────────────────────────────────────────────────────── */
 .stat-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 6px; padding: 20px 20px 18px; transition: border-color 150ms, transform 150ms, box-shadow 150ms; position: relative; overflow: hidden; }
@@ -493,25 +491,6 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
 .chart-wrap canvas { display: block; width: 100% !important; }
 .chart-no-data { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; height: 200px; color: var(--text-muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .chart-no-data .material-icons-round { font-size: 32px; opacity: 0.3; }
-
-/* ── PIE CHART ────────────────────────────────────────────────────────── */
-.pie-chart-layout { display: flex; align-items: center; gap: 16px; padding-right: 4px; }
-.pie-chart-col { flex: 0 0 48%; max-width: 48%; }
-.pie-legend-col { flex: 0 0 52%; max-width: 52%; padding-right: 4px; }
-.pie-legend { display: flex; flex-direction: column; gap: 12px; padding: 4px 0; }
-.pie-legend-item { display: flex; align-items: center; gap: 10px; }
-.pie-legend-dot { width: 10px; height: 10px; flex-shrink: 0; }
-.pie-legend-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); flex: 1; min-width: 0; }
-.pie-legend-value { font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--mono); white-space: nowrap; min-width: 36px; text-align: right; }
-.pie-legend-pct { font-size: 10px; font-weight: 600; color: var(--text-muted); min-width: 42px; text-align: right; white-space: nowrap; padding-left: 8px; }
-
-/* ── MINI STAT ────────────────────────────────────────────────────────── */
-.mini-stat { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.mini-stat:last-child { border-bottom: none; padding-bottom: 0; }
-.mini-stat-bar-wrap { flex: 1; height: 5px; background: var(--border); position: relative; overflow: hidden; }
-.mini-stat-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; transform-origin: left center; transition: transform 600ms cubic-bezier(.4,0,.2,1); }
-.mini-stat-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); min-width: 80px; letter-spacing: 0.02em; }
-.mini-stat-val { font-size: 12px; font-weight: 700; color: var(--text-primary); font-family: var(--mono); min-width: 36px; text-align: right; }
 
 /* ── SIDEBAR OVERLAY (mobile) ─────────────────────────────────────────── */
 .sidebar-overlay { display: none; position: fixed; left: 0; top: var(--topbar-h); right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 150; }
@@ -726,8 +705,7 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
   .topbar-actions { gap: 4px; }
   .topbar-avatar { width: 30px; height: 30px; }
   .topbar-avatar .material-icons-round { font-size: 17px; }
-  .date-badge { padding: 5px 10px; font-size: 10px; }
-  .stat-value { font-size: 26px; }
+    .stat-value { font-size: 26px; }
   .stat-label { font-size: 8px; }
   .stat-card { padding: 14px 12px 12px; }
   .stat-card-icon { width: 28px; height: 28px; margin-bottom: 8px; }
@@ -746,14 +724,6 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
   .rating-chip { font-size: 9px; padding: 3px 6px; }
   .pagination-row { padding: 10px 12px; }
   .pg-btn { width: 28px; height: 28px; font-size: 11px; }
-  .pie-chart-layout { gap: 10px; align-items: center; }
-  .pie-chart-col { flex: 0 0 44% !important; max-width: 44% !important; }
-  .pie-chart-col .chart-wrap { height: 150px !important; }
-  .pie-legend-col { flex: 1 1 0 !important; max-width: none !important; }
-  .pie-legend { gap: 8px; }
-  .pie-legend-label { font-size: 10px; }
-  .pie-legend-value { font-size: 11px; }
-  .mini-stat-label { font-size: 10px; min-width: 54px; }
   .btn-ph { padding: 6px 9px; font-size: 9px; }
   .logout-modal { max-width: 100%; }
   .logout-modal-head { padding: 16px 18px 14px; }

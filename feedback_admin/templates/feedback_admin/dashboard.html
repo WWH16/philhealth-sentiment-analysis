@@ -715,10 +715,11 @@ function renderSentimentTrendForPeriod(period, forceRecreate = false) {
 /* ── RATING x COMMENT SENTIMENT ── */
 const RATING_MATRIX = JSON.parse(document.getElementById('rating-matrix-data').textContent);
 const RESPONSES_URL = "{% url 'responses' %}";
-const XT_RATINGS = [
-  { key: 'vsat',  label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied' },
-  { key: 'sat',   label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied' },
-  { key: 'unsat', label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied' },
+// key: matrix key; field: rating_data field.
+const RATINGS = [
+  { key: 'vsat',  field: 'very_satisfactory', label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied', color: '#169651' },
+  { key: 'sat',   field: 'satisfactory',      label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied',      color: '#10b981' },
+  { key: 'unsat', field: 'unsatisfactory',    label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied',   color: '#dc2626' },
 ];
 const XT_SENTIMENTS = [
   { key: 'pos', label: 'Positive' },
@@ -730,7 +731,7 @@ const XT_MISMATCH = new Set(['vsat:neg', 'unsat:pos']);
 
 function renderRatingMatrix(period) {
   const m = RATING_MATRIX[period] || RATING_MATRIX.all;
-  document.getElementById('xtBody').innerHTML = XT_RATINGS.map(r => {
+  document.getElementById('xtBody').innerHTML = RATINGS.map(r => {
     const row = m[r.key] || {};
     const rowTotal = XT_SENTIMENTS.reduce((sum, s) => sum + (row[s.key] || 0), 0);
     const cells = XT_SENTIMENTS.map(s => {
@@ -749,17 +750,12 @@ function renderRatingMatrix(period) {
 
 /* ── CLIENT RATINGS (secondary) ── */
 const RATING_DATA = JSON.parse(document.getElementById('rating-data').textContent);
-const RT_ROWS = [
-  { key: 'very_satisfactory', label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied', color: '#169651' },
-  { key: 'satisfactory',      label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied',      color: '#10b981' },
-  { key: 'unsatisfactory',    label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied',   color: '#dc2626' },
-];
 
 function renderRatings(period) {
   const d = RATING_DATA[period] || RATING_DATA.all;
   const pctOf = n => (d.total ? Math.round((n / d.total) * 100) : 0);
-  document.getElementById('rtList').innerHTML = RT_ROWS.map(r => {
-    const n = d[r.key] || 0;
+  document.getElementById('rtList').innerHTML = RATINGS.map(r => {
+    const n = d[r.field] || 0;
     return `<li class="rt-row">
       <span class="rating-chip ${r.cls}"><span class="material-icons-round" aria-hidden="true">${r.icon}</span>${r.label}</span>
       <span class="rt-count">${n}<small>${pctOf(n)}%</small></span>
@@ -780,7 +776,7 @@ const SENTIMENT_CHIPS = {
   'Negative': { cls: 'chip-neg', icon: 'sentiment_dissatisfied' },
   'Pending':  { cls: 'chip-na',  icon: 'hourglass_empty' },
 };
-const RATING_CHIPS = Object.fromEntries(RT_ROWS.map(r => [r.label, r]));
+const RATING_CHIPS = Object.fromEntries(RATINGS.map(r => [r.label, r]));
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 

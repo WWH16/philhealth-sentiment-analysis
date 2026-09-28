@@ -426,7 +426,6 @@ def _entry_to_row(entry, activity=None):
         'id': entry.id,
         'date': local_created.strftime('%Y-%m-%d'),
         'time': local_created.strftime('%H:%M'),
-        'experience': exp_display,
         'rating': exp_display,
         'category': _CAT_DISPLAY.get(entry.category, entry.category),
         'category_value': entry.category,
