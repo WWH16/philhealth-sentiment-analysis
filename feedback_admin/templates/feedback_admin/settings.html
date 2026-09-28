@@ -410,7 +410,7 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
               <div style="margin: 14px 0;">
                 <div id="surveyActiveNotice" class="confirm-stability-notice" style="background:var(--g-xlight);border-color:var(--g-light);color:var(--g-forest);font-weight:600;{% if not feedback_config.survey_enabled %}display:none;{% endif %}">
                   <span class="material-icons-round" style="color:var(--g-primary);">check_circle</span>
-                  <span>Public feedback portal is <strong>active</strong> and accepting citizen responses at the main CSM form.</span>
+                  <span>Public feedback portal is <strong>active</strong> and accepting client responses at the feedback form.</span>
                 </div>
                 <div id="surveyPausedNotice" class="restore-alert-box" style="margin-bottom:0;background:#fffbe6;border-color:#f5e4a0;color:#7a5500;{% if feedback_config.survey_enabled %}display:none;{% endif %}">
                   <span class="material-icons-round" style="color:var(--gold);">warning</span>
@@ -480,7 +480,7 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
               <div class="settings-row">
                 <div class="settings-row-info">
                   <div class="settings-row-label">Enable Auto-Analysis</div>
-                  <div class="settings-row-hint">When enabled, every new feedback submission with a comment is instantly analyzed for sentiment (Positive, Neutral, or Negative). Submissions without a comment stay Pending.</div>
+                  <div class="settings-row-hint">When enabled, every new submission's comment is instantly analyzed for sentiment (Positive, Neutral, or Negative). Every submission includes a comment. With auto-analysis off, new comments stay Pending until you run analysis.</div>
                 </div>
                 <div class="settings-row-control">
                   <label class="toggle-switch" aria-label="Enable auto-analysis">
@@ -670,7 +670,7 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
                 <div class="settings-row-info">
                   <div class="settings-row-label">Daily Summary Email</div>
                   <div class="settings-row-hint">
-                    Receive an automated daily email at <strong>4:30 PM PHT</strong> summarizing the day's total feedback count, SQD0 satisfaction rate %, sentiment distribution, and flagged citizen complaints.
+                    Receive an automated daily email at <strong>4:30 PM PHT</strong> summarizing the day's total feedback count, satisfaction rate %, sentiment distribution, and flagged complaints.
                   </div>
                 </div>
                 <div class="settings-row-control">

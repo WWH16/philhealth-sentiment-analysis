@@ -135,14 +135,14 @@
         <div class="card-block-head">
           <h2 class="card-block-title">
             <span class="material-icons-round">donut_large</span>
-            SQD Rating Distribution
+            Rating Distribution
           </h2>
         </div>
         <div class="card-block-body">
           <div class="pie-chart-layout">
             <div class="pie-chart-col">
               <div class="chart-wrap" style="height:200px;">
-                <canvas id="pieChart" aria-label="SQD Distribution pie chart" role="img"></canvas>
+                <canvas id="pieChart" aria-label="Rating distribution pie chart" role="img"></canvas>
               </div>
             </div>
             <div class="pie-legend-col">
@@ -177,7 +177,7 @@
         <div class="card-block-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <h2 class="card-block-title" style="margin:0;">
             <span class="material-icons-round">show_chart</span>
-            Daily SQD Feedback Trend
+            Daily Ratings
           </h2>
           <div class="chart-type-toggle" role="group" aria-label="Chart display type">
             <button type="button" class="btn-chart-toggle active" id="btnStackedBar" onclick="setTrendChartType('bar')">
@@ -195,7 +195,7 @@
             <div style="font-size:11px;max-width:280px;">Select "This Week", "This Month", or "All Time" to view feedback volume and satisfaction trends.</div>
           </div>
           <div class="chart-wrap" id="trendChartWrap" style="height:260px;">
-            <canvas id="lineChart" aria-label="Daily SQD feedback trend chart" role="img"></canvas>
+            <canvas id="lineChart" aria-label="Daily ratings chart" role="img"></canvas>
           </div>
         </div>
       </div>
@@ -218,7 +218,7 @@
         <thead>
           <tr>
             <th style="min-width:100px">Date &amp; Time</th>
-            <th style="min-width:160px">SQD Rating</th>
+            <th style="min-width:160px">Rating</th>
             <th style="min-width:120px">Category</th>
             <th>Feedback / Comment</th>
           </tr>
@@ -263,8 +263,8 @@ function renderRecent() {
     const cfg     = RATING_CONFIG[r.experience] || RATING_FALLBACK;
     const dateStr = new Date(r.date).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
     const comment = r.comment
-      ? `<div class="comment-text">${escHtml(r.comment)}</div>`
-      : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment provided</span>`;
+      ? `<div class="comment-text" title="${escHtml(r.comment)}">${escHtml(r.comment)}</div>`
+      : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment (older entry)</span>`;
     return `<tr>
       <td class="datetime-cell">
         <div class="datetime-date">${dateStr}</div>

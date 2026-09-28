@@ -465,8 +465,8 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
 [data-theme="dark"] .chip-neu { background: rgba(184,147,58,0.15); color: #d4a840; }
 [data-theme="dark"] .chip-neg { background: rgba(192,0,26,0.15); color: #f06070; }
 
-.comment-cell { max-width: 280px; }
-.comment-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.55; color: var(--text-secondary); font-size: 12px; }
+.comment-cell { min-width: 320px; }
+.comment-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.55; color: var(--text-secondary); font-size: 12px; }
 .datetime-cell { white-space: nowrap; }
 .datetime-date { font-size: 12px; font-weight: 600; color: var(--text-primary); }
 .datetime-time { font-size: 10px; color: var(--text-muted); font-family: var(--mono); margin-top: 1px; }
@@ -742,7 +742,7 @@ select.btn-ph { background: var(--surface-card); color: var(--text-secondary); b
   .ph-table { font-size: 11px; }
   .ph-table th { font-size: 9px; padding: 8px 10px; }
   .ph-table td { padding: 10px 10px; }
-  .comment-cell { max-width: 130px; }
+  .comment-cell { min-width: 220px; }
   .rating-chip { font-size: 9px; padding: 3px 6px; }
   .pagination-row { padding: 10px 12px; }
   .pg-btn { width: 28px; height: 28px; font-size: 11px; }

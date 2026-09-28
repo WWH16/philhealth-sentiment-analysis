@@ -168,6 +168,25 @@ class SentimentAnalysisViewTests(TestCase):
         self.assertEqual(response.context['negative'], 1)
         self.assertContains(response, 'nav-item active')
 
+    def test_rating_matrix_crosses_rating_with_comment_sentiment(self):
+        from feedback.models import FeedbackEntry
+        for experience, sentiment in (
+            (FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.NEGATIVE),
+            (FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.NEGATIVE),
+            (FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.POSITIVE),
+            (FeedbackEntry.UNSATISFACTORY, FeedbackEntry.PENDING),
+        ):
+            FeedbackEntry.objects.create(experience=experience, sentiment=sentiment, comment='x')
+
+        response = self.client.get(reverse('sentiment_analysis'))
+        matrix = response.context['rating_matrix']
+
+        self.assertEqual(matrix['all']['vsat'], {'pos': 1, 'neu': 0, 'neg': 2})
+        # Pending comments are not counted in any sentiment column.
+        self.assertEqual(matrix['all']['unsat'], {'pos': 0, 'neu': 0, 'neg': 0})
+        self.assertEqual(matrix['today']['vsat']['neg'], 2)
+        self.assertContains(response, 'id="xtBody"')
+
     def test_word_cloud_counts_analyzed_comment_words(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(

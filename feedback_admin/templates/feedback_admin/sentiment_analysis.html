@@ -12,6 +12,22 @@
 
 {% block extra_styles %}
 <style>
+  /* Rating x comment sentiment table */
+  .xt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .xt { width: 100%; min-width: 520px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .xt th, .xt td { border: 1px solid var(--border); padding: 0; }
+  .xt thead th { padding: 10px 12px; text-align: center; background: var(--surface-page); }
+  .xt thead th:first-child { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+  .xt tbody th { padding: 12px 14px; text-align: left; white-space: nowrap; font-weight: 400; }
+  .xt-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 68px; padding: 10px; color: var(--text-primary); text-decoration: none; transition: background-color 120ms ease; }
+  a.xt-cell:hover { background: var(--g-xlight); }
+  a.xt-cell:focus-visible { outline: 2px solid var(--g-primary); outline-offset: -2px; }
+  .xt-count { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+  .xt-pct { font-size: 11px; color: var(--text-muted); }
+  .xt-cell.is-zero .xt-count { color: var(--ink6); font-weight: 600; }
+  .xt-cell.is-mismatch { background: var(--red-bg); }
+  .xt-cell.is-mismatch .xt-count, .xt-cell.is-mismatch .xt-pct { color: var(--red); }
+  a.xt-cell.is-mismatch:hover { background: var(--red-bg); box-shadow: inset 0 0 0 2px var(--red); }
   .card-block, .stat-card {
     contain: content;
   }
@@ -193,6 +209,38 @@
   </div>
 
   <!-- PIE CHART + BAR GRAPH -->
+  <!-- RATING x COMMENT SENTIMENT -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <section class="card-block" aria-labelledby="xtTitle">
+        <div class="card-block-head">
+          <div>
+            <h2 class="card-block-title" id="xtTitle" style="margin:0;">
+              <span class="material-icons-round" aria-hidden="true">grid_on</span>
+              Rating vs. Comment Sentiment
+            </h2>
+            <p class="wc-caption" id="xtNote">Each response has a rating chosen by the client and a comment sorted by CSAS. The two are measured separately. Red cells are where they disagree; open one to read those comments.</p>
+          </div>
+        </div>
+        <div class="card-block-body">
+          <div class="xt-wrap">
+            <table class="xt" aria-describedby="xtNote">
+              <thead>
+                <tr>
+                  <th scope="col">Rating / Comment</th>
+                  <th scope="col"><span class="rating-chip chip-pos"><span class="material-icons-round" aria-hidden="true">sentiment_satisfied_alt</span>Positive</span></th>
+                  <th scope="col"><span class="rating-chip chip-neu"><span class="material-icons-round" aria-hidden="true">sentiment_neutral</span>Neutral</span></th>
+                  <th scope="col"><span class="rating-chip chip-neg"><span class="material-icons-round" aria-hidden="true">sentiment_dissatisfied</span>Negative</span></th>
+                </tr>
+              </thead>
+              <tbody id="xtBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <div class="row g-3 mb-4">
 
     <!-- PIE CHART -->
@@ -294,6 +342,7 @@
 {% block page_scripts %}
 {{ filter_data|json_script:"sentiment-filter-data" }}
 {{ word_cloud|json_script:"word-cloud-data" }}
+{{ rating_matrix|json_script:"rating-matrix-data" }}
 <script src="{% static 'js/word_cloud.js' %}"></script>
 <script>
 /* ── WORD CLOUD ── */
@@ -827,6 +876,41 @@ function renderSentimentTrendForPeriod(period, forceRecreate = false) {
   updateSentimentTrend(f.labels, f.pos, f.neu, f.neg, forceRecreate);
 }
 
+/* ── RATING x COMMENT SENTIMENT ── */
+const RATING_MATRIX = JSON.parse(document.getElementById('rating-matrix-data').textContent);
+const RESPONSES_URL = "{% url 'responses' %}";
+const XT_RATINGS = [
+  { key: 'vsat',  label: 'Very Satisfactory', cls: 'chip-vs',    icon: 'sentiment_very_satisfied' },
+  { key: 'sat',   label: 'Satisfactory',      cls: 'chip-sat',   icon: 'sentiment_satisfied' },
+  { key: 'unsat', label: 'Unsatisfactory',    cls: 'chip-unsat', icon: 'sentiment_dissatisfied' },
+];
+const XT_SENTIMENTS = [
+  { key: 'pos', label: 'Positive' },
+  { key: 'neu', label: 'Neutral' },
+  { key: 'neg', label: 'Negative' },
+];
+// Rating and comment point opposite ways.
+const XT_MISMATCH = new Set(['vsat:neg', 'unsat:pos']);
+
+function renderRatingMatrix(period) {
+  const m = RATING_MATRIX[period] || RATING_MATRIX.all;
+  document.getElementById('xtBody').innerHTML = XT_RATINGS.map(r => {
+    const row = m[r.key] || {};
+    const rowTotal = XT_SENTIMENTS.reduce((sum, s) => sum + (row[s.key] || 0), 0);
+    const cells = XT_SENTIMENTS.map(s => {
+      const n = row[s.key] || 0;
+      const pct = rowTotal ? Math.round((n / rowTotal) * 100) : 0;
+      const cls = ['xt-cell', n ? '' : 'is-zero', n && XT_MISMATCH.has(r.key + ':' + s.key) ? 'is-mismatch' : ''].join(' ').trim();
+      const inner = `<span class="xt-count">${n}</span><span class="xt-pct">${pct}% of ${r.label}</span>`;
+      if (!n) return `<td><span class="${cls}">${inner}</span></td>`;
+      const params = new URLSearchParams({ rating: r.label, sentiment: s.label });
+      if (period !== 'all') params.set('range', period);
+      return `<td><a class="${cls}" href="${RESPONSES_URL}?${params}" aria-label="${n} ${r.label} responses with a ${s.label.toLowerCase()} comment">${inner}</a></td>`;
+    }).join('');
+    return `<tr><th scope="row"><span class="rating-chip ${r.cls}"><span class="material-icons-round" aria-hidden="true">${r.icon}</span>${r.label}</span></th>${cells}</tr>`;
+  }).join('');
+}
+
 function setSentimentFilter(btn, period) {
   document.querySelectorAll('.filter-tab').forEach(t => {
     t.classList.remove('active');
@@ -851,6 +935,7 @@ function setSentimentFilter(btn, period) {
   renderSentimentTrendForPeriod(period);
   wcPeriod = period;
   renderWordCloud();
+  renderRatingMatrix(period);
 }
 
 function onThemeChange() {
@@ -872,6 +957,7 @@ function pageInit() {
   updateSentimentBar(initialData);
   renderSentimentTrendForPeriod('all');
   renderWordCloud();
+  renderRatingMatrix('all');
 
   // Stabilize chart layout once scrollbars and layout geometry settle
   requestAnimationFrame(() => {

@@ -36,7 +36,7 @@ def get_daily_summary_metrics(target_date=None):
 
     total_count = qs.count()
 
-    # Overall satisfaction rating (SQD0): Very Satisfactory, Satisfactory, Unsatisfactory
+    # Overall rating: Very Satisfactory, Satisfactory, Unsatisfactory
     satisfied = [FeedbackEntry.VERY_SATISFACTORY, FeedbackEntry.SATISFACTORY]
     rating_res = qs.aggregate(
         vs=Count('id', filter=Q(experience=FeedbackEntry.VERY_SATISFACTORY)),
@@ -100,8 +100,6 @@ def get_daily_summary_metrics(target_date=None):
         flagged_items.append({
             'id': entry.pk,
             'time': timezone.localtime(entry.created_at).strftime('%I:%M %p'),
-            'client': entry.name_of_client or entry.client_type or 'Anonymous Citizen',
-            'client_type': entry.client_type or 'General Public',
             'category': entry.get_category_display() if entry.category else 'Uncategorized',
             'sentiment': entry.get_sentiment_display(),
             'rating': entry.get_experience_display(),

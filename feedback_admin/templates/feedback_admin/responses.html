@@ -277,7 +277,7 @@
           <option value="Neutral">Neutral</option>
           <option value="Negative">Negative</option>
           <option value="Pending">Pending (Unanalyzed)</option>
-          <option value="N/A">N/A (No Comment)</option>
+          <option value="N/A">N/A (older entries)</option>
         </select>
         <select class="btn-ph" id="statusFilter" onchange="applyFilters()" aria-label="Filter by status" style="cursor:pointer">
           <option value="">All Statuses</option>
@@ -649,8 +649,8 @@ function renderTable() {
       const expanded  = expandedIds.has(r.id);
       const hasComment = !!r.comment;
       const preview   = hasComment
-        ? `<div class="comment-text">${escHtml(r.comment)}</div>`
-        : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment</span>`;
+        ? `<div class="comment-text" title="${escHtml(r.comment)}">${escHtml(r.comment)}</div>`
+        : `<span style="color:var(--text-muted);font-size:11px;font-style:italic">No comment (older entry)</span>`;
 
       const mainRow = `<tr data-id="${r.id}">
         <td style="padding:13px 8px 13px 16px;">
@@ -711,7 +711,7 @@ function renderTable() {
                 <div class="detail-grid">
                   <div>
                     <div style="font-weight:700;margin-bottom:8px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;">Original Feedback</div>
-                    <div style="font-size:13px;color:var(--text-primary);white-space:pre-wrap;margin-bottom:20px;line-height:1.6;">${escHtml(r.comment || 'No additional comment provided.')}</div>
+                    <div style="font-size:13px;color:var(--text-primary);white-space:pre-wrap;margin-bottom:20px;line-height:1.6;">${escHtml(r.comment || 'No comment (older entry).')}</div>
                     
                     <div style="font-weight:700;margin-bottom:12px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
                       <span class="material-icons-round" style="font-size:14px" aria-hidden="true">description</span>
@@ -1018,6 +1018,19 @@ document.addEventListener('keydown', function(e) {
 
 /* ── INIT ── */
 function pageInit() {
+  // Links from Sentiment Analysis preset filters: ?rating=…&sentiment=…&range=…
+  const params = new URLSearchParams(location.search);
+  const presets = [['rating', 'ratingFilter'], ['sentiment', 'sentimentFilter'], ['range', 'dateRangeFilter']];
+  let preset = false;
+  presets.forEach(([key, id]) => {
+    const select = document.getElementById(id);
+    const value = params.get(key);
+    if (select && value && [...select.options].some(o => o.value === value)) {
+      select.value = value;
+      preset = true;
+    }
+  });
+  if (preset) { applyFilters(); return; }
   renderTable();
 }
 </script>

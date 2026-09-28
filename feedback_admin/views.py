@@ -497,6 +497,29 @@ def _multi_period_experience_counts(qs, today_range, week_start, month_start):
     }
 
 
+def _rating_sentiment_matrix(qs, today_range, week_start, month_start):
+    """Counts per rating x comment sentiment, per period, in one query.
+
+    The two measurements stay separate; this only shows them side by side.
+    """
+    periods = {
+        'all': Q(),
+        'today': Q(created_at__range=today_range),
+        'week': Q(created_at__gte=week_start),
+        'month': Q(created_at__gte=month_start),
+    }
+    ratings = [c[0] for c in FeedbackEntry.EXPERIENCE_CHOICES]
+    sentiments = [FeedbackEntry.POSITIVE, FeedbackEntry.NEUTRAL, FeedbackEntry.NEGATIVE]
+    res = qs.aggregate(**{
+        f'{p}__{r}__{s}': Count('id', filter=pq & Q(experience=r, sentiment=s))
+        for p, pq in periods.items() for r in ratings for s in sentiments
+    })
+    return {
+        p: {r: {s: res[f'{p}__{r}__{s}'] or 0 for s in sentiments} for r in ratings}
+        for p in periods
+    }
+
+
 def _multi_period_sentiment_counts(qs, today_range, week_start, month_start):
     """Consolidates sentiment counts across all 4 timeframes into a single DB query."""
     def _cond(period_q, sent_val):
@@ -809,6 +832,7 @@ def sentiment_analysis(request):
 
     filter_data = _multi_period_sentiment_counts(entries, (today_start, today_end), week_start, month_start)
     all_counts = filter_data['all']
+    rating_matrix = _rating_sentiment_matrix(entries, (today_start, today_end), week_start, month_start)
 
     trend_counts = (
         entries.exclude(sentiment=FeedbackEntry.PENDING)
@@ -838,6 +862,7 @@ def sentiment_analysis(request):
 
     context = {
         'word_cloud': word_cloud,
+        'rating_matrix': rating_matrix,
         'total': all_counts['total'],
         'positive': all_counts['positive'],
         'neutral': all_counts['neutral'],
