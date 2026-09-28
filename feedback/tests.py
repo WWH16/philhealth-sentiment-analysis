@@ -46,48 +46,6 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(entry.sentiment, FeedbackEntry.PENDING)
         mocked_analyze.assert_not_called()
 
-    def test_submit_full_csm_form_saves_all_fields(self):
-        payload = {
-            'date_time': '2026-08-29T10:30',
-            'contact_no': '09171234567',
-            'email_address': 'juan@example.com',
-            'age': 35,
-            'client_type': 'Citizen',
-            'sex': 'Male',
-            'name_of_client': 'Juan Dela Cruz',
-            'services_availed': ['KonSulTa Registration (5)', 'Claims Filing (8)'],
-            'cc1': '1',
-            'cc2': '1',
-            'cc3': '1',
-            'sqd0': 3,
-            'sqd1': 3,
-            'sqd2': 2,
-            'sqd3': 3,
-            'sqd4': 3,
-            'sqd5': 3,
-            'sqd6': 3,
-            'sqd7': 3,
-            'sqd8': 3,
-            'comments_suggestions': 'Keep up the good work!',
-        }
-
-        response = self._submit(payload)
-        self.assertEqual(response.status_code, 201)
-        data = response.json()
-        self.assertTrue(data['ok'])
-
-        entry = FeedbackEntry.objects.latest('id')
-        self.assertEqual(entry.contact_no, '09171234567')
-        self.assertEqual(entry.email_address, 'juan@example.com')
-        self.assertEqual(entry.age, 35)
-        self.assertEqual(entry.client_type, 'Citizen')
-        self.assertEqual(entry.name_of_client, 'Juan Dela Cruz')
-        self.assertEqual(entry.services_availed, ['KonSulTa Registration (5)', 'Claims Filing (8)'])
-        self.assertEqual(entry.sqd0, 3)
-        self.assertEqual(entry.experience, FeedbackEntry.VERY_SATISFACTORY)
-        self.assertEqual(entry.comment, 'Keep up the good work!')
-
-
     def test_submit_feedback_without_comment_sets_sentiment_na(self):
         response = self._submit({
             'experience': FeedbackEntry.VERY_SATISFACTORY,
@@ -96,56 +54,6 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(response.status_code, 201)
         entry = FeedbackEntry.objects.get()
         self.assertEqual(entry.sentiment, FeedbackEntry.NOT_APPLICABLE)
-
-    def test_submit_full_csm_form_saves_staff_assisted(self):
-        from django.contrib.auth.models import User
-        staff_user = User.objects.create_user(
-            username='maria_santos',
-            first_name='Maria',
-            last_name='Santos',
-            is_staff=True,
-            is_active=True,
-        )
-        payload = {
-            'date_time': '2026-08-29T10:30',
-            'contact_no': '09171234567',
-            'email_address': 'juan@example.com',
-            'age': 35,
-            'client_type': 'Citizen',
-            'sex': 'Male',
-            'name_of_client': 'Juan Dela Cruz',
-            'staff_assisted': staff_user.id,
-            'staff_name': 'Maria Santos',
-            'services_availed': ['KonSulTa Registration (5)'],
-            'sqd0': 3,
-        }
-        response = self._submit(payload)
-        self.assertEqual(response.status_code, 201)
-        entry = FeedbackEntry.objects.latest('id')
-        self.assertEqual(entry.staff_assisted, staff_user)
-        self.assertEqual(entry.staff_name, 'Maria Santos')
-        self.assertEqual(entry.attending_staff_display, 'Maria Santos')
-
-    def test_submit_feedback_authoritative_staff_name_overrides_spoofed_payload(self):
-        from django.contrib.auth.models import User
-        staff_user = User.objects.create_user(
-            username='official_clara',
-            first_name='Clara',
-            last_name='Reyes',
-            is_staff=True,
-            is_active=True,
-            is_superuser=False,
-        )
-        payload = {
-            'staff_assisted': staff_user.id,
-            'staff_name': 'Spoofed Malicious Name',
-            'sqd0': 3,
-        }
-        response = self._submit(payload)
-        self.assertEqual(response.status_code, 201)
-        entry = FeedbackEntry.objects.latest('id')
-        self.assertEqual(entry.staff_assisted, staff_user)
-        self.assertEqual(entry.staff_name, 'Clara Reyes')
 
     def test_submit_short_form_without_staff_when_active_staff_exist(self):
         from django.contrib.auth.models import User
@@ -180,19 +88,8 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
 
-    def test_submit_maps_sqd0_to_three_point_rating(self):
-        expected = {
-            3: FeedbackEntry.VERY_SATISFACTORY,
-            2: FeedbackEntry.SATISFACTORY,
-            1: FeedbackEntry.UNSATISFACTORY,
-        }
-        for score, experience in expected.items():
-            response = self._submit({'sqd0': score})
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(FeedbackEntry.objects.latest('id').experience, experience)
-
     def test_submit_rejects_rating_outside_three_point_scale(self):
-        for payload in ({'sqd0': 5}, {'sqd0': 6}, {'experience': 'strongly_agree'}, {}):
+        for payload in ({'experience': 'strongly_agree'}, {'experience': 3}, {'experience': []}, {}):
             response = self._submit(payload)
             self.assertEqual(response.status_code, 400)
         self.assertEqual(FeedbackEntry.objects.count(), 0)
@@ -437,30 +334,3 @@ class SurveyAvailabilityTests(TestCase):
         self.assertTrue(data['ok'])
         self.assertEqual(FeedbackEntry.objects.count(), 1)
 
-
-class ConvertRatingScaleCommandTests(TestCase):
-    def test_converts_legacy_entries_once_and_keeps_sentiment(self):
-        from io import StringIO
-        from django.core.management import call_command
-
-        legacy = FeedbackEntry.objects.create(
-            experience='strongly_agree', sqd0=5, sqd4=4, sqd5=6,
-            sentiment=FeedbackEntry.NEGATIVE, comment='Mahaba ang pila.',
-        )
-        current = FeedbackEntry.objects.create(
-            experience=FeedbackEntry.SATISFACTORY, sqd0=2, sqd1=1,
-        )
-
-        call_command('convert_rating_scale', '--dry-run', stdout=StringIO())
-        legacy.refresh_from_db()
-        self.assertEqual(legacy.experience, 'strongly_agree')
-
-        call_command('convert_rating_scale', stdout=StringIO())
-        call_command('convert_rating_scale', stdout=StringIO())
-
-        legacy.refresh_from_db()
-        current.refresh_from_db()
-        self.assertEqual(legacy.experience, FeedbackEntry.VERY_SATISFACTORY)
-        self.assertEqual((legacy.sqd0, legacy.sqd4, legacy.sqd5), (3, 2, None))
-        self.assertEqual(legacy.sentiment, FeedbackEntry.NEGATIVE)
-        self.assertEqual((current.experience, current.sqd0, current.sqd1), (FeedbackEntry.SATISFACTORY, 2, 1))

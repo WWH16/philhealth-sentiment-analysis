@@ -328,7 +328,7 @@ def dashboard(request):
     today = now.date()
     week_start = now - timedelta(days=7)
     month_start = now - timedelta(days=30)
-    recent_entries = qs.select_related('staff_assisted').order_by('-created_at')[:5]
+    recent_entries = qs.order_by('-created_at')[:5]
 
     today_start = timezone.make_aware(datetime.combine(today, time.min))
     today_end = timezone.make_aware(datetime.combine(today, time.max))
@@ -388,7 +388,7 @@ def dashboard(request):
 
 @staff_required
 def responses(request):
-    entries = FeedbackEntry.objects.select_related('staff_assisted').order_by('-created_at')
+    entries = FeedbackEntry.objects.order_by('-created_at')
     counts = _experience_counts(entries)
     entries_data = list(entries)
     activity_map = _build_feedback_activity_map([entry.pk for entry in entries_data])
@@ -426,7 +426,6 @@ def _entry_to_row(entry, activity=None):
         sentiment_value = entry.sentiment
 
     exp_display = _EXP_DISPLAY.get(entry.experience, entry.experience)
-    staff_display = entry.attending_staff_display
     return {
         'id': entry.id,
         'date': local_created.strftime('%Y-%m-%d'),
@@ -440,9 +439,6 @@ def _entry_to_row(entry, activity=None):
         'status': _STATUS_DISPLAY.get(entry.status, entry.status),
         'status_value': entry.status,
         'comment': entry.comment,
-        'name_of_client': entry.name_of_client or '',
-        'client_type': entry.client_type or '',
-        'staff': staff_display,
         'notes': notes,
         'status_history': status_history,
     }
@@ -1102,13 +1098,7 @@ def export_report_excel(request):
     ws2 = wb.create_sheet('Responses')
     ws2.sheet_properties.tabColor = '23A455'
 
-    response_headers = [
-        'ID', 'Date', 'Time', 'Client Name', 'Age', 'Sex', 'Client Type',
-        'CC1', 'CC2', 'CC3',
-        'SQD0', 'SQD1', 'SQD2', 'SQD3', 'SQD4', 'SQD5', 'SQD6', 'SQD7', 'SQD8',
-        'Experience', 'Category', 'Sentiment', 'Status',
-        'Staff Assisted', 'Comment', 'Suggestions',
-    ]
+    response_headers = ['ID', 'Date', 'Time', 'Experience', 'Category', 'Sentiment', 'Status', 'Comment']
 
     # Write header row
     for col_idx, header_text in enumerate(response_headers, 1):
@@ -1120,34 +1110,22 @@ def export_report_excel(request):
 
     # Write data rows
     EXPERIENCE_MAP = dict(FeedbackEntry.EXPERIENCE_CHOICES)
-    SQD_LABELS = {
-        score: EXPERIENCE_MAP[experience]
-        for score, experience in FeedbackEntry.SQD_SCORE_TO_EXPERIENCE.items()
-    }
     SENTIMENT_MAP = dict(FeedbackEntry.SENTIMENT_CHOICES)
     CATEGORY_MAP = dict(FeedbackEntry.CATEGORY_CHOICES)
     STATUS_MAP = dict(FeedbackEntry.STATUS_CHOICES)
 
-    entries = qs.select_related('staff_assisted').order_by('-created_at')
+    entries = qs.order_by('-created_at')
     for row_idx, entry in enumerate(entries, 2):
         local_dt = timezone.localtime(entry.created_at) if entry.created_at else None
         row_data = [
             entry.pk,
             local_dt.strftime('%Y-%m-%d') if local_dt else '',
             local_dt.strftime('%I:%M %p') if local_dt else '',
-            entry.name_of_client,
-            entry.age,
-            entry.sex,
-            entry.client_type,
-            entry.cc1, entry.cc2, entry.cc3,
-            *[SQD_LABELS.get(getattr(entry, f'sqd{i}'), getattr(entry, f'sqd{i}')) for i in range(9)],
             EXPERIENCE_MAP.get(entry.experience, entry.experience),
             CATEGORY_MAP.get(entry.category, entry.category),
             SENTIMENT_MAP.get(entry.sentiment, entry.sentiment),
             STATUS_MAP.get(entry.status, entry.status),
-            entry.attending_staff_display,
             entry.comment,
-            entry.comments_suggestions,
         ]
         for col_idx, value in enumerate(row_data, 1):
             cell = ws2.cell(row=row_idx, column=col_idx, value=value)
@@ -1155,13 +1133,7 @@ def export_report_excel(request):
             cell.border = thin_border
 
     # Auto-size key columns (approximate widths)
-    col_widths = {
-        'A': 8, 'B': 12, 'C': 10, 'D': 22, 'E': 6, 'F': 8, 'G': 14,
-        'H': 6, 'I': 6, 'J': 6,
-        'K': 6, 'L': 6, 'M': 6, 'N': 6, 'O': 6, 'P': 6, 'Q': 6, 'R': 6, 'S': 6,
-        'T': 18, 'U': 14, 'V': 12, 'W': 12,
-        'X': 22, 'Y': 36, 'Z': 36,
-    }
+    col_widths = {'A': 8, 'B': 12, 'C': 10, 'D': 18, 'E': 14, 'F': 12, 'G': 12, 'H': 60}
     for col_letter, width in col_widths.items():
         ws2.column_dimensions[col_letter].width = width
 

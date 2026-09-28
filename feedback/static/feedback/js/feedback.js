@@ -76,11 +76,9 @@
     window.scrollTo(0, 0);
   }
 
-  var counters = Array.prototype.map.call(form.querySelectorAll('textarea[maxlength]'), function (area) {
-    var out = document.querySelector('[data-count-for="' + area.id + '"]');
-    return function () { out.textContent = area.value.length; };
-  });
-  function updateCounts() { counters.forEach(function (update) { update(); }); }
+  var commentBox = form.comments_suggestions;
+  var commentCount = document.querySelector('[data-count-for="commentsSuggestions"]');
+  function updateCounts() { commentCount.textContent = commentBox.value.length; }
 
   form.addEventListener('input', updateCounts);
   form.addEventListener('change', function () {
@@ -108,7 +106,7 @@
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
       body: JSON.stringify({
         experience: form.querySelector('input[name="experience"]:checked').value,
-        comment: form.comments_suggestions.value.trim()
+        comment: commentBox.value.trim()
       })
     })
       .then(function (res) {

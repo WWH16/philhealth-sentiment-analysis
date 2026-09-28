@@ -5,24 +5,14 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-from django.contrib.auth.models import User
 from .models import FeedbackConfiguration, FeedbackEntry
 from .services import analyze_comment_sentiment
 
 
-
-def landing(request):
-    config = FeedbackConfiguration.get_solo()
-    return render(request, 'feedback/landing.html', {
-        'survey_enabled': config.survey_enabled,
-        'offline_message': config.get_survey_offline_message(),
-    })
-
-
 @ensure_csrf_cookie
-def index(request):
+def page(request, template):
     config = FeedbackConfiguration.get_solo()
-    return render(request, 'feedback/index.html', {
+    return render(request, template, {
         'survey_enabled': config.survey_enabled,
         'offline_message': config.get_survey_offline_message(),
     })
@@ -39,30 +29,20 @@ def submit_feedback(request):
 
     try:
         payload = json.loads(request.body.decode('utf-8'))
-    except json.JSONDecodeError:
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        payload = None
+    if not isinstance(payload, dict):
         return JsonResponse({'ok': False, 'error': 'Invalid request.'}, status=400)
 
-    # 1. Experience rating (from the SQD0 answer, or a direct experience code)
-    experience = None
-    try:
-        experience = FeedbackEntry.SQD_SCORE_TO_EXPERIENCE.get(int(payload.get('sqd0')))
-    except (ValueError, TypeError):
-        pass
-
-    if not experience:
-        experience = payload.get('experience')
-
-    valid_experiences = {choice[0] for choice in FeedbackEntry.EXPERIENCE_CHOICES}
-    if experience not in valid_experiences:
+    experience = payload.get('experience')
+    if not isinstance(experience, str) or experience not in dict(FeedbackEntry.EXPERIENCE_CHOICES):
         return JsonResponse({'ok': False, 'error': 'Please select your experience.'}, status=400)
 
-    # 2. Comment (older clients sent it as comments_suggestions)
-    comment = (payload.get('comment') or payload.get('comments_suggestions') or '').strip()
-
+    comment = payload.get('comment')
+    comment = comment.strip() if isinstance(comment, str) else ''
     if len(comment) > 1000:
         return JsonResponse({'ok': False, 'error': 'Comments must be 1000 characters or fewer.'}, status=400)
 
-    # 3. Sentiment Analysis
     if not comment:
         sentiment = FeedbackEntry.NOT_APPLICABLE
     elif FeedbackConfiguration.auto_analysis_is_enabled():
@@ -70,71 +50,5 @@ def submit_feedback(request):
     else:
         sentiment = FeedbackEntry.PENDING
 
-    # 4. Helper for date_time parsing
-    dt_val = payload.get('date_time')
-    parsed_dt = None
-    if dt_val:
-        try:
-            from django.utils.dateparse import parse_datetime
-            parsed_dt = parse_datetime(dt_val)
-        except Exception:
-            parsed_dt = None
-
-    # Helper for int parsing
-    def safe_int(val):
-        try:
-            return int(val) if val is not None else None
-        except (ValueError, TypeError):
-            return None
-
-    staff_id = payload.get('staff_assisted') or payload.get('staff_id')
-    staff_user = None
-    staff_name = ''
-
-    if staff_id:
-        try:
-            staff_user = User.objects.filter(
-                pk=int(staff_id),
-                is_active=True,
-                is_staff=True,
-                is_superuser=False,
-            ).only('id', 'first_name', 'last_name', 'username').first()
-            if staff_user:
-                staff_name = staff_user.get_full_name() or staff_user.username
-        except (ValueError, TypeError):
-            pass
-
-    entry = FeedbackEntry.objects.create(
-        experience=experience,
-        comment=comment,
-        sentiment=sentiment,
-        date_time=parsed_dt,
-        contact_no=(payload.get('contact_no') or '')[:50],
-        email_address=(payload.get('email_address') or '')[:100],
-        age=safe_int(payload.get('age')),
-        client_type=(payload.get('client_type') or '')[:100],
-        sex=(payload.get('sex') or '')[:50],
-        name_of_client=(payload.get('name_of_client') or '')[:100],
-        staff_assisted=staff_user,
-        staff_name=staff_name[:150],
-        services_availed=payload.get('services_availed') if isinstance(payload.get('services_availed'), list) else [],
-        cc1=str(payload.get('cc1') or '')[:10],
-        cc2=str(payload.get('cc2') or '')[:10],
-        cc3=str(payload.get('cc3') or '')[:10],
-        sqd0=safe_int(payload.get('sqd0')),
-        sqd1=safe_int(payload.get('sqd1')),
-        sqd2=safe_int(payload.get('sqd2')),
-        sqd3=safe_int(payload.get('sqd3')),
-        sqd4=safe_int(payload.get('sqd4')),
-        sqd5=safe_int(payload.get('sqd5')),
-        sqd6=safe_int(payload.get('sqd6')),
-        sqd7=safe_int(payload.get('sqd7')),
-        sqd8=safe_int(payload.get('sqd8')),
-    )
-
-    return JsonResponse({
-        'ok': True,
-        'experience': entry.get_experience_display(),
-        'status': entry.get_status_display(),
-        'created_at': entry.created_at.strftime('%b %d, %Y %I:%M %p'),
-    }, status=201)
+    FeedbackEntry.objects.create(experience=experience, comment=comment, sentiment=sentiment)
+    return JsonResponse({'ok': True}, status=201)

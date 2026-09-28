@@ -20,24 +20,6 @@ class FeedbackEntry(models.Model):
         (UNSATISFACTORY, 'Unsatisfactory'),
     ]
 
-    # Numeric values submitted by the SQD radio buttons.
-    SQD_SCORE_TO_EXPERIENCE = {
-        3: VERY_SATISFACTORY,
-        2: SATISFACTORY,
-        1: UNSATISFACTORY,
-    }
-
-    # Former 5-point agreement scale, kept only so the convert_rating_scale
-    # command can move stored entries onto the 3-point scale. 'Not Applicable'
-    # (score 6) has no counterpart and becomes an empty SQD answer.
-    LEGACY_EXPERIENCE_MAP = {
-        'strongly_agree': VERY_SATISFACTORY,
-        'agree': SATISFACTORY,
-        'disagree': UNSATISFACTORY,
-        'strongly_disagree': UNSATISFACTORY,
-    }
-    LEGACY_SQD_SCORE_MAP = {5: 3, 4: 2, 2: 1, 1: 1, 6: None}
-
     NOT_APPLICABLE = 'na'
 
     # Sentiments (Detected or Manual)
@@ -129,14 +111,6 @@ class FeedbackEntry(models.Model):
 
     def __str__(self):
         return f'Feedback #{self.pk} - {self.get_experience_display()}'
-
-    @property
-    def attending_staff_display(self):
-        if self.staff_name:
-            return self.staff_name
-        if self.staff_assisted:
-            return self.staff_assisted.get_full_name() or self.staff_assisted.username
-        return ''
 
 
 class FeedbackConfiguration(models.Model):

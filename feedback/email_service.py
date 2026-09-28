@@ -93,12 +93,7 @@ def get_daily_summary_metrics(target_date=None):
 
     flagged_items = []
     for entry in flagged_qs:
-        comment_text = (
-            entry.comment or
-            entry.comments_suggestions or
-            entry.commendation or
-            'No additional written remarks provided.'
-        ).strip()
+        comment_text = (entry.comment or 'No additional written remarks provided.').strip()
         if len(comment_text) > 160:
             comment_text = comment_text[:157] + '...'
 

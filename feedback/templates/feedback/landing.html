@@ -12,109 +12,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'feedback/css/feedback.css' %}">
   <style>
-    /* Tokens mirror the staff dashboard (feedback_admin/base.html). */
-    :root {
-      --g-primary: #23A455;
-      --g-deep:    #1F964B;
-      --g-forest:  #0f5a2b;
-      --g-dark:    #174d2a;
-      --g-light:   #d4f0e1;
-      --g-xlight:  #f0faf5;
-
-      --ink:  #1c1e22;
-      --ink2: #2e3238;
-      --ink4: #484c53;
-      --ink5: #525866;
-      --ink7: #e4e7eb;
-      --ink8: #f2f4f6;
-      --white: #ffffff;
-
-      --surface-page: var(--ink8);
-      --surface-card: var(--white);
-      --border: var(--ink7);
-      --text-primary: var(--ink);
-      --text-secondary: var(--ink4);
-      --text-muted: var(--ink5);
-
-      /* Text and lines on the dark green bars */
-      --on-dark: #ffffff;
-      --on-dark-soft: #c3e6d0;
-      --on-dark-accent: #7fd8a2;
-      --on-dark-line: rgba(255, 255, 255, 0.14);
-
-      /* Comment sentiment roles (dashboard chip colors) */
-      --pos: #169651;  --pos-bg: #f0faf5; --pos-text: #0d6e35; --pos-border: #b8e6cb;
-      --neu: #d97706;  --neu-bg: #fffbe6; --neu-text: #7a5500; --neu-border: #f5e4a0;
-      --neg: #dc2626;  --neg-bg: #fff0f2; --neg-text: #990014; --neg-border: #fca5a5;
-
-      --font: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-      --wrap: 1180px;
-      --gutter: clamp(16px, 3vw, 32px);
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    *, *::before, *::after { box-sizing: border-box; }
+    /* Landing-only rules; shared tokens, top bar, and buttons live in feedback.css. */
     /* Green behind the body so overscroll and short pages end in the footer's green. */
-    html { background: var(--g-dark); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; scrollbar-color: #b3b9c1 var(--surface-page); }
+    html { background: var(--g-dark); scroll-behavior: smooth; }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-    body {
-      margin: 0;
-      background: var(--surface-page);
-      color: var(--text-primary);
-      font-family: var(--font);
-      font-size: 16px;
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-    ::selection { background: var(--g-light); color: var(--g-forest); }
-    img { display: block; max-width: 100%; height: auto; }
-    a { color: var(--g-forest); text-underline-offset: 3px; }
-    :focus-visible { outline: 2px solid var(--g-primary); outline-offset: 2px; }
-    .material-icons-round { font-size: 18px; line-height: 1; }
-    .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
     .visually-hidden {
       position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
       overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
     }
-    .skip {
-      position: absolute; left: 16px; top: -60px; z-index: 10;
-      background: var(--g-forest); color: #fff; padding: 8px 14px; font-weight: 700; font-size: 13px;
-    }
-    .skip:focus { top: 10px; }
-
-    /* ── Top bar (dashboard .topbar) ─────────────────────────────────── */
-    .topbar { background: var(--g-dark); color: var(--on-dark); }
-    .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
-    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
-    .brand img { width: 38px; height: 38px; }
-    .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-    .brand-name { font-size: 16px; font-weight: 800; letter-spacing: 0.06em; color: #fff; }
-    .brand-sub { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--on-dark-accent); }
-    .agency { display: flex; align-items: center; gap: 12px; }
-    .agency-text { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
-    .agency-name { font-size: 13px; font-weight: 800; letter-spacing: 0.02em; }
-    .agency-city { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--on-dark-accent); }
-    .agency-marks { display: flex; align-items: center; gap: 8px; }
-    .agency-marks span { display: grid; place-items: center; width: 38px; height: 38px; background: #fff; border-radius: 6px; }
-    .agency-marks img { width: 28px; height: 28px; object-fit: contain; }
-
-    /* ── Buttons (dashboard .btn-ph, sized for clients) ─────────────── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 15px 24px; border: 1.5px solid var(--border); border-radius: 0;
-      background: transparent; color: var(--text-secondary);
-      font: 700 14px/1 var(--font); letter-spacing: 0.08em; text-transform: uppercase;
-      text-decoration: none; cursor: pointer; white-space: nowrap;
-      transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
-    }
-    .btn:hover { border-color: var(--ink4); color: var(--text-primary); }
-    .btn:active { transform: translateY(1px); }
-    .btn .material-icons-round { font-size: 18px; transition: transform 140ms var(--ease-out); }
-    .btn-primary { background: var(--g-forest); border-color: var(--g-forest); color: #fff; }
-    .btn-primary:hover { background: var(--g-dark); border-color: var(--g-dark); color: #fff; }
-    .btn-primary:hover .material-icons-round { transform: translateX(3px); }
-    .btn-lg { padding: 18px 28px; font-size: 15px; }
 
     /* Buttons on the dark green bars: primary inverts to white. */
     .on-dark .btn { border-color: rgba(255, 255, 255, 0.4); color: var(--on-dark); }
@@ -293,7 +200,6 @@
       .hero-mark { width: min(100%, 260px); }
     }
     @media (max-width: 720px) {
-      .agency-text { display: none; }
       .hero .wrap { grid-template-columns: minmax(0, 1fr); }
       .hero-mark { display: none; }
       .hero-actions .btn { width: 100%; }
@@ -305,7 +211,6 @@
     @media (prefers-reduced-motion: reduce) {
       .js .faces .pulse::before, .js .faces .pulse::after,
       .js .faces .pulse svg, .js .faces .face { transform: none; clip-path: none; filter: none; opacity: 1; transition: none !important; }
-      .btn, .btn .material-icons-round { transition: none; }
     }
   </style>
   <script>document.documentElement.classList.add('js');</script>

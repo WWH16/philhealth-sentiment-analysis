@@ -259,7 +259,7 @@
       <div class="table-controls-right">
         <span class="table-info" id="tableInfo">—</span>
         <select class="btn-ph" id="ratingFilter" onchange="applyFilters()" aria-label="Filter by rating" style="cursor:pointer">
-          <option value="">All SQD Ratings</option>
+          <option value="">All Ratings</option>
           <option value="Very Satisfactory">Very Satisfactory</option>
           <option value="Satisfactory">Satisfactory</option>
           <option value="Unsatisfactory">Unsatisfactory</option>
@@ -284,9 +284,6 @@
           <option value="Pending">Pending</option>
           <option value="Reviewed">Reviewed</option>
           <option value="Resolved">Resolved</option>
-        </select>
-        <select class="btn-ph" id="staffFilter" onchange="applyFilters()" aria-label="Filter by attending staff" style="cursor:pointer">
-          <option value="">All Staff</option>
         </select>
         <select class="btn-ph" id="dateRangeFilter" onchange="applyFilters()" aria-label="Filter by date range" style="cursor:pointer">
           <option value="all">All Time</option>
@@ -336,8 +333,7 @@
             </th>
             <th style="width:60px">ID</th>
             <th style="min-width:110px">Date &amp; Time</th>
-            <th style="min-width:160px">SQD Rating</th>
-            <th style="min-width:140px">Attending Staff</th>
+            <th style="min-width:160px">Rating</th>
             <th style="min-width:120px">Category</th>
             <th style="min-width:100px">Sentiment</th>
             <th style="min-width:110px">Status</th>
@@ -475,7 +471,6 @@ function applyFilters(keepPage = false) {
   const category   = document.getElementById('categoryFilter').value;
   const sentiment  = document.getElementById('sentimentFilter').value;
   const status     = document.getElementById('statusFilter').value;
-  const staffFilter = (document.getElementById('staffFilter') || {}).value || '';
   activeDateRange  = document.getElementById('dateRangeFilter').value;
 
   filteredRows = ALL_DATA.filter(r => {
@@ -484,15 +479,12 @@ function applyFilters(keepPage = false) {
                          || r.experience.toLowerCase().includes(q)
                          || (r.category||'').toLowerCase().includes(q)
                          || r.date.includes(q)
-                         || (r.sentiment||'').toLowerCase().includes(q)
-                         || (r.staff||'').toLowerCase().includes(q)
-                         || (r.name_of_client||'').toLowerCase().includes(q);
+                         || (r.sentiment||'').toLowerCase().includes(q);
     const matchE    = !experience || r.experience === experience;
     const matchC    = !category   || r.category   === category;
     const matchS    = !sentiment  || r.sentiment  === sentiment;
     const matchSt   = !status     || r.status     === status;
-    const matchStaff = !staffFilter || r.staff === staffFilter;
-    return matchQ && matchE && matchC && matchS && matchSt && matchStaff && inDateRange(r);
+    return matchQ && matchE && matchC && matchS && matchSt && inDateRange(r);
   });
   const maxPage = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   if (keepPage) {
@@ -636,7 +628,7 @@ function renderTable() {
   const end   = Math.min(start + pageSize, filteredRows.length);
   const rows  = filteredRows.slice(start, end);
 
-  const COLS = 10; /* checkbox + id + date + rating + staff + category + sentiment + status + comment + expand */
+  const COLS = 9; /* checkbox + id + date + rating + category + sentiment + status + comment + expand */
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="${COLS}">
@@ -674,12 +666,6 @@ function renderTable() {
           <span class="rating-chip ${rCfg.cls}">
             <span class="material-icons-round">${rCfg.icon}</span>${r.rating}
           </span>
-        </td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;">
-            <span class="material-icons-round" style="font-size:15px;color:var(--g-primary);" aria-hidden="true">badge</span>
-            <span>${escHtml(r.staff || '—')}</span>
-          </div>
         </td>
         <td>
           <select id="cat-sel-${r.id}"
@@ -722,24 +708,6 @@ function renderTable() {
         ? `<tr class="detail-row" data-detail="${r.id}">
             <td colspan="${COLS}">
               <div class="detail-inner">
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--border);">
-                  <div style="font-size:11px;display:flex;align-items:center;gap:6px;">
-                    <span class="material-icons-round" style="font-size:15px;color:var(--g-primary)" aria-hidden="true">badge</span>
-                    <span style="font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.05em;">Attending Staff:</span>
-                    <span style="font-weight:700;color:var(--g-primary);">${escHtml(r.staff || 'Not specified')}</span>
-                  </div>
-                  <div style="font-size:11px;display:flex;align-items:center;gap:6px;">
-                    <span class="material-icons-round" style="font-size:15px;color:var(--text-muted)" aria-hidden="true">person</span>
-                    <span style="font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.05em;">Client:</span>
-                    <span style="font-weight:600;color:var(--text-primary);">${escHtml(r.name_of_client || 'Anonymous')}</span>
-                  </div>
-                  ${r.client_type ? `
-                  <div style="font-size:11px;display:flex;align-items:center;gap:6px;">
-                    <span class="material-icons-round" style="font-size:15px;color:var(--text-muted)" aria-hidden="true">category</span>
-                    <span style="font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.05em;">Type:</span>
-                    <span style="color:var(--text-secondary);">${escHtml(r.client_type)}</span>
-                  </div>` : ''}
-                </div>
                 <div class="detail-grid">
                   <div>
                     <div style="font-weight:700;margin-bottom:8px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;">Original Feedback</div>
@@ -842,14 +810,12 @@ function goPage(p) {
 
 /* ── EXPORT ── */
 function buildCSVRows(data) {
-  const header = ['ID','Date','Time','SQD Rating','Category','Sentiment','Status','Staff Assisted','Client Name','Comment'];
+  const header = ['ID','Date','Time','Rating','Category','Sentiment','Status','Comment'];
   const body   = data.map(r => [
     r.id, r.date, r.time, r.rating,
     r.category || '',
     r.sentiment || '',
     r.status    || '',
-    `"${(r.staff||'').replace(/"/g,'""')}"`,
-    `"${(r.name_of_client||'').replace(/"/g,'""')}"`,
     `"${(r.comment||'').replace(/"/g,'""')}"`
   ]);
   return [header, ...body].map(r => r.join(',')).join('\n');
@@ -1014,7 +980,6 @@ function executeDeleteResponses() {
     }
 
     // 4. Update table, bulk bar and pagination BEFORE the toast shows up
-    populateStaffFilter();
     applyFilters(true);
     updateBulkBar();
 
@@ -1050,29 +1015,9 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-function populateStaffFilter() {
-  const staffSelect = document.getElementById('staffFilter');
-  if (!staffSelect) return;
-  const staffSet = new Set();
-  ALL_DATA.forEach(r => {
-    if (r.staff && r.staff.trim()) {
-      staffSet.add(r.staff.trim());
-    }
-  });
-  const currentVal = staffSelect.value;
-  staffSelect.innerHTML = '<option value="">All Staff</option>';
-  Array.from(staffSet).sort().forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    staffSelect.appendChild(opt);
-  });
-  staffSelect.value = currentVal;
-}
 
 /* ── INIT ── */
 function pageInit() {
-  populateStaffFilter();
   renderTable();
 }
 </script>
