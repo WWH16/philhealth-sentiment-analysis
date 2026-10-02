@@ -95,6 +95,7 @@ class FeedbackEntry(models.Model):
         ('documents', 'Document requirements'),
         ('other', 'Other'),
     ]
+    TOPIC_ICONS = {'waiting_time': 'schedule', 'staff': 'support_agent', 'facilities': 'apartment', 'documents': 'description', 'other': 'more_horiz'}
     experience = models.CharField(max_length=25, choices=EXPERIENCE_CHOICES)
     # Final sentiment: comment_sentiment adjusted by the rating.
     sentiment = models.CharField(max_length=10, choices=SENTIMENT_CHOICES, default=PENDING)

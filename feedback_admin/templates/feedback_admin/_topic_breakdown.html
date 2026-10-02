@@ -1,6 +1,8 @@
-{# "Feedback by topic": one stacked bar per topic, scaled to the busiest topic.
-   Shared by the dashboard and reports; each page calls renderTopicBreakdown(list)
-   with the topic counts for its current period. #}
+{% comment %}
+"Feedback by topic": one stacked bar per topic, scaled to the busiest topic.
+Shared by the dashboard and reports; each page calls renderTopicBreakdown(list)
+with the topic counts for its current period.
+{% endcomment %}
 <style>
   .tb-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 16px; padding: 0; list-style: none; font-size: 11px; color: var(--text-muted); }
   .tb-legend li { display: inline-flex; align-items: center; gap: 6px; }
@@ -44,8 +46,6 @@
 </section>
 
 <script>
-const TOPIC_ICONS = { waiting_time: 'schedule', staff: 'support_agent', facilities: 'apartment', documents: 'description', other: 'more_horiz' };
-
 function renderTopicBreakdown(topics) {
   const list = document.getElementById('tbList');
   const max = Math.max(0, ...topics.map(t => t.total));
@@ -58,7 +58,7 @@ function renderTopicBreakdown(topics) {
     const pending = t.total - t.pos - t.neu - t.neg;
     const split = `${t.pos} positive · ${t.neu} neutral · ${t.neg} negative` + (pending ? ` · ${pending} not yet analyzed` : '');
     return `<li class="tb-row">
-      <span class="tb-name"><span class="material-icons-round" aria-hidden="true">${TOPIC_ICONS[t.value] || 'sell'}</span>${t.label}</span>
+      <span class="tb-name"><span class="material-icons-round" aria-hidden="true">${t.icon}</span>${t.label}</span>
       <span class="tb-total">${t.total}</span>
       <span class="tb-bar" aria-hidden="true"><span class="tb-pos" style="width:${w(t.pos)}"></span><span class="tb-neu" style="width:${w(t.neu)}"></span><span class="tb-neg" style="width:${w(t.neg)}"></span><span class="tb-pending" style="width:${w(pending)}"></span></span>
       <span class="tb-split">${split}</span>

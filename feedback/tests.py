@@ -254,13 +254,13 @@ class SentimentServiceTests(TestCase):
         self.assertEqual(_entry_to_row(old)['topics'], [])
 
     def test_topic_counts_count_each_topic_and_split_by_sentiment(self):
-        from feedback_admin.views import _topic_counts
+        from .services import topic_counts
         E = FeedbackEntry
         E.objects.create(experience=E.SATISFACTORY, comment='a', topics=['staff', 'waiting_time'], sentiment=E.NEGATIVE)
         E.objects.create(experience=E.SATISFACTORY, comment='b', topics=['staff'], sentiment=E.POSITIVE)
         E.objects.create(experience=E.SATISFACTORY, comment='c', topics=['staff'], sentiment=E.PENDING)
         E.objects.create(experience=E.SATISFACTORY, comment='d', sentiment=E.POSITIVE)  # no topics: left out
-        counts = {t['value']: t for t in _topic_counts(E.objects.all())}
+        counts = {t['value']: t for t in topic_counts(E.objects.all())}
         split = lambda t: {k: counts[t][k] for k in ('total', 'pos', 'neu', 'neg')}
         self.assertEqual(split('staff'), {'total': 3, 'pos': 1, 'neu': 0, 'neg': 1})
         self.assertEqual(split('waiting_time'), {'total': 1, 'pos': 0, 'neu': 0, 'neg': 1})

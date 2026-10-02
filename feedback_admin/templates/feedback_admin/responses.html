@@ -273,11 +273,7 @@
         </select>
         <select class="btn-ph" id="topicFilter" onchange="applyFilters()" aria-label="Filter by topic" style="cursor:pointer">
           <option value="">All Topics</option>
-          <option value="waiting_time">Waiting time</option>
-          <option value="staff">Staff</option>
-          <option value="facilities">Facilities</option>
-          <option value="documents">Document requirements</option>
-          <option value="other">Other</option>
+          {% for value, label in topic_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
         </select>
         <select class="btn-ph" id="sentimentFilter" onchange="applyFilters()" aria-label="Filter by sentiment" style="cursor:pointer">
           <option value="">All Sentiments</option>

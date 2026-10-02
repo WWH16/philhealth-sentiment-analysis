@@ -228,7 +228,7 @@
                       <tr>
                         {% for topic in metrics.topics %}
                         <td width="20%" align="center" valign="top" style="font-size: 11px; color: #64748b; padding-top: 14px;">
-                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: #0f172a;">{{ topic.count }}</div>
+                          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; color: #0f172a;">{{ topic.total }}</div>
                           {{ topic.label }}
                         </td>
                         {% endfor %}

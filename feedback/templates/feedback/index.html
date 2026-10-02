@@ -97,36 +97,14 @@
             <p class="block-hint" id="topicsHint">Select all that apply.</p>
           </div>
           <div class="topics" role="group" aria-labelledby="topicsTitle" aria-describedby="topicsHint err-topics">
+            {% for value, label, icon in topics %}
             <label class="topic-opt">
-              <input type="checkbox" name="topics" value="waiting_time">
-              <span class="material-icons-round" aria-hidden="true">schedule</span>
-              <span class="topic-label">Waiting time</span>
+              <input type="checkbox" name="topics" value="{{ value }}">
+              <span class="material-icons-round" aria-hidden="true">{{ icon }}</span>
+              <span class="topic-label">{{ label }}</span>
               <span class="topic-check material-icons-round" aria-hidden="true">check</span>
             </label>
-            <label class="topic-opt">
-              <input type="checkbox" name="topics" value="staff">
-              <span class="material-icons-round" aria-hidden="true">support_agent</span>
-              <span class="topic-label">Staff</span>
-              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
-            </label>
-            <label class="topic-opt">
-              <input type="checkbox" name="topics" value="facilities">
-              <span class="material-icons-round" aria-hidden="true">apartment</span>
-              <span class="topic-label">Facilities</span>
-              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
-            </label>
-            <label class="topic-opt">
-              <input type="checkbox" name="topics" value="documents">
-              <span class="material-icons-round" aria-hidden="true">description</span>
-              <span class="topic-label">Document requirements</span>
-              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
-            </label>
-            <label class="topic-opt">
-              <input type="checkbox" name="topics" value="other">
-              <span class="material-icons-round" aria-hidden="true">more_horiz</span>
-              <span class="topic-label">Other</span>
-              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
-            </label>
+            {% endfor %}
           </div>
           <p class="field-error" id="err-topics" hidden><span class="material-icons-round" aria-hidden="true">error_outline</span>Choose at least one topic.</p>
         </section>

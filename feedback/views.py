@@ -21,6 +21,7 @@ def index(request):
         'offline_message': config.get_survey_offline_message(),
         'token': token,
         'token_invalid': bool(key) and token is None,
+        'topics': [(v, label, FeedbackEntry.TOPIC_ICONS[v]) for v, label in FeedbackEntry.TOPIC_CHOICES],
     })
 
 

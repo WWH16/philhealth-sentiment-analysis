@@ -324,10 +324,10 @@ def dashboard(request):
         'filter_data': filter_data,
         'rating_data': _multi_period_experience_counts(entries, today_range, week_start, month_start),
         'topic_data': {
-            'all': _topic_counts(entries),
-            'today': _topic_counts(entries.filter(created_at__range=today_range)),
-            'week': _topic_counts(entries.filter(created_at__gte=week_start)),
-            'month': _topic_counts(entries.filter(created_at__gte=month_start)),
+            'all': topic_counts(entries),
+            'today': topic_counts(entries.filter(created_at__range=today_range)),
+            'week': topic_counts(entries.filter(created_at__gte=week_start)),
+            'month': topic_counts(entries.filter(created_at__gte=month_start)),
         },
         'needs_attention': _open_negative_comments(entries, today_range, week_start, month_start),
         'word_cloud': _cached_word_cloud(entries, today_range[0], week_start, month_start),
@@ -350,6 +350,7 @@ def responses(request):
     context = {
         **_experience_counts(entries),
         'entries_data': [_entry_to_row(entry, activity_map) for entry in entries_data],
+        'topic_choices': FeedbackEntry.TOPIC_CHOICES,
     }
     return render(request, 'feedback_admin/responses.html', context)
 
@@ -387,27 +388,6 @@ _CAT_DISPLAY = dict(FeedbackEntry.CATEGORY_CHOICES)
 _STATUS_DISPLAY = dict(FeedbackEntry.STATUS_CHOICES)
 _SENT_DISPLAY = dict(FeedbackEntry.SENTIMENT_CHOICES)
 _TOPIC_DISPLAY = dict(FeedbackEntry.TOPIC_CHOICES)
-
-
-def _topic_counts(qs):
-    """Per-topic total and Positive/Neutral/Negative split. An entry counts
-    once in each topic it names; entries without topics are skipped.
-
-    Counted in Python over values_list, so it works the same on PostgreSQL,
-    MySQL and SQLite (JSONField containment lookups are not portable)."""
-    # ponytail: scans every row of the period; move to a topic join table if volume makes this slow.
-    keys = {FeedbackEntry.POSITIVE: 'pos', FeedbackEntry.NEUTRAL: 'neu', FeedbackEntry.NEGATIVE: 'neg'}
-    counts = {
-        value: {'value': value, 'label': label, 'total': 0, 'pos': 0, 'neu': 0, 'neg': 0}
-        for value, label in FeedbackEntry.TOPIC_CHOICES
-    }
-    for topics, sentiment in qs.values_list('topics', 'sentiment').iterator(chunk_size=500):
-        for topic in set(topics or ()):
-            if topic in counts:
-                counts[topic]['total'] += 1
-                if sentiment in keys:
-                    counts[topic][keys[sentiment]] += 1
-    return list(counts.values())
 
 
 def _entry_to_row(entry, activity=None):
@@ -883,7 +863,7 @@ def _report_counts(qs):
         'satisfaction': round(satisfied / c['total'] * 100) if c['total'] else 0,
         'categories': categories,
         'categorized': sum(categories.values()),
-        'topics': _topic_counts(qs),
+        'topics': topic_counts(qs),
     }
 
 
@@ -1573,7 +1553,7 @@ def update_survey_settings(request):
     })
 
 
-from feedback.services import reanalyze_pending_entries
+from feedback.services import reanalyze_pending_entries, topic_counts
 
 
 @superuser_required

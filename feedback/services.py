@@ -131,3 +131,25 @@ def reanalyze_pending_entries(force=False):
             processed += 1
 
     return total, processed
+
+
+def topic_counts(qs):
+    """Per-topic total and Positive/Neutral/Negative split. An entry counts
+    once in each topic it names; entries without topics are skipped.
+
+    Counted in Python over values_list, so it works the same on PostgreSQL,
+    MySQL and SQLite (JSONField containment lookups are not portable)."""
+    # ponytail: scans every row of the period; move to a topic join table if volume makes this slow.
+    keys = {FeedbackEntry.POSITIVE: 'pos', FeedbackEntry.NEUTRAL: 'neu', FeedbackEntry.NEGATIVE: 'neg'}
+    counts = {
+        value: {'value': value, 'label': label, 'icon': FeedbackEntry.TOPIC_ICONS[value],
+                'total': 0, 'pos': 0, 'neu': 0, 'neg': 0}
+        for value, label in FeedbackEntry.TOPIC_CHOICES
+    }
+    for topics, sentiment in qs.values_list('topics', 'sentiment').iterator(chunk_size=500):
+        for topic in set(topics or ()):
+            if topic in counts:
+                counts[topic]['total'] += 1
+                if sentiment in keys:
+                    counts[topic][keys[sentiment]] += 1
+    return list(counts.values())

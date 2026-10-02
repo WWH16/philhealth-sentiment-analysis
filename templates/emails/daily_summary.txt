@@ -26,7 +26,7 @@ Categories Breakdown:
 * Inquiries/Concerns: {{ metrics.categories.concerns }}
 
 Topics (chosen by the client; one feedback can name several):
-{% for topic in metrics.topics %}* {{ topic.label }}: {{ topic.count }}
+{% for topic in metrics.topics %}* {{ topic.label }}: {{ topic.total }}
 {% endfor %}{% if metrics.total_flagged_count > 0 %}
 
 3. URGENT SUPERVISOR TRIAGE ({{ metrics.total_flagged_count }} SUBMISSIONS FLAGGED)

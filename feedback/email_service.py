@@ -1,6 +1,5 @@
 import os
 import logging
-from collections import Counter
 from datetime import datetime, time, timedelta
 from django.utils import timezone
 from django.db.models import Q, Count
@@ -9,6 +8,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 
 from .models import FeedbackEntry, FeedbackConfiguration
+from .services import topic_counts
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +82,7 @@ def get_daily_summary_metrics(target_date=None):
     )
 
     # Topics chosen by the client; one entry can name several.
-    topic_counter = Counter(t for topics in qs.values_list('topics', flat=True) for t in set(topics or ()))
-    topics = [{'label': label, 'count': topic_counter[value]} for value, label in FeedbackEntry.TOPIC_CHOICES]
+    topics = topic_counts(qs)
 
     # Flagged submissions requiring supervisor review
     # Criteria (each checked on its own): Negative comment sentiment, Complaint
