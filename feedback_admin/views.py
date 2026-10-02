@@ -408,6 +408,10 @@ def _entry_to_row(entry, activity=None):
         'category_value': entry.category,
         'sentiment': sentiment_display,
         'sentiment_value': sentiment_value,
+        # What the comment alone read as, for the CSV export.
+        'comment_sentiment_label': (
+            _SENT_DISPLAY.get(entry.comment_sentiment, entry.comment_sentiment) if has_comment else 'N/A'
+        ),
         # Shown only when the rating changed what the comment alone read as.
         'comment_sentiment': (
             _SENT_DISPLAY.get(entry.comment_sentiment, entry.comment_sentiment)

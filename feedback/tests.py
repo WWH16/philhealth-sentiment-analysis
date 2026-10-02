@@ -205,6 +205,8 @@ class SentimentServiceTests(TestCase):
         )
         self.assertEqual(_entry_to_row(adjusted)['comment_sentiment'], 'Positive')
         self.assertIsNone(_entry_to_row(unchanged)['comment_sentiment'])
+        # The CSV column always carries the comment's own reading.
+        self.assertEqual(_entry_to_row(unchanged)['comment_sentiment_label'], 'Positive')
 
     @patch('feedback.services._get_model', return_value=None)
     def test_sentiment_does_not_fall_back_to_rating(self, _mocked_model):

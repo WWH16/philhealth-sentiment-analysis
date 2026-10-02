@@ -294,9 +294,6 @@
         <button type="button" class="btn-ph btn-ph-primary" onclick="exportCSV()" title="Download rows matching every filter above as CSV" aria-label="Export CSV">
           <span class="material-icons-round" aria-hidden="true">download</span> CSV
         </button>
-        <button type="button" class="btn-ph" onclick="exportExcel()" title="Download a summary sheet plus every response in the selected date range" aria-label="Export Excel">
-          <span class="material-icons-round" aria-hidden="true">download</span> Excel
-        </button>
       </div>
     </div>
 
@@ -793,32 +790,23 @@ function goPage(p) {
 
 /* ── EXPORT ── */
 function buildCSVRows(data) {
-  const header = ['ID','Ticket','Date','Time','Rating','Category','Sentiment','Status','Comment'];
+  const header = ['ID','Ticket','Date','Time','Rating','Category','Sentiment','Comment Sentiment','Status','Comment'];
   const body   = data.map(r => [
     r.id, r.ticket || '', r.date, r.time, r.rating,
     r.category || '',
     r.sentiment || '',
+    r.comment_sentiment_label || '',
     r.status    || '',
     `"${(r.comment||'').replace(/"/g,'""')}"`
   ]);
   return [header, ...body].map(r => r.join(',')).join('\n');
 }
-function exportExcel() {
-  const range = document.getElementById('dateRangeFilter').value;
-  window.location.href = '{% url "export_report_excel" %}?range=' + encodeURIComponent(range);
+function downloadCSV(rows, filename) {
+  const blob = new Blob([buildCSVRows(rows)], { type:'text/csv' });
+  Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename }).click();
 }
-function exportCSV() {
-  const blob = new Blob([buildCSVRows(filteredRows)], { type:'text/csv' });
-  Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(blob), download: 'philhealth-responses.csv'
-  }).click();
-}
-function exportSelected() {
-  const blob = new Blob([buildCSVRows(ALL_DATA.filter(r => selectedIds.has(r.id)))], { type:'text/csv' });
-  Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(blob), download: 'philhealth-responses-selected.csv'
-  }).click();
-}
+function exportCSV() { downloadCSV(filteredRows, 'philhealth-responses.csv'); }
+function exportSelected() { downloadCSV(ALL_DATA.filter(r => selectedIds.has(r.id)), 'philhealth-responses-selected.csv'); }
 
 /* ── BULK DROPDOWN ── */
 function toggleBulkDropdown(e) {
