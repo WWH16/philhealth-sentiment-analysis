@@ -59,6 +59,8 @@ def _preprocess_light(text):
     text = re.sub(r'[^a-z\s]', ' ', text)
     tokens = [t for t in text.split() if t not in _STOP_WORDS]
     return " ".join(_stemmer.stem(t) for t in tokens)
+
+
 def analyze_comment_sentiment(comment):
     """Classify comment text only. The SQD rating is never consulted: rating
     and sentiment are separate measurements. Entries the model cannot
