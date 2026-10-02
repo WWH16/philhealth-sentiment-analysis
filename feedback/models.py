@@ -39,8 +39,9 @@ class FeedbackToken(models.Model):
 
 class FeedbackEntry(models.Model):
     # Experience Ratings (Service Quality Dimensions - SQD).
-    # This rating scale is independent of the comment sentiment below: the
-    # client picks a rating, while sentiment is derived from comment text only.
+    # The client picks a rating; the model reads the comment into
+    # comment_sentiment. The final `sentiment` combines both
+    # (see services.combine_sentiment), but the rating alone never sets it.
     VERY_SATISFACTORY = 'vsat'
     SATISFACTORY = 'sat'
     UNSATISFACTORY = 'unsat'
@@ -85,7 +86,10 @@ class FeedbackEntry(models.Model):
         (CONCERN, 'Concern'),
     ]
     experience = models.CharField(max_length=25, choices=EXPERIENCE_CHOICES)
+    # Final sentiment: comment_sentiment adjusted by the rating.
     sentiment = models.CharField(max_length=10, choices=SENTIMENT_CHOICES, default=PENDING)
+    # What the model read from the comment alone.
+    comment_sentiment = models.CharField(max_length=10, choices=SENTIMENT_CHOICES, default=PENDING)
     category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, blank=True)
     comment = models.TextField(blank=True, max_length=1000)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=PENDING)

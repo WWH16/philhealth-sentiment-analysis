@@ -62,9 +62,9 @@ def _preprocess_light(text):
 
 
 def analyze_comment_sentiment(comment):
-    """Classify comment text only. The SQD rating is never consulted: rating
-    and sentiment are separate measurements. Entries the model cannot
-    classify stay PENDING for manual review."""
+    """Classify the comment text only. The rating is applied afterwards by
+    combine_sentiment. Entries the model cannot classify stay PENDING for
+    manual review."""
     if not comment or not comment.strip():
         return FeedbackEntry.NOT_APPLICABLE
     model = _get_model()
@@ -93,6 +93,26 @@ def analyze_comment_sentiment(comment):
         return FeedbackEntry.PENDING
 
 
+# An Unsatisfactory rating pulls the comment's reading one step down.
+_UNSATISFACTORY_SHIFT = {
+    FeedbackEntry.POSITIVE: FeedbackEntry.NEUTRAL,
+    FeedbackEntry.NEUTRAL: FeedbackEntry.NEGATIVE,
+}
+
+
+def combine_sentiment(experience, comment_sentiment):
+    """Final sentiment from the rating and the comment's sentiment.
+
+    Very Satisfactory and Satisfactory keep the comment's sentiment.
+    Unsatisfactory turns Positive into Neutral and Neutral into Negative.
+    A Negative comment stays Negative. PENDING and N/A pass through
+    unchanged, so the rating alone never produces a sentiment.
+    """
+    if experience == FeedbackEntry.UNSATISFACTORY:
+        return _UNSATISFACTORY_SHIFT.get(comment_sentiment, comment_sentiment)
+    return comment_sentiment
+
+
 def reanalyze_pending_entries(force=False):
     qs = FeedbackEntry.objects.exclude(comment='')
     if not force:
@@ -102,10 +122,12 @@ def reanalyze_pending_entries(force=False):
     processed = 0
 
     for entry in qs.iterator(chunk_size=200):
-        new_sentiment = analyze_comment_sentiment(entry.comment)
-        if new_sentiment != entry.sentiment:
-            entry.sentiment = new_sentiment
-            entry.save(update_fields=['sentiment', 'updated_at'])
+        comment_sentiment = analyze_comment_sentiment(entry.comment)
+        sentiment = combine_sentiment(entry.experience, comment_sentiment)
+        if (comment_sentiment, sentiment) != (entry.comment_sentiment, entry.sentiment):
+            entry.comment_sentiment = comment_sentiment
+            entry.sentiment = sentiment
+            entry.save(update_fields=['comment_sentiment', 'sentiment', 'updated_at'])
             processed += 1
 
     return total, processed

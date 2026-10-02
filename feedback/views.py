@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import FeedbackConfiguration, FeedbackEntry, FeedbackToken
-from .services import analyze_comment_sentiment
+from .services import analyze_comment_sentiment, combine_sentiment
 
 TOKEN_INVALID_MESSAGE = 'This feedback link has expired or was already used. Ask the staff for a new QR code.'
 
@@ -56,10 +56,8 @@ def submit_feedback(request):
     if len(comment) > 1000:
         return JsonResponse({'ok': False, 'error': 'Comments must be 1000 characters or fewer.'}, status=400)
 
-    if config.auto_analysis_enabled:
-        sentiment = analyze_comment_sentiment(comment)
-    else:
-        sentiment = FeedbackEntry.PENDING
+    comment_sentiment = analyze_comment_sentiment(comment) if config.auto_analysis_enabled else FeedbackEntry.PENDING
+    sentiment = combine_sentiment(experience, comment_sentiment)
 
     with transaction.atomic():
         # Claim the link in one UPDATE so two submits of the same link cannot both pass.
@@ -71,6 +69,7 @@ def submit_feedback(request):
             ticket_number=token.ticket_number,
             experience=experience,
             comment=comment,
+            comment_sentiment=comment_sentiment,
             sentiment=sentiment,
         )
     return JsonResponse({'ok': True}, status=201)

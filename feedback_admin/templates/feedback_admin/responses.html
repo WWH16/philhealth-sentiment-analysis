@@ -693,7 +693,8 @@ function renderTable() {
                 <div class="detail-grid">
                   <div>
                     <div style="font-weight:700;margin-bottom:8px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;">Original Feedback</div>
-                    <div style="font-size:13px;color:var(--text-primary);white-space:pre-wrap;margin-bottom:20px;line-height:1.6;">${escHtml(r.comment || 'No comment (older entry).')}</div>
+                    <div style="font-size:13px;color:var(--text-primary);white-space:pre-wrap;margin-bottom:${r.comment_sentiment ? '6px' : '20px'};line-height:1.6;">${escHtml(r.comment || 'No comment (older entry).')}</div>
+                    ${r.comment_sentiment ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">${escHtml(`Comment read as ${r.comment_sentiment}; the ${r.rating} rating made it ${r.sentiment}.`)}</div>` : ''}
                     
                     <div style="font-weight:700;margin-bottom:12px;text-transform:uppercase;font-size:10px;color:var(--text-muted);letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
                       <span class="material-icons-round" style="font-size:14px" aria-hidden="true">description</span>

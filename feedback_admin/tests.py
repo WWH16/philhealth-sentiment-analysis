@@ -195,14 +195,14 @@ class SentimentAnalysisViewTests(TestCase):
     def test_cached_word_cloud_refreshes_when_feedback_changes(self):
         from feedback.models import FeedbackEntry
         FeedbackEntry.objects.create(
-            experience=FeedbackEntry.SATISFACTORY, sentiment=FeedbackEntry.POSITIVE, comment='Helpful cashier.',
+            experience=FeedbackEntry.SATISFACTORY, sentiment=FeedbackEntry.POSITIVE, comment_sentiment=FeedbackEntry.POSITIVE, comment='Helpful cashier.',
         )
         words = lambda: {w['t'] for w in self.client.get(reverse('dashboard')).context['word_cloud']['all']['words']}
         self.assertIn('cashier', words())
         self.assertIn('cashier', words())  # served from cache
 
         entry = FeedbackEntry.objects.create(
-            experience=FeedbackEntry.SATISFACTORY, sentiment=FeedbackEntry.NEGATIVE, comment='Broken printer.',
+            experience=FeedbackEntry.SATISFACTORY, sentiment=FeedbackEntry.NEGATIVE, comment_sentiment=FeedbackEntry.NEGATIVE, comment='Broken printer.',
         )
         self.assertIn('printer', words())  # new entry changes the cache key
         entry.delete()
@@ -213,16 +213,19 @@ class SentimentAnalysisViewTests(TestCase):
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.VERY_SATISFACTORY,
             sentiment=FeedbackEntry.POSITIVE,
+            comment_sentiment=FeedbackEntry.POSITIVE,
             comment='Comments: Mabilis ang staff, staff was helpful.',
         )
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.UNSATISFACTORY,
             sentiment=FeedbackEntry.NEGATIVE,
+            comment_sentiment=FeedbackEntry.NEGATIVE,
             comment='The staff line was slow.',
         )
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.SATISFACTORY,
             sentiment=FeedbackEntry.PENDING,
+            comment_sentiment=FeedbackEntry.PENDING,
             comment='Unanalyzed staff remark.',
         )
 

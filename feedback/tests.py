@@ -46,6 +46,22 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         self.assertEqual(entry.sentiment, FeedbackEntry.PENDING)
         mocked_analyze.assert_not_called()
 
+    @patch('feedback.views.analyze_comment_sentiment', return_value=FeedbackEntry.POSITIVE)
+    def test_unsatisfactory_rating_turns_positive_comment_neutral(self, _mocked_analyze):
+        config = FeedbackConfiguration.get_solo()
+        config.auto_analysis_enabled = True
+        config.save()
+
+        response = self._submit({
+            'experience': FeedbackEntry.UNSATISFACTORY,
+            'comment': 'Thank you po.',
+        })
+
+        self.assertEqual(response.status_code, 201)
+        entry = FeedbackEntry.objects.get()
+        self.assertEqual(entry.comment_sentiment, FeedbackEntry.POSITIVE)
+        self.assertEqual(entry.sentiment, FeedbackEntry.NEUTRAL)
+
     def test_submit_feedback_requires_comment(self):
         for comment in ('', '   ', None):
             response = self._submit({
@@ -140,6 +156,55 @@ class SentimentServiceTests(TestCase):
         self.assertEqual(row['sentiment'], 'N/A')
         self.assertEqual(row['sentiment_value'], FeedbackEntry.NOT_APPLICABLE)
 
+
+    def test_combine_sentiment_applies_rating_to_comment(self):
+        from .services import combine_sentiment
+        E = FeedbackEntry
+        expected = {
+            E.VERY_SATISFACTORY: {E.POSITIVE: E.POSITIVE, E.NEUTRAL: E.NEUTRAL, E.NEGATIVE: E.NEGATIVE},
+            E.SATISFACTORY: {E.POSITIVE: E.POSITIVE, E.NEUTRAL: E.NEUTRAL, E.NEGATIVE: E.NEGATIVE},
+            E.UNSATISFACTORY: {E.POSITIVE: E.NEUTRAL, E.NEUTRAL: E.NEGATIVE, E.NEGATIVE: E.NEGATIVE},
+        }
+        for rating, by_comment in expected.items():
+            for comment_sentiment, final in by_comment.items():
+                with self.subTest(rating=rating, comment=comment_sentiment):
+                    self.assertEqual(combine_sentiment(rating, comment_sentiment), final)
+
+    def test_combine_sentiment_never_derives_from_rating_alone(self):
+        from .services import combine_sentiment
+        for rating, _ in FeedbackEntry.EXPERIENCE_CHOICES:
+            for unresolved in (FeedbackEntry.PENDING, FeedbackEntry.NOT_APPLICABLE):
+                with self.subTest(rating=rating, comment=unresolved):
+                    self.assertEqual(combine_sentiment(rating, unresolved), unresolved)
+
+    @patch('feedback.services.analyze_comment_sentiment', return_value=FeedbackEntry.NEUTRAL)
+    def test_reanalyze_saves_comment_and_final_sentiment(self, _mocked_analyze):
+        from .services import reanalyze_pending_entries
+        entry = FeedbackEntry.objects.create(
+            experience=FeedbackEntry.UNSATISFACTORY,
+            comment='Kumuha ng ID.',
+        )
+        reanalyze_pending_entries()
+        entry.refresh_from_db()
+        self.assertEqual(entry.comment_sentiment, FeedbackEntry.NEUTRAL)
+        self.assertEqual(entry.sentiment, FeedbackEntry.NEGATIVE)
+
+    def test_entry_to_row_shows_comment_sentiment_only_when_adjusted(self):
+        from feedback_admin.views import _entry_to_row
+        adjusted = FeedbackEntry.objects.create(
+            experience=FeedbackEntry.UNSATISFACTORY,
+            comment_sentiment=FeedbackEntry.POSITIVE,
+            sentiment=FeedbackEntry.NEUTRAL,
+            comment='Salamat po.',
+        )
+        unchanged = FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY,
+            comment_sentiment=FeedbackEntry.POSITIVE,
+            sentiment=FeedbackEntry.POSITIVE,
+            comment='Salamat po.',
+        )
+        self.assertEqual(_entry_to_row(adjusted)['comment_sentiment'], 'Positive')
+        self.assertIsNone(_entry_to_row(unchanged)['comment_sentiment'])
 
     @patch('feedback.services._get_model', return_value=None)
     def test_sentiment_does_not_fall_back_to_rating(self, _mocked_model):

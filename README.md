@@ -60,7 +60,7 @@ The screenshots below showcase the user interfaces and administrative tools of t
 ## Core Features
 
 ### Public-Facing Feedback Submission
-- **Structured Submission**: Collects Service Quality Dimensions (SQD) ratings on a 3-point scale (Very Satisfactory, Satisfactory, Unsatisfactory) along with detailed feedback comments. The SQD rating is separate from sentiment analysis: the client chooses the rating, and sentiment comes from the comment text only.
+- **Structured Submission**: Collects Service Quality Dimensions (SQD) ratings on a 3-point scale (Very Satisfactory, Satisfactory, Unsatisfactory) along with detailed feedback comments. The final sentiment combines the comment's sentiment with the rating (see below); the rating alone never sets it.
 - **Unique Tracking Code**: Generates an immutable, human-readable identifier (e.g., CF-YYYYMMDD-[HEX]) upon submission for tracking.
 - **AJAX Driven**: High-fidelity modal success screen and instant code generation without page reloads.
 
@@ -75,7 +75,17 @@ The screenshots below showcase the user interfaces and administrative tools of t
   6. Snowball stemming.
 - **Replacing the Model**: After copying in a new `sentiment_model.pkl`, re-label every existing comment with `python manage.py reanalyze_sentiment --force`.
 - **Batch Re-Analysis**: Built-in admin utility to re-run predictions across historical entries.
-- **Independent of Ratings**: The classifier reads only the comment. It never uses the SQD rating; a comment the model cannot classify stays Pending for manual review.
+- **Comment Sentiment**: The classifier reads only the comment and stores the result in `comment_sentiment`. A comment the model cannot classify stays Pending for manual review.
+- **Final Sentiment (rating + comment)**: `sentiment` combines the rating with the comment's sentiment (`feedback.services.combine_sentiment`). The dashboard, reports, filters, and email use this value; the word cloud uses `comment_sentiment`.
+
+  | Rating | Comment Positive | Comment Neutral | Comment Negative |
+  |---|---|---|---|
+  | Very Satisfactory | Positive | Neutral | Negative |
+  | Satisfactory | Positive | Neutral | Negative |
+  | Unsatisfactory | Neutral | Negative | Negative |
+
+  A Negative comment is always Negative. Pending and N/A pass through unchanged, so the rating alone never produces a sentiment.
+- **Deploying this change**: Run `python manage.py migrate`, then `python manage.py reanalyze_sentiment --force` so existing entries get their final sentiment.
 
 ### Administrative Dashboard and Management
 - **Key Metrics**: Interactive gauges displaying total submissions and satisfaction trends.

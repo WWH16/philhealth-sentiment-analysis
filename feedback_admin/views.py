@@ -408,6 +408,11 @@ def _entry_to_row(entry, activity=None):
         'category_value': entry.category,
         'sentiment': sentiment_display,
         'sentiment_value': sentiment_value,
+        # Shown only when the rating changed what the comment alone read as.
+        'comment_sentiment': (
+            _SENT_DISPLAY.get(entry.comment_sentiment, entry.comment_sentiment)
+            if has_comment and entry.comment_sentiment != entry.sentiment else None
+        ),
         'status': _STATUS_DISPLAY.get(entry.status, entry.status),
         'status_value': entry.status,
         'comment': entry.comment,
@@ -697,7 +702,8 @@ def _cached_word_cloud(entries, today_start, week_start, month_start):
 def _sentiment_word_cloud(entries, today_start, week_start, month_start):
     """Most frequent comment words per period, with the sentiment of the
     comments each word came from. Only analyzed comments (positive, neutral,
-    negative) are counted, so every word has a sentiment to show."""
+    negative) are counted, so every word has a sentiment to show. Words take
+    the comment's own sentiment, not the rating-adjusted one."""
     from feedback.services import _STOP_WORDS
 
     stopwords = _STOP_WORDS | _WORD_CLOUD_EXTRA_STOPWORDS
@@ -711,9 +717,9 @@ def _sentiment_word_cloud(entries, today_start, week_start, month_start):
     comment_counts = dict.fromkeys(periods, 0)
 
     rows = (
-        entries.filter(sentiment__in=sentiment_keys.keys())
+        entries.filter(comment_sentiment__in=sentiment_keys.keys())
         .exclude(comment='')
-        .values_list('comment', 'sentiment', 'created_at')
+        .values_list('comment', 'comment_sentiment', 'created_at')
     )
     for comment, sentiment, created_at in rows.iterator(chunk_size=500):
         text = re.sub(r'(Comments|Commendation|Comments & Suggestions):', ' ', comment, flags=re.IGNORECASE)
@@ -982,7 +988,7 @@ def export_report_excel(request):
         ('Total Responses', counts['total']),
         ('Satisfaction Rate', f"{counts['satisfaction']}%"),
         ('', ''),
-        ('Comment Sentiment', ''),
+        ('Sentiment', ''),
         ('Positive', counts['sentiment']['pos']),
         ('Neutral', counts['sentiment']['neu']),
         ('Negative', counts['sentiment']['neg']),
@@ -1013,7 +1019,7 @@ def export_report_excel(request):
     ws2 = wb.create_sheet('Responses')
     ws2.sheet_properties.tabColor = '23A455'
 
-    response_headers = ['ID', 'Ticket', 'Date', 'Time', 'Experience', 'Category', 'Sentiment', 'Status', 'Comment']
+    response_headers = ['ID', 'Ticket', 'Date', 'Time', 'Experience', 'Category', 'Sentiment', 'Comment Sentiment', 'Status', 'Comment']
 
     # Write header row
     for col_idx, header_text in enumerate(response_headers, 1):
@@ -1040,6 +1046,7 @@ def export_report_excel(request):
             EXPERIENCE_MAP.get(entry.experience, entry.experience),
             CATEGORY_MAP.get(entry.category, entry.category),
             SENTIMENT_MAP.get(entry.sentiment, entry.sentiment),
+            SENTIMENT_MAP.get(entry.comment_sentiment, entry.comment_sentiment),
             STATUS_MAP.get(entry.status, entry.status),
             entry.comment,
         ]
@@ -1049,7 +1056,7 @@ def export_report_excel(request):
             cell.border = thin_border
 
     # Auto-size key columns (approximate widths)
-    col_widths = {'A': 8, 'B': 8, 'C': 12, 'D': 10, 'E': 18, 'F': 14, 'G': 12, 'H': 12, 'I': 60}
+    col_widths = {'A': 8, 'B': 8, 'C': 12, 'D': 10, 'E': 18, 'F': 14, 'G': 12, 'H': 20, 'I': 12, 'J': 60}
     for col_letter, width in col_widths.items():
         ws2.column_dimensions[col_letter].width = width
 

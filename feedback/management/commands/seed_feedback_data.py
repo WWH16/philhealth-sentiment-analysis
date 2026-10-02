@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from feedback.models import FeedbackConfiguration, FeedbackEntry
-from feedback.services import analyze_comment_sentiment
+from feedback.services import analyze_comment_sentiment, combine_sentiment
 
 # Each comment is written so the sentiment model reads it as the group's
 # `sentiment`; feedback/tests.py checks this whenever the model file exists.
@@ -151,10 +151,7 @@ class Command(BaseCommand):
             status = random.choices(STATUSES, weights=[40, 35, 25], k=1)[0]
 
             # Determine sentiment strictly based on system settings
-            if auto_analysis and comment:
-                sent = analyze_comment_sentiment(comment)
-            else:
-                sent = FeedbackEntry.PENDING
+            comment_sent = analyze_comment_sentiment(comment) if auto_analysis else FeedbackEntry.PENDING
 
             # Random timestamp within past `days`
             random_seconds = random.randint(0, days * 86400)
@@ -162,7 +159,8 @@ class Command(BaseCommand):
 
             entry = FeedbackEntry(
                 experience=exp,
-                sentiment=sent,
+                comment_sentiment=comment_sent,
+                sentiment=combine_sentiment(exp, comment_sent),
                 category=cat,
                 comment=comment,
                 status=status,
