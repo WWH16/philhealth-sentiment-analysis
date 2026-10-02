@@ -97,6 +97,21 @@ def _build_feedback_activity_map(entry_ids):
     return activity
 
 
+_GROUP_ACTIONS = {
+    ADDITION: ('Group Created', 'create'),
+    CHANGE: ('Group Updated', 'update'),
+    DELETION: ('Group Deleted', 'delete'),
+}
+# Settings-page events, matched by the start of the log message.
+_SETTINGS_EVENTS = [
+    ('Auto-analysis', 'Auto-Analysis Toggle', 'settings'),
+    ('Batch re-analysis', 'Batch Re-analyze', 'settings'),
+    ('Created backup', 'Backup Created', 'backup'),
+    ('Deleted backup', 'Backup Deleted', 'backup'),
+    ('Restored database', 'Database Restored', 'backup'),
+]
+
+
 def _format_audit_row(log, entry=None):
     local_time = timezone.localtime(log.action_time)
     username = log.user.username if log.user else 'System'
@@ -170,35 +185,13 @@ def _format_audit_row(log, entry=None):
             action_type = 'delete'
             summary = message or f'{log.object_repr} deleted'
     elif ctype == 'group':
-        if log.action_flag == ADDITION:
-            action_label = 'Group Created'
-            action_type = 'create'
-        elif log.action_flag == CHANGE:
-            action_label = 'Group Updated'
-            action_type = 'update'
-        elif log.action_flag == DELETION:
-            action_label = 'Group Deleted'
-            action_type = 'delete'
+        action_label, action_type = _GROUP_ACTIONS.get(log.action_flag, (action_label, action_type))
         summary = message or log.object_repr
     elif ctype == 'feedbackconfiguration':
-        if message.startswith('Auto-analysis'):
-            action_label = 'Auto-Analysis Toggle'
-            action_type = 'settings'
-        elif message.startswith('Batch re-analysis'):
-            action_label = 'Batch Re-analyze'
-            action_type = 'settings'
-        elif message.startswith('Created backup'):
-            action_label = 'Backup Created'
-            action_type = 'backup'
-        elif message.startswith('Deleted backup'):
-            action_label = 'Backup Deleted'
-            action_type = 'backup'
-        elif message.startswith('Restored database'):
-            action_label = 'Database Restored'
-            action_type = 'backup'
-        else:
-            action_label = 'Settings Update'
-            action_type = 'settings'
+        action_label, action_type = next(
+            ((label, kind) for prefix, label, kind in _SETTINGS_EVENTS if message.startswith(prefix)),
+            ('Settings Update', 'settings'),
+        )
         summary = message
 
     return {

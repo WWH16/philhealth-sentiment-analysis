@@ -1840,49 +1840,6 @@ function closeConfirmModal(id) {
   forceCloseModal(id);
 }
 
-/* ── TOAST ── */
-function showToast(msg, type = 'success', shouldReload = false) {
-  if (window.showToast && window.showToast !== showToast) {
-    window.showToast(msg, type, shouldReload);
-    return;
-  }
-  const isError    = type === 'error';
-  const isWarning  = type === 'warning';
-  const toastColor = isError ? 'var(--red)' : (isWarning ? 'var(--gold)' : 'var(--g-primary)');
-  const icon       = isError ? 'error' : (isWarning ? 'warning' : 'check_circle');
-
-  if (shouldReload) {
-    try {
-      sessionStorage.setItem('pendingToast', JSON.stringify({ msg, type }));
-    } catch (e) {}
-    location.reload();
-    return;
-  }
-
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
-
-  container.querySelectorAll('.ph-toast').forEach(t => t.remove());
-
-  const div        = document.createElement('div');
-  div.className    = 'toast ph-toast fade align-items-center border-0';
-  div.setAttribute('role', 'alert');
-  div.setAttribute('data-bs-delay', '5000');
-  div.style.setProperty('--toast-color', toastColor);
-  div.innerHTML = `
-    <div class="d-flex w-100">
-      <div class="toast-body d-flex align-items-center gap-3 py-3" style="color:var(--text-primary);font-size:13px;font-weight:600;width:100%;">
-        <span class="material-icons-round" style="font-size:20px;color:${toastColor}">${icon}</span>
-        <span class="toast-text">${escHtml(msg)}</span>
-      </div>
-      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close" style="font-size:10px;"></button>
-    </div>
-    <div class="ph-toast-progress"></div>`;
-  container.appendChild(div);
-  new bootstrap.Toast(div).show();
-  div.addEventListener('hidden.bs.toast', () => div.remove());
-}
-
 /* ── INIT ── */
 function pageInit() {
   openPanelFromHash();
