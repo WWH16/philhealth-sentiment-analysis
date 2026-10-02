@@ -73,7 +73,6 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         entry = FeedbackEntry.objects.get()
         self.assertEqual(entry.experience, FeedbackEntry.UNSATISFACTORY)
         self.assertEqual(entry.comment, 'Mahaba ang pila.')
-        self.assertIsNone(entry.staff_assisted)
 
     def test_submit_limits_comment_to_1000_characters(self):
         response = self._submit({
@@ -163,21 +162,18 @@ class DailySummaryEmailTests(TestCase):
         # Create test feedback entries
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.VERY_SATISFACTORY,
-            sqd0=3,
             sentiment=FeedbackEntry.POSITIVE,
             category=FeedbackEntry.COMPLIMENT,
             comment='Great service at Window 2.'
         )
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.SATISFACTORY,
-            sqd0=2,
             sentiment=FeedbackEntry.POSITIVE,
             category=FeedbackEntry.SUGGESTION,
             comment='Smooth transaction.'
         )
         FeedbackEntry.objects.create(
             experience=FeedbackEntry.UNSATISFACTORY,
-            sqd0=1,
             sentiment=FeedbackEntry.NEGATIVE,
             category=FeedbackEntry.COMPLAINT,
             comment='Long waiting queue.'

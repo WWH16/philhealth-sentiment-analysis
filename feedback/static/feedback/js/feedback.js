@@ -9,42 +9,19 @@
   var submitError = document.getElementById('submitError');
   var attempted = false;
 
-  var REQUIRED = [
-    {
-      group: 'group-experience',
-      error: 'err-experience',
-      isValid: function () { return !!form.querySelector('input[name="experience"]:checked'); },
-      focusEl: function () { return form.querySelector('input[name="experience"]'); }
-    },
-    {
-      group: 'group-comment',
-      error: 'err-comment',
-      isValid: function () { return !!form.comments_suggestions.value.trim(); },
-      focusEl: function () { return form.comments_suggestions; }
-    },
-    {
-      group: 'group-consent',
-      error: 'err-consent',
-      isValid: function () { return form.privacyConsent.checked; },
-      focusEl: function () { return form.privacyConsent; }
-    }
-  ];
+  // Required fields carry `required`; each sits in a [id^="group-"] wrapper with an err-* message.
+  var GROUPS = { 'group-experience': 'err-experience', 'group-comment': 'err-comment', 'group-consent': 'err-consent' };
 
-  function getCookie(name) {
-    var parts = ('; ' + document.cookie).split('; ' + name + '=');
-    return parts.length === 2 ? parts.pop().split(';').shift() : '';
-  }
-
-  // Marks every missing field and returns the first one, or null.
+  // Marks every missing field and returns the first invalid input, or null.
   function validate() {
-    var first = null;
-    REQUIRED.forEach(function (field) {
-      var ok = field.isValid();
-      document.getElementById(field.group).classList.toggle('is-invalid', !ok);
-      document.getElementById(field.error).hidden = ok;
-      if (!ok && !first) first = field;
+    // `required` accepts whitespace; the server does not.
+    commentBox.setCustomValidity(commentBox.value.trim() ? '' : 'empty');
+    Object.keys(GROUPS).forEach(function (group) {
+      var ok = !document.getElementById(group).querySelector(':invalid');
+      document.getElementById(group).classList.toggle('is-invalid', !ok);
+      document.getElementById(GROUPS[group]).hidden = ok;
     });
-    return first;
+    return form.querySelector(':invalid');
   }
 
   function setBusy(busy) {
@@ -78,8 +55,8 @@
     attempted = true;
     var missing = validate();
     if (missing) {
-      document.getElementById(missing.group).scrollIntoView({ block: 'center' });
-      missing.focusEl().focus({ preventScroll: true });
+      missing.closest('[id^="group-"]').scrollIntoView({ block: 'center' });
+      missing.focus({ preventScroll: true });
       return;
     }
 
@@ -88,7 +65,7 @@
 
     fetch(window.FEEDBACK_SUBMIT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': form.csrfmiddlewaretoken.value },
       body: JSON.stringify({
         token: form.token.value,
         experience: form.querySelector('input[name="experience"]:checked').value,

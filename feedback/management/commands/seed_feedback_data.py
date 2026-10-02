@@ -133,7 +133,7 @@ class Command(BaseCommand):
         count = options['count']
         days = options['days']
         now = timezone.now()
-        auto_analysis = FeedbackConfiguration.auto_analysis_is_enabled()
+        auto_analysis = FeedbackConfiguration.get_solo().auto_analysis_enabled
 
         self.stdout.write(f'Generating {count} sample feedback entries across the past {days} days (Auto-analysis: {auto_analysis})...')
 

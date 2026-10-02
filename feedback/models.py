@@ -6,6 +6,8 @@ from django.db import models
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 
+DEFAULT_OFFLINE_MESSAGE = 'Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya.'
+
 
 class FeedbackToken(models.Model):
     """Single-use feedback link that staff hand to one served client as a QR code.
@@ -92,46 +94,6 @@ class FeedbackEntry(models.Model):
     # One response per QR link, enforced by the database.
     token = models.OneToOneField(FeedbackToken, on_delete=models.SET_NULL, null=True, blank=True)
 
-    # CSM Form Specific Fields
-    date_time = models.DateTimeField(null=True, blank=True)
-    contact_no = models.CharField(max_length=50, blank=True)
-    email_address = models.EmailField(max_length=100, blank=True)
-    age = models.IntegerField(null=True, blank=True)
-    client_type = models.CharField(max_length=100, blank=True)
-    sex = models.CharField(max_length=50, blank=True)
-    name_of_client = models.CharField(max_length=100, blank=True)
-    staff_assisted = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='assisted_feedbacks',
-        help_text='Staff member who assisted the client'
-    )
-    staff_name = models.CharField(
-        max_length=150,
-        blank=True,
-        help_text='Name of the staff member recorded at submission time'
-    )
-    services_availed = models.JSONField(default=list, blank=True)
-
-    cc1 = models.CharField(max_length=10, blank=True)
-    cc2 = models.CharField(max_length=10, blank=True)
-    cc3 = models.CharField(max_length=10, blank=True)
-
-    sqd0 = models.IntegerField(null=True, blank=True)
-    sqd1 = models.IntegerField(null=True, blank=True)
-    sqd2 = models.IntegerField(null=True, blank=True)
-    sqd3 = models.IntegerField(null=True, blank=True)
-    sqd4 = models.IntegerField(null=True, blank=True)
-    sqd5 = models.IntegerField(null=True, blank=True)
-    sqd6 = models.IntegerField(null=True, blank=True)
-    sqd7 = models.IntegerField(null=True, blank=True)
-    sqd8 = models.IntegerField(null=True, blank=True)
-
-    comments_suggestions = models.TextField(blank=True, max_length=1000)
-    commendation = models.TextField(blank=True, max_length=1000)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -153,7 +115,7 @@ class FeedbackConfiguration(models.Model):
     )
     survey_offline_message = models.TextField(
         blank=True,
-        default='Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya.',
+        default=DEFAULT_OFFLINE_MESSAGE,
         help_text='Notice shown to citizens when public feedback submissions are disabled.'
     )
     auto_analysis_enabled = models.BooleanField(default=True)
@@ -180,26 +142,10 @@ class FeedbackConfiguration(models.Model):
         try:
             config, _ = cls.objects.get_or_create(pk=1)
         except (OperationalError, ProgrammingError):
-            return cls(
-                pk=1,
-                survey_enabled=True,
-                survey_offline_message='Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya.',
-                auto_analysis_enabled=True,
-                daily_summary_enabled=False,
-                notification_email='',
-                daily_summary_time='16:30'
-            )
+            return cls(pk=1)
         return config
 
     @classmethod
-    def auto_analysis_is_enabled(cls):
-        return cls.get_solo().auto_analysis_enabled
-
-    @classmethod
-    def survey_is_enabled(cls):
-        return cls.get_solo().survey_enabled
-
-    @classmethod
     def get_survey_offline_message(cls):
-        return cls.get_solo().survey_offline_message or 'Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya.'
+        return cls.get_solo().survey_offline_message or DEFAULT_OFFLINE_MESSAGE
 

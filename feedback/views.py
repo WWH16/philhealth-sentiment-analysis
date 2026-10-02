@@ -2,7 +2,6 @@ import json
 
 from django.db import transaction
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -13,7 +12,6 @@ from .services import analyze_comment_sentiment
 TOKEN_INVALID_MESSAGE = 'This feedback link has expired or was already used. Ask the staff for a new QR code.'
 
 
-@ensure_csrf_cookie
 def index(request):
     config = FeedbackConfiguration.get_solo()
     key = request.GET.get('t', '')
@@ -28,10 +26,11 @@ def index(request):
 
 @require_POST
 def submit_feedback(request):
-    if not FeedbackConfiguration.survey_is_enabled():
+    config = FeedbackConfiguration.get_solo()
+    if not config.survey_enabled:
         return JsonResponse({
             'ok': False,
-            'error': FeedbackConfiguration.get_survey_offline_message(),
+            'error': config.get_survey_offline_message(),
             'survey_disabled': True,
         }, status=403)
 
@@ -57,7 +56,7 @@ def submit_feedback(request):
     if len(comment) > 1000:
         return JsonResponse({'ok': False, 'error': 'Comments must be 1000 characters or fewer.'}, status=400)
 
-    if FeedbackConfiguration.auto_analysis_is_enabled():
+    if config.auto_analysis_enabled:
         sentiment = analyze_comment_sentiment(comment)
     else:
         sentiment = FeedbackEntry.PENDING
