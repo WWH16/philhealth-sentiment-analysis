@@ -85,12 +85,24 @@ class FeedbackEntry(models.Model):
         (COMPLIMENT, 'Compliment'),
         (CONCERN, 'Concern'),
     ]
+
+    # What the feedback is about, picked by the client on the form (one or
+    # more). Separate from `category`, which staff set.
+    TOPIC_CHOICES = [
+        ('waiting_time', 'Waiting time'),
+        ('staff', 'Staff'),
+        ('facilities', 'Facilities'),
+        ('documents', 'Document requirements'),
+        ('other', 'Other'),
+    ]
     experience = models.CharField(max_length=25, choices=EXPERIENCE_CHOICES)
     # Final sentiment: comment_sentiment adjusted by the rating.
     sentiment = models.CharField(max_length=10, choices=SENTIMENT_CHOICES, default=PENDING)
     # What the model read from the comment alone.
     comment_sentiment = models.CharField(max_length=10, choices=SENTIMENT_CHOICES, default=PENDING)
     category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, blank=True)
+    # List of TOPIC_CHOICES values. Counted in Python, so no JSON lookups are needed.
+    topics = models.JSONField(default=list, blank=True)
     comment = models.TextField(blank=True, max_length=1000)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=PENDING)
     # Queue number from the office; numbers cycle, so it is a label, not an identity.

@@ -91,6 +91,46 @@
           <p class="field-error" id="err-experience" hidden><span class="material-icons-round" aria-hidden="true">error_outline</span>Choose how your transaction went.</p>
         </section>
 
+        <section class="block" id="group-topics" aria-labelledby="topicsTitle">
+          <div class="block-head">
+            <h2 class="panel-title" id="topicsTitle"><span class="material-icons-round" aria-hidden="true">sell</span>What is your feedback about?</h2>
+            <p class="block-hint" id="topicsHint">Select all that apply.</p>
+          </div>
+          <div class="topics" role="group" aria-labelledby="topicsTitle" aria-describedby="topicsHint err-topics">
+            <label class="topic-opt">
+              <input type="checkbox" name="topics" value="waiting_time">
+              <span class="material-icons-round" aria-hidden="true">schedule</span>
+              <span class="topic-label">Waiting time</span>
+              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
+            </label>
+            <label class="topic-opt">
+              <input type="checkbox" name="topics" value="staff">
+              <span class="material-icons-round" aria-hidden="true">support_agent</span>
+              <span class="topic-label">Staff</span>
+              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
+            </label>
+            <label class="topic-opt">
+              <input type="checkbox" name="topics" value="facilities">
+              <span class="material-icons-round" aria-hidden="true">apartment</span>
+              <span class="topic-label">Facilities</span>
+              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
+            </label>
+            <label class="topic-opt">
+              <input type="checkbox" name="topics" value="documents">
+              <span class="material-icons-round" aria-hidden="true">description</span>
+              <span class="topic-label">Document requirements</span>
+              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
+            </label>
+            <label class="topic-opt">
+              <input type="checkbox" name="topics" value="other">
+              <span class="material-icons-round" aria-hidden="true">more_horiz</span>
+              <span class="topic-label">Other</span>
+              <span class="topic-check material-icons-round" aria-hidden="true">check</span>
+            </label>
+          </div>
+          <p class="field-error" id="err-topics" hidden><span class="material-icons-round" aria-hidden="true">error_outline</span>Choose at least one topic.</p>
+        </section>
+
         <section class="block" id="group-comment" aria-labelledby="commentTitle">
           <div class="block-head">
             <h2 class="panel-title" id="commentTitle"><span class="material-icons-round" aria-hidden="true">chat_bubble</span><label for="commentsSuggestions">Comment</label></h2>

@@ -243,6 +243,11 @@
   </div>
 </div>
 
+<!-- FEEDBACK BY TOPIC -->
+<div class="mb-4">
+  {% include 'feedback_admin/_topic_breakdown.html' %}
+</div>
+
 <!-- CHARTS ROW -->
 <div class="row g-3 mb-4">
   <!-- SENTIMENT TREND -->
@@ -395,6 +400,7 @@ function updateReport(forceRecreate = false) {
   document.getElementById('performanceCaption').querySelector('span:last-child').textContent =
     `Based on ${categorized.toLocaleString()} of ${data.total.toLocaleString()} responses categorized by staff.`;
 
+  renderTopicBreakdown(data.topics);
   updateReportPieChart(data, forceRecreate);
   updateReportTrendChart(data, forceRecreate);
 }

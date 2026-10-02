@@ -56,6 +56,14 @@ def submit_feedback(request):
     if len(comment) > 1000:
         return JsonResponse({'ok': False, 'error': 'Comments must be 1000 characters or fewer.'}, status=400)
 
+    topics = payload.get('topics')
+    known_topics = dict(FeedbackEntry.TOPIC_CHOICES)
+    if not isinstance(topics, list) or not topics:
+        return JsonResponse({'ok': False, 'error': 'Please select at least one topic.'}, status=400)
+    if not all(isinstance(t, str) and t in known_topics for t in topics):
+        return JsonResponse({'ok': False, 'error': 'Unknown topic selected.'}, status=400)
+    topics = list(dict.fromkeys(topics))  # drop duplicates, keep order
+
     comment_sentiment = analyze_comment_sentiment(comment) if config.auto_analysis_enabled else FeedbackEntry.PENDING
     sentiment = combine_sentiment(experience, comment_sentiment)
 
@@ -69,6 +77,7 @@ def submit_feedback(request):
             ticket_number=token.ticket_number,
             experience=experience,
             comment=comment,
+            topics=topics,
             comment_sentiment=comment_sentiment,
             sentiment=sentiment,
         )

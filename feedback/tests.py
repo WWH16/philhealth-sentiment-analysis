@@ -10,7 +10,7 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
     def _submit(self, payload):
         return self.client.post(
             '/feedback/submit/',
-            data=json.dumps({'token': FeedbackToken.issue('1', None).key, **payload}),
+            data=json.dumps({'token': FeedbackToken.issue('1', None).key, 'topics': ['other'], **payload}),
             content_type='application/json',
         )
 
@@ -61,6 +61,41 @@ class SubmitFeedbackAutoAnalysisTests(TestCase):
         entry = FeedbackEntry.objects.get()
         self.assertEqual(entry.comment_sentiment, FeedbackEntry.POSITIVE)
         self.assertEqual(entry.sentiment, FeedbackEntry.NEUTRAL)
+
+    def test_submit_saves_single_and_multiple_topics(self):
+        for topics in (['staff'], ['staff', 'waiting_time']):
+            with self.subTest(topics=topics):
+                response = self._submit({'experience': FeedbackEntry.SATISFACTORY, 'comment': 'Okay.', 'topics': topics})
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(FeedbackEntry.objects.latest('id').topics, topics)
+
+    def test_submit_removes_duplicate_topics(self):
+        response = self._submit({
+            'experience': FeedbackEntry.SATISFACTORY, 'comment': 'Okay.',
+            'topics': ['staff', 'waiting_time', 'staff'],
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(FeedbackEntry.objects.get().topics, ['staff', 'waiting_time'])
+
+    def test_submit_rejects_bad_topics(self):
+        for topics in ([], ['parking'], 'staff', [1], None, {'staff': True}):
+            with self.subTest(topics=topics):
+                response = self._submit({'experience': FeedbackEntry.SATISFACTORY, 'comment': 'Okay.', 'topics': topics})
+                self.assertEqual(response.status_code, 400)
+        self.assertEqual(FeedbackEntry.objects.count(), 0)
+
+    def test_submit_requires_topics(self):
+        response = self.client.post(
+            '/feedback/submit/',
+            data=json.dumps({
+                'token': FeedbackToken.issue('1', None).key,
+                'experience': FeedbackEntry.SATISFACTORY,
+                'comment': 'Okay.',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(FeedbackEntry.objects.count(), 0)
 
     def test_submit_feedback_requires_comment(self):
         for comment in ('', '   ', None):
@@ -207,6 +242,29 @@ class SentimentServiceTests(TestCase):
         self.assertIsNone(_entry_to_row(unchanged)['comment_sentiment'])
         # The CSV column always carries the comment's own reading.
         self.assertEqual(_entry_to_row(unchanged)['comment_sentiment_label'], 'Positive')
+
+    def test_entry_to_row_returns_topic_labels(self):
+        from feedback_admin.views import _entry_to_row
+        tagged = FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY, comment='Okay.', topics=['documents', 'staff'],
+        )
+        old = FeedbackEntry.objects.create(experience=FeedbackEntry.SATISFACTORY, comment='Okay.')
+        self.assertEqual(_entry_to_row(tagged)['topics'], ['Document requirements', 'Staff'])
+        self.assertEqual(_entry_to_row(tagged)['topic_values'], ['documents', 'staff'])
+        self.assertEqual(_entry_to_row(old)['topics'], [])
+
+    def test_topic_counts_count_each_topic_and_split_by_sentiment(self):
+        from feedback_admin.views import _topic_counts
+        E = FeedbackEntry
+        E.objects.create(experience=E.SATISFACTORY, comment='a', topics=['staff', 'waiting_time'], sentiment=E.NEGATIVE)
+        E.objects.create(experience=E.SATISFACTORY, comment='b', topics=['staff'], sentiment=E.POSITIVE)
+        E.objects.create(experience=E.SATISFACTORY, comment='c', topics=['staff'], sentiment=E.PENDING)
+        E.objects.create(experience=E.SATISFACTORY, comment='d', sentiment=E.POSITIVE)  # no topics: left out
+        counts = {t['value']: t for t in _topic_counts(E.objects.all())}
+        split = lambda t: {k: counts[t][k] for k in ('total', 'pos', 'neu', 'neg')}
+        self.assertEqual(split('staff'), {'total': 3, 'pos': 1, 'neu': 0, 'neg': 1})
+        self.assertEqual(split('waiting_time'), {'total': 1, 'pos': 0, 'neu': 0, 'neg': 1})
+        self.assertEqual(counts['other']['total'], 0)
 
     @patch('feedback.services._get_model', return_value=None)
     def test_sentiment_does_not_fall_back_to_rating(self, _mocked_model):
@@ -398,6 +456,7 @@ class SurveyAvailabilityTests(TestCase):
             data=json.dumps({
                 'token': FeedbackToken.issue('1', None).key,
                 'experience': FeedbackEntry.VERY_SATISFACTORY,
+                'topics': ['staff'],
                 'comment': 'Submitting while active.',
             }),
             content_type='application/json',

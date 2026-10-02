@@ -323,6 +323,12 @@ def dashboard(request):
         'negative_pct': all_counts['negative_pct'],
         'filter_data': filter_data,
         'rating_data': _multi_period_experience_counts(entries, today_range, week_start, month_start),
+        'topic_data': {
+            'all': _topic_counts(entries),
+            'today': _topic_counts(entries.filter(created_at__range=today_range)),
+            'week': _topic_counts(entries.filter(created_at__gte=week_start)),
+            'month': _topic_counts(entries.filter(created_at__gte=month_start)),
+        },
         'needs_attention': _open_negative_comments(entries, today_range, week_start, month_start),
         'word_cloud': _cached_word_cloud(entries, today_range[0], week_start, month_start),
         'recent_entries_data': [_entry_to_row(entry, recent_activity) for entry in recent_entries],
@@ -380,6 +386,28 @@ _EXP_DISPLAY = dict(FeedbackEntry.EXPERIENCE_CHOICES)
 _CAT_DISPLAY = dict(FeedbackEntry.CATEGORY_CHOICES)
 _STATUS_DISPLAY = dict(FeedbackEntry.STATUS_CHOICES)
 _SENT_DISPLAY = dict(FeedbackEntry.SENTIMENT_CHOICES)
+_TOPIC_DISPLAY = dict(FeedbackEntry.TOPIC_CHOICES)
+
+
+def _topic_counts(qs):
+    """Per-topic total and Positive/Neutral/Negative split. An entry counts
+    once in each topic it names; entries without topics are skipped.
+
+    Counted in Python over values_list, so it works the same on PostgreSQL,
+    MySQL and SQLite (JSONField containment lookups are not portable)."""
+    # ponytail: scans every row of the period; move to a topic join table if volume makes this slow.
+    keys = {FeedbackEntry.POSITIVE: 'pos', FeedbackEntry.NEUTRAL: 'neu', FeedbackEntry.NEGATIVE: 'neg'}
+    counts = {
+        value: {'value': value, 'label': label, 'total': 0, 'pos': 0, 'neu': 0, 'neg': 0}
+        for value, label in FeedbackEntry.TOPIC_CHOICES
+    }
+    for topics, sentiment in qs.values_list('topics', 'sentiment').iterator(chunk_size=500):
+        for topic in set(topics or ()):
+            if topic in counts:
+                counts[topic]['total'] += 1
+                if sentiment in keys:
+                    counts[topic][keys[sentiment]] += 1
+    return list(counts.values())
 
 
 def _entry_to_row(entry, activity=None):
@@ -406,6 +434,8 @@ def _entry_to_row(entry, activity=None):
         'rating': exp_display,
         'category': _CAT_DISPLAY.get(entry.category, entry.category),
         'category_value': entry.category,
+        'topics': [_TOPIC_DISPLAY.get(t, t) for t in entry.topics or []],
+        'topic_values': list(entry.topics or []),
         'sentiment': sentiment_display,
         'sentiment_value': sentiment_value,
         # What the comment alone read as, for the CSV export.
@@ -853,6 +883,7 @@ def _report_counts(qs):
         'satisfaction': round(satisfied / c['total'] * 100) if c['total'] else 0,
         'categories': categories,
         'categorized': sum(categories.values()),
+        'topics': _topic_counts(qs),
     }
 
 
@@ -1019,11 +1050,27 @@ def export_report_excel(request):
     ws.column_dimensions['A'].width = 32
     ws.column_dimensions['B'].width = 18
 
+    # Per topic, with the sentiment split. One entry can name several topics.
+    ws.append([])
+    ws.append(['Feedback by Topic'])
+    ws.cell(row=ws.max_row, column=1).font = section_font
+    for i, row in enumerate([('Topic', 'Total', 'Positive', 'Neutral', 'Negative'),
+                             *[(t['label'], t['total'], t['pos'], t['neu'], t['neg']) for t in counts['topics']]]):
+        ws.append(list(row))
+        for col in range(1, 6):
+            cell = ws.cell(row=ws.max_row, column=col)
+            cell.font = label_font if i == 0 or col == 1 else value_font
+            cell.border = thin_border
+    ws.append(['One feedback can mention more than one topic.'])
+    ws.cell(row=ws.max_row, column=1).font = Font(name='Calibri', size=10, italic=True, color='475569')
+    for col_letter in ('C', 'D', 'E'):
+        ws.column_dimensions[col_letter].width = 12
+
     # ── Sheet 2: Responses ────────────────────────────────────────────────
     ws2 = wb.create_sheet('Responses')
     ws2.sheet_properties.tabColor = '23A455'
 
-    response_headers = ['ID', 'Ticket', 'Date', 'Time', 'Experience', 'Category', 'Sentiment', 'Comment Sentiment', 'Status', 'Comment']
+    response_headers = ['ID', 'Ticket', 'Date', 'Time', 'Experience', 'Category', 'Topic', 'Sentiment', 'Comment Sentiment', 'Status', 'Comment']
 
     # Write header row
     for col_idx, header_text in enumerate(response_headers, 1):
@@ -1049,6 +1096,7 @@ def export_report_excel(request):
             local_dt.strftime('%I:%M %p') if local_dt else '',
             EXPERIENCE_MAP.get(entry.experience, entry.experience),
             CATEGORY_MAP.get(entry.category, entry.category),
+            ', '.join(_TOPIC_DISPLAY.get(t, t) for t in entry.topics or []),
             SENTIMENT_MAP.get(entry.sentiment, entry.sentiment),
             SENTIMENT_MAP.get(entry.comment_sentiment, entry.comment_sentiment),
             STATUS_MAP.get(entry.status, entry.status),
@@ -1060,7 +1108,7 @@ def export_report_excel(request):
             cell.border = thin_border
 
     # Auto-size key columns (approximate widths)
-    col_widths = {'A': 8, 'B': 8, 'C': 12, 'D': 10, 'E': 18, 'F': 14, 'G': 12, 'H': 20, 'I': 12, 'J': 60}
+    col_widths = {'A': 8, 'B': 8, 'C': 12, 'D': 10, 'E': 18, 'F': 14, 'G': 30, 'H': 12, 'I': 20, 'J': 12, 'K': 60}
     for col_letter, width in col_widths.items():
         ws2.column_dimensions[col_letter].width = width
 

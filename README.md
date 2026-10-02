@@ -61,6 +61,7 @@ The screenshots below showcase the user interfaces and administrative tools of t
 
 ### Public-Facing Feedback Submission
 - **Structured Submission**: Collects Service Quality Dimensions (SQD) ratings on a 3-point scale (Very Satisfactory, Satisfactory, Unsatisfactory) along with detailed feedback comments. The final sentiment combines the comment's sentiment with the rating (see below); the rating alone never sets it.
+- **Topics (chosen by the client, required)**: The client ticks at least one topic the feedback is about: Waiting time, Staff, Facilities, Document requirements, or Other. Several can be picked (e.g. "mabait ang staff pero ang tagal ng pila" is Staff + Waiting time). Topics are stored as a list in `FeedbackEntry.topics` and shown on the Responses page (column and filter), as "Feedback by Topic" on the Dashboard and Reports (one entry counts once in each topic it names), in the Excel export, and in the daily email. Topics are separate from the staff-assigned **Category** (complaint, suggestion, compliment, concern). Entries submitted before topics existed have none.
 - **Unique Tracking Code**: Generates an immutable, human-readable identifier (e.g., CF-YYYYMMDD-[HEX]) upon submission for tracking.
 - **AJAX Driven**: High-fidelity modal success screen and instant code generation without page reloads.
 

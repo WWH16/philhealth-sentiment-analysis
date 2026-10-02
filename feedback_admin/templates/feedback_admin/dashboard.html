@@ -297,6 +297,11 @@
     </div>
   </div>
 
+  <!-- FEEDBACK BY TOPIC -->
+  <div class="mb-4">
+    {% include 'feedback_admin/_topic_breakdown.html' %}
+  </div>
+
   <!-- RECENT RESPONSES -->
   <div class="section-head">
     <h2 class="section-title">Recent Responses</h2>
@@ -330,6 +335,7 @@
 {{ word_cloud|json_script:"word-cloud-data" }}
 {{ needs_attention|json_script:"needs-attention-data" }}
 {{ rating_data|json_script:"rating-data" }}
+{{ topic_data|json_script:"topic-data" }}
 {{ recent_entries_data|json_script:"recent-entries-data" }}
 <script src="{% static 'js/word_cloud.js' %}"></script>
 <script>
@@ -760,6 +766,8 @@ function renderRatings(period) {
     : 'No responses in this period.';
 }
 
+const TOPIC_DATA = JSON.parse(document.getElementById('topic-data').textContent);
+
 /* ── RECENT RESPONSES ── */
 const RECENT_DATA = JSON.parse(document.getElementById('recent-entries-data').textContent);
 const SENTIMENT_CHIPS = {
@@ -818,6 +826,7 @@ function setSentimentFilter(btn, period) {
 
   renderSentimentTrendForPeriod(period);
   renderRatings(period);
+  renderTopicBreakdown(TOPIC_DATA[period] || TOPIC_DATA.all);
   wcPeriod = period;
   renderWordCloud();
   renderNeedsAttention(period);
@@ -836,6 +845,7 @@ function pageInit() {
   renderWordCloud();
   renderNeedsAttention('all');
   renderRatings('all');
+  renderTopicBreakdown(TOPIC_DATA.all);
   renderRecent();
 
   // Stabilize chart layout once scrollbars and layout geometry settle

@@ -146,6 +146,26 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 /* Once one is picked, the other two faces go quiet. */
 .rate:has(input:checked) .rate-opt:not(:has(input:checked)) .rate-face { filter: grayscale(1); opacity: 0.5; }
 
+/* ── Topics: checkbox chips, pick one or more ─────────────────────── */
+.block-hint { margin: 6px 0 0; font-size: 15px; color: var(--text-secondary); }
+.topics { display: flex; flex-wrap: wrap; gap: 8px; }
+.topic-opt {
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  min-height: 48px; padding: 10px 14px; cursor: pointer; user-select: none;
+  font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--text-primary);
+  background: var(--surface-card); border: 1.5px solid var(--border);
+  transition: border-color 140ms var(--ease-out), background-color 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+.topic-opt input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.topic-opt .material-icons-round { font-size: 20px; color: var(--g-primary); }
+/* The check always holds its space, so picking a chip never reflows the row under the finger. */
+.topic-check { opacity: 0; transform: scale(0.6); transition: opacity 160ms var(--ease-out), transform 260ms var(--ease-out); }
+@media (hover: hover) { .topic-opt:hover { border-color: var(--ink4); } }
+.topic-opt:has(input:focus-visible) { outline: 2px solid var(--g-primary); outline-offset: 2px; }
+.topic-opt:has(input:checked) { border-color: var(--g-forest); background: var(--g-light); color: var(--g-forest); }
+.topic-opt:has(input:checked) .material-icons-round { color: var(--g-forest); }
+.topic-opt input:checked ~ .topic-check { opacity: 1; transform: none; }
+
 /* ── Comment boxes ────────────────────────────────────────────────── */
 textarea {
   display: block; width: 100%; min-height: 96px; padding: 12px 14px; resize: vertical;
@@ -168,6 +188,7 @@ textarea:focus { border-color: var(--g-forest); outline: none; box-shadow: 0 0 0
 .field-error { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; font-size: 15px; font-weight: 600; color: var(--neg-text); }
 .field-error .material-icons-round { font-size: 18px; }
 #group-experience.is-invalid .rate-opt { border-color: var(--neg-border); }
+#group-topics.is-invalid .topic-opt { border-color: var(--neg-border); }
 #group-comment.is-invalid textarea { border-color: var(--neg); }
 #group-consent.is-invalid .consent input { outline: 2px solid var(--neg); outline-offset: 1px; }
 .form-error { margin: 14px 0 0; padding: 12px 14px; background: var(--neg-bg); border: 1px solid var(--neg-border); color: var(--neg-text); font-size: 15px; }
@@ -210,6 +231,6 @@ textarea:focus { border-color: var(--g-forest); outline: none; box-shadow: 0 0 0
   .brand-sub { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .btn, .btn .material-icons-round, .rate-opt, .rate-face, .rate-check, textarea { transition: none; }
+  .btn, .btn .material-icons-round, .rate-opt, .rate-face, .rate-check, .topic-opt, .topic-check, textarea { transition: none; }
   .rate-opt input:checked ~ .rate-face { transform: none; }
 }

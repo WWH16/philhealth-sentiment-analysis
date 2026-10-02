@@ -271,6 +271,14 @@
           <option value="Compliment">Compliment</option>
           <option value="Concern">Concern</option>
         </select>
+        <select class="btn-ph" id="topicFilter" onchange="applyFilters()" aria-label="Filter by topic" style="cursor:pointer">
+          <option value="">All Topics</option>
+          <option value="waiting_time">Waiting time</option>
+          <option value="staff">Staff</option>
+          <option value="facilities">Facilities</option>
+          <option value="documents">Document requirements</option>
+          <option value="other">Other</option>
+        </select>
         <select class="btn-ph" id="sentimentFilter" onchange="applyFilters()" aria-label="Filter by sentiment" style="cursor:pointer">
           <option value="">All Sentiments</option>
           <option value="Positive">Positive</option>
@@ -336,6 +344,7 @@
             <th style="min-width:110px">Date &amp; Time</th>
             <th style="min-width:160px">Rating</th>
             <th style="min-width:120px">Category</th>
+            <th style="min-width:140px">Topic</th>
             <th style="min-width:100px">Sentiment</th>
             <th style="min-width:110px">Status</th>
             <th>Feedback / Comment</th>
@@ -470,6 +479,7 @@ function applyFilters(keepPage = false) {
   const q          = document.getElementById('tableSearch').value.toLowerCase();
   const experience = document.getElementById('ratingFilter').value;
   const category   = document.getElementById('categoryFilter').value;
+  const topic      = document.getElementById('topicFilter').value;
   const sentiment  = document.getElementById('sentimentFilter').value;
   const status     = document.getElementById('statusFilter').value;
   activeDateRange  = document.getElementById('dateRangeFilter').value;
@@ -484,9 +494,10 @@ function applyFilters(keepPage = false) {
                          || (r.sentiment||'').toLowerCase().includes(q);
     const matchE    = !experience || r.rating === experience;
     const matchC    = !category   || r.category   === category;
+    const matchT    = !topic      || (r.topic_values || []).includes(topic);
     const matchS    = !sentiment  || r.sentiment  === sentiment;
     const matchSt   = !status     || r.status     === status;
-    return matchQ && matchE && matchC && matchS && matchSt && inDateRange(r);
+    return matchQ && matchE && matchC && matchT && matchS && matchSt && inDateRange(r);
   });
   const maxPage = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   if (keepPage) {
@@ -606,7 +617,7 @@ function renderTable() {
   const end   = Math.min(start + pageSize, filteredRows.length);
   const rows  = filteredRows.slice(start, end);
 
-  const COLS = 10; /* checkbox + id + ticket + date + rating + category + sentiment + status + comment + expand */
+  const COLS = 11; /* checkbox + id + ticket + date + rating + category + topic + sentiment + status + comment + expand */
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="${COLS}">
@@ -659,6 +670,9 @@ function renderTable() {
             <option value="concern"    ${catVal==='concern'    ? 'selected':''}>Concern</option>
           </select>
         </td>
+        <td>${(r.topics || []).length
+          ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${r.topics.map(t => `<span class="rating-chip chip-na">${escHtml(t)}</span>`).join('')}</div>`
+          : '<span style="color:var(--text-muted)">—</span>'}</td>
         <td>
           <span class="rating-chip ${sCfg.cls}">
             ${sCfg.icon ? `<span class="material-icons-round">${sCfg.icon}</span>` : ''}${r.sentiment || '—'}

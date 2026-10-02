@@ -1,0 +1,68 @@
+{# "Feedback by topic": one stacked bar per topic, scaled to the busiest topic.
+   Shared by the dashboard and reports; each page calls renderTopicBreakdown(list)
+   with the topic counts for its current period. #}
+<style>
+  .tb-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 16px; padding: 0; list-style: none; font-size: 11px; color: var(--text-muted); }
+  .tb-legend li { display: inline-flex; align-items: center; gap: 6px; }
+  .tb-legend i { width: 10px; height: 10px; display: inline-block; }
+  .tb-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px 28px; }
+  .tb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 6px 10px; }
+  .tb-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .tb-name .material-icons-round { font-size: 16px; color: var(--g-primary); }
+  .tb-total { font-size: 15px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .tb-bar { grid-column: 1 / -1; display: flex; height: 8px; background: var(--ink8); overflow: hidden; }
+  .tb-bar span { display: block; height: 100%; transition: width 300ms ease; }
+  .tb-split { grid-column: 1 / -1; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .tb-pos { background: #169651; } .tb-neu { background: #d97706; } .tb-neg { background: #dc2626; } .tb-pending { background: #cbd5e1; }
+  .tb-empty { margin: 0; font-size: 13px; color: var(--text-muted); }
+  .tb-note { display: flex; align-items: center; gap: 6px; margin: 18px 0 0; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+  .tb-note .material-icons-round { font-size: 14px; color: var(--g-primary); }
+  [data-theme="dark"] .tb-bar { background: rgba(255, 255, 255, 0.08); }
+  [data-theme="dark"] .tb-pos { background: #22c55e; }
+  [data-theme="dark"] .tb-pending { background: #475569; }
+  @media (prefers-reduced-motion: reduce) { .tb-bar span { transition: none; } }
+  @media print { .tb-bar span, .tb-legend i { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+
+<section class="card-block" aria-labelledby="tbTitle">
+  <div class="card-block-head">
+    <h2 class="card-block-title" id="tbTitle" style="margin:0;">
+      <span class="material-icons-round" aria-hidden="true">sell</span>
+      Feedback by Topic
+    </h2>
+  </div>
+  <div class="card-block-body">
+    <ul class="tb-legend" aria-hidden="true">
+      <li><i class="tb-pos"></i>Positive</li>
+      <li><i class="tb-neu"></i>Neutral</li>
+      <li><i class="tb-neg"></i>Negative</li>
+      <li><i class="tb-pending"></i>Not yet analyzed</li>
+    </ul>
+    <ul class="tb-list" id="tbList"></ul>
+    <p class="tb-note"><span class="material-icons-round" aria-hidden="true">info</span>One feedback can mention more than one topic.</p>
+  </div>
+</section>
+
+<script>
+const TOPIC_ICONS = { waiting_time: 'schedule', staff: 'support_agent', facilities: 'apartment', documents: 'description', other: 'more_horiz' };
+
+function renderTopicBreakdown(topics) {
+  const list = document.getElementById('tbList');
+  const max = Math.max(0, ...topics.map(t => t.total));
+  if (!max) {
+    list.innerHTML = '<li class="tb-empty">No feedback with topics in this period.</li>';
+    return;
+  }
+  const w = n => `${(n / max) * 100}%`;
+  list.innerHTML = topics.map(t => {
+    const pending = t.total - t.pos - t.neu - t.neg;
+    const split = `${t.pos} positive · ${t.neu} neutral · ${t.neg} negative` + (pending ? ` · ${pending} not yet analyzed` : '');
+    return `<li class="tb-row">
+      <span class="tb-name"><span class="material-icons-round" aria-hidden="true">${TOPIC_ICONS[t.value] || 'sell'}</span>${t.label}</span>
+      <span class="tb-total">${t.total}</span>
+      <span class="tb-bar" aria-hidden="true"><span class="tb-pos" style="width:${w(t.pos)}"></span><span class="tb-neu" style="width:${w(t.neu)}"></span><span class="tb-neg" style="width:${w(t.neg)}"></span><span class="tb-pending" style="width:${w(pending)}"></span></span>
+      <span class="tb-split">${split}</span>
+    </li>`;
+  }).join('');
+}
+</script>

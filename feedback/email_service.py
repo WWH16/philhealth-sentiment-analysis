@@ -1,5 +1,6 @@
 import os
 import logging
+from collections import Counter
 from datetime import datetime, time, timedelta
 from django.utils import timezone
 from django.db.models import Q, Count
@@ -80,6 +81,10 @@ def get_daily_summary_metrics(target_date=None):
         concerns=Count('id', filter=Q(category=FeedbackEntry.CONCERN)),
     )
 
+    # Topics chosen by the client; one entry can name several.
+    topic_counter = Counter(t for topics in qs.values_list('topics', flat=True) for t in set(topics or ()))
+    topics = [{'label': label, 'count': topic_counter[value]} for value, label in FeedbackEntry.TOPIC_CHOICES]
+
     # Flagged submissions requiring supervisor review
     # Criteria (each checked on its own): Negative comment sentiment, Complaint
     # category, or an Unsatisfactory rating
@@ -131,6 +136,7 @@ def get_daily_summary_metrics(target_date=None):
             'complaints': cat_res['complaints'] or 0,
             'concerns': cat_res['concerns'] or 0,
         },
+        'topics': topics,
         'flagged_items': flagged_items,
         'flagged_count': len(flagged_items),
         'total_flagged_count': total_flagged_count,

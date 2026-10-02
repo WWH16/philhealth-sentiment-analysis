@@ -10,12 +10,23 @@
   var attempted = false;
 
   // Required fields carry `required`; each sits in a [id^="group-"] wrapper with an err-* message.
-  var GROUPS = { 'group-experience': 'err-experience', 'group-comment': 'err-comment', 'group-consent': 'err-consent' };
+  var GROUPS = {
+    'group-experience': 'err-experience', 'group-topics': 'err-topics',
+    'group-comment': 'err-comment', 'group-consent': 'err-consent'
+  };
+  var topicBoxes = form.querySelectorAll('input[name="topics"]');
+
+  function checkedTopics() {
+    return [].filter.call(topicBoxes, function (box) { return box.checked; })
+      .map(function (box) { return box.value; });
+  }
 
   // Marks every missing field and returns the first invalid input, or null.
   function validate() {
     // `required` accepts whitespace; the server does not.
     commentBox.setCustomValidity(commentBox.value.trim() ? '' : 'empty');
+    // At least one topic: mark the first chip so focus lands there.
+    topicBoxes[0].setCustomValidity(checkedTopics().length ? '' : 'empty');
     Object.keys(GROUPS).forEach(function (group) {
       var ok = !document.getElementById(group).querySelector(':invalid');
       document.getElementById(group).classList.toggle('is-invalid', !ok);
@@ -69,6 +80,7 @@
       body: JSON.stringify({
         token: form.token.value,
         experience: form.querySelector('input[name="experience"]:checked').value,
+        topics: checkedTopics(),
         comment: commentBox.value.trim()
       })
     })

@@ -339,6 +339,24 @@ class ReportsViewTests(TestCase):
         rows, count = summary('all')
         self.assertEqual((rows['Total Responses'], rows['Positive'], count), (2, 1, 2))
 
+    def test_excel_export_has_topic_column_and_summary(self):
+        from io import BytesIO
+
+        import openpyxl
+        from feedback.models import FeedbackEntry
+
+        FeedbackEntry.objects.create(
+            experience=FeedbackEntry.SATISFACTORY, sentiment=FeedbackEntry.NEGATIVE,
+            comment='Long line, rude guard.', topics=['waiting_time', 'staff'],
+        )
+        wb = openpyxl.load_workbook(BytesIO(self.client.get(reverse('export_report_excel')).content))
+        responses = list(wb['Responses'].iter_rows(values_only=True))
+        topic_col = responses[0].index('Topic')
+        self.assertEqual(responses[1][topic_col], 'Waiting time, Staff')
+        summary = {row[0]: row[1:5] for row in wb['Summary'].iter_rows(values_only=True) if row[0]}
+        self.assertEqual(summary['Staff'], (1, 0, 0, 1))
+        self.assertEqual(summary['Waiting time'], (1, 0, 0, 1))
+
 
 class ResponsesViewTests(TestCase):
     def setUp(self):
