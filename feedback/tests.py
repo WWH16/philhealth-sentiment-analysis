@@ -110,6 +110,15 @@ class SentimentServiceTests(TestCase):
         ]
         self.assertEqual(wrong, [])
 
+    def test_preprocess_splits_on_punctuation_and_keeps_negations(self):
+        from .services import _preprocess_light
+        tokens = _preprocess_light('Nag-update lang po, 3hrs!!').split()
+        self.assertIn('nag', tokens)
+        self.assertIn('updat', tokens)
+        tokens = _preprocess_light('hindi ako satisfied, not good').split()
+        self.assertIn('hindi', tokens)
+        self.assertIn('not', tokens)
+
     def test_analyze_comment_with_form_headers(self):
         from .services import analyze_comment_sentiment
         res = analyze_comment_sentiment('Comments: The staff was very helpful and accommodating.')

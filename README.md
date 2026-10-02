@@ -65,13 +65,15 @@ The screenshots below showcase the user interfaces and administrative tools of t
 - **AJAX Driven**: High-fidelity modal success screen and instant code generation without page reloads.
 
 ### Offline Machine Learning Sentiment Classification
-- **Random Forest Classifier**: Features a pre-trained scikit-learn model (random_forest_sentiment.pkl) capable of predicting comment sentiments offline.
-- **Deterministic Text Processing**: Cleans and normalizes text byte-for-byte identically to the training set:
-  1. Lowercase normalization.
-  2. Non-alphabetic character exclusion.
-  3. Word tokenization.
-  4. Snapshot-based English Stopword removal.
-  5. Snowball stemming.
+- **Naive Bayes Classifier**: A pre-trained scikit-learn pipeline (`feedback/ml/sentiment_model.pkl`, TF-IDF 1-2 grams + Multinomial Naive Bayes) trained on FiReCS + SentiTaglish, so it reads English, Tagalog, and Taglish comments offline. Training lives in `training/train_sentiment_model.ipynb`; Cell 19 exports the deployed model.
+- **Deterministic Text Processing**: Cleans text exactly as the training notebook does:
+  1. Form header removal ("Comments:", "Commendation:").
+  2. Lowercase normalization.
+  3. Repeated-letter collapse (sobraaaa -> sobraa).
+  4. Non-alphabetic characters replaced with spaces.
+  5. English + Tagalog stopword removal (`stopwords.txt`; negation words such as "not" and "hindi" are kept).
+  6. Snowball stemming.
+- **Replacing the Model**: After copying in a new `sentiment_model.pkl`, re-label every existing comment with `python manage.py reanalyze_sentiment --force`.
 - **Batch Re-Analysis**: Built-in admin utility to re-run predictions across historical entries.
 - **Independent of Ratings**: The classifier reads only the comment. It never uses the SQD rating; a comment the model cannot classify stays Pending for manual review.
 
@@ -174,8 +176,8 @@ philhealth-sentiment-analysis/
 │
 ├── feedback/                # Public Feedback Submission App
 │   ├── ml/                  # ML Model, Stemmer and Stopwords files
-│   │   ├── random_forest_sentiment.pkl
-│   │   └── stopwords_en.txt
+│   │   ├── sentiment_model.pkl
+│   │   └── stopwords.txt
 │   ├── models.py            # FeedbackEntry, FeedbackConfiguration models
 │   ├── services.py          # Sentiment Analysis and pre-processing logic
 │   └── views.py             # Public submit APIs

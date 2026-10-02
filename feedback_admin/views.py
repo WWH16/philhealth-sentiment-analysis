@@ -727,6 +727,7 @@ def responses_delete(request):
 
 # Filipino and Taglish function words, plus form and agency words that appear
 # in almost every comment and would crowd out the words people actually chose.
+# The last line adds the negation/intensity words the model keeps on purpose.
 _WORD_CLOUD_EXTRA_STOPWORDS = frozenset('''
     ang ng sa na mga at si ni kay ay po opo ko ako ikaw ka mo niya siya kami
     kayo sila namin natin nila ito iyan iyon yan yun dito diyan doon nga pa din
@@ -735,6 +736,7 @@ _WORD_CLOUD_EXTRA_STOPWORDS = frozenset('''
     kanilang lahat isang isa dapat sana talaga nag mag kaya hanggang
     comments commendation suggestions philhealth lhio cauayan office also
     would could get got one
+    not no nor never very too but cannot nothing none against
 '''.split())
 _WORD_RE = re.compile(r"[a-zñ]+(?:'[a-z]+)?")
 _WORD_CLOUD_LIMIT = 60

@@ -14,7 +14,7 @@ SAMPLE_FEEDBACK = [
         'sentiment': FeedbackEntry.POSITIVE,
         'comments': [
             "Excellent service! The staff were very kind and helpful.",
-            "Thank you for the friendly and efficient service at window 3.",
+            "Salamat po sa mabilis at maayos na serbisyo!",
             "Thank you! Fast, friendly, and excellent service.",
             "Maraming salamat po, excellent ang serbisyo!",
             "The best experience I have had in a government office. Thank you!",
@@ -36,13 +36,13 @@ SAMPLE_FEEDBACK = [
         'category': '',
         'sentiment': FeedbackEntry.NEUTRAL,
         'comments': [
-            "I dropped off my forms for processing.",
-            "I dropped off my employer documents.",
-            "I dropped off my documents at the front desk.",
-            "I picked up my printed forms.",
-            "I came here to request a copy of my records.",
+            "Submitted my documents.",
+            "Inquiry lang po.",
+            "Okay lang naman.",
+            "Medyo okay naman.",
+            "Average lang po.",
+            "Pwede na.",
             "It was an average visit.",
-            "The office could use more electric fans.",
         ]
     },
     {
