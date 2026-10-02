@@ -46,28 +46,6 @@ def _feedback_content_type():
     return ContentType.objects.get_for_model(FeedbackEntry)
 
 
-def log_feedback_note(user, entry, body):
-    """Records an 'action taken / reply' note as an ADDITION log entry."""
-    LogEntry.objects.log_actions(
-        user_id=user.id,
-        queryset=[entry],
-        action_flag=ADDITION,
-        change_message=body,
-        single_object=True,
-    )
-
-
-def log_feedback_status_change(user, entry, old_status, new_status):
-    """Records a status change as a CHANGE log entry."""
-    LogEntry.objects.log_actions(
-        user_id=user.id,
-        queryset=[entry],
-        action_flag=CHANGE,
-        change_message=f'{old_status}|{new_status}',
-        single_object=True,
-    )
-
-
 def log_admin_event(user, obj, action_flag, change_message):
     """Writes a generic built-in admin log entry for any tracked object."""
     LogEntry.objects.log_actions(
@@ -77,34 +55,6 @@ def log_admin_event(user, obj, action_flag, change_message):
         change_message=change_message,
         single_object=True,
     )
-
-
-def get_feedback_activity(entry):
-    """Builds (notes, status_history) for an entry from django_admin_log."""
-    logs = (LogEntry.objects
-            .filter(content_type=_feedback_content_type(), object_id=str(entry.pk))
-            .select_related('user')
-            .order_by('action_time'))
-
-    status_display = dict(FeedbackEntry.STATUS_CHOICES)
-    notes, history = [], []
-
-    for log in logs:
-        author = (log.user.get_full_name() or log.user.username) if log.user else 'System'
-        at = timezone.localtime(log.action_time).strftime('%b %d, %Y %I:%M %p')
-
-        if log.action_flag == CHANGE and '|' in log.change_message:
-            old_raw, _, new_raw = log.change_message.partition('|')
-            history.append({
-                'old': status_display.get(old_raw, old_raw),
-                'new': status_display.get(new_raw, new_raw),
-                'by': author,
-                'at': at,
-            })
-        else:
-            notes.append({'author': author, 'body': log.change_message, 'created_at': at})
-
-    return notes, history
 
 
 def _build_feedback_activity_map(entry_ids):
@@ -312,7 +262,7 @@ def response_note_add(request, entry_id):
     if not body:
         return JsonResponse({'ok': False, 'error': 'Note body cannot be empty.'}, status=400)
 
-    log_feedback_note(request.user, entry, body)
+    log_admin_event(request.user, entry, ADDITION, body)
 
     return JsonResponse({
         'ok': True,
@@ -388,15 +338,11 @@ def dashboard(request):
 @staff_required
 def responses(request):
     entries = FeedbackEntry.objects.order_by('-created_at')
-    counts = _experience_counts(entries)
     entries_data = list(entries)
     activity_map = _build_feedback_activity_map([entry.pk for entry in entries_data])
 
     context = {
-        'total': counts['total'],
-        'very_satisfactory': counts['very_satisfactory'],
-        'satisfactory': counts['satisfactory'],
-        'unsatisfactory': counts['unsatisfactory'],
+        **_experience_counts(entries),
         'entries_data': [_entry_to_row(entry, activity_map) for entry in entries_data],
     }
     return render(request, 'feedback_admin/responses.html', context)
@@ -439,11 +385,10 @@ _SENT_DISPLAY = dict(FeedbackEntry.SENTIMENT_CHOICES)
 def _entry_to_row(entry, activity=None):
     local_created = timezone.localtime(entry.created_at)
     if activity is None:
-        notes, status_history = get_feedback_activity(entry)
-    else:
-        entry_activity = activity.get(entry.pk, {'notes': [], 'status_history': []})
-        notes = entry_activity['notes']
-        status_history = entry_activity['status_history']
+        activity = _build_feedback_activity_map([entry.pk])
+    entry_activity = activity.get(entry.pk, {'notes': [], 'status_history': []})
+    notes = entry_activity['notes']
+    status_history = entry_activity['status_history']
     has_comment = bool(entry.comment and entry.comment.strip())
     if not has_comment or entry.sentiment == FeedbackEntry.NOT_APPLICABLE:
         sentiment_display = 'N/A'
@@ -606,21 +551,19 @@ def response_status_update(request, entry_id):
         return JsonResponse({'ok': False, 'error': 'Invalid request.'}, status=400)
 
     status = payload.get('status')
-    valid_statuses = {choice[0] for choice in FeedbackEntry.STATUS_CHOICES}
-    if status not in valid_statuses:
+    if status not in _STATUS_DISPLAY:
         return JsonResponse({'ok': False, 'error': 'Invalid status.'}, status=400)
 
-    status_display = dict(FeedbackEntry.STATUS_CHOICES)
     old_status = entry.status
     history_entry = None
 
     if status != old_status:
         entry.status = status
         entry.save(update_fields=['status', 'updated_at'])
-        log_feedback_status_change(request.user, entry, old_status, status)
+        log_admin_event(request.user, entry, CHANGE, f'{old_status}|{status}')
         history_entry = {
-            'old': status_display.get(old_status, old_status),
-            'new': status_display.get(status, status),
+            'old': _STATUS_DISPLAY.get(old_status, old_status),
+            'new': _STATUS_DISPLAY.get(status, status),
             'by': request.user.get_full_name() or request.user.username,
             'at': timezone.localtime(timezone.now()).strftime('%b %d, %Y %I:%M %p'),
         }
@@ -629,7 +572,6 @@ def response_status_update(request, entry_id):
         'ok': True,
         'status': entry.get_status_display(),
         'status_value': entry.status,
-        'updated_at': timezone.localtime(entry.updated_at).strftime('%b %d, %Y %I:%M %p'),
         'history_entry': history_entry,
     })
 

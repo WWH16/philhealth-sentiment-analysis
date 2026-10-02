@@ -425,19 +425,9 @@ const SENTIMENT_CONFIG = {
 };
 
 const STATUS_CLS = {
-  'Pending':  's-pending',
-  'Reviewed': 's-reviewed',
-  'Resolved': 's-resolved',
   'pending':  's-pending',
   'reviewed': 's-reviewed',
   'resolved': 's-resolved',
-};
-
-const CAT_CLS = {
-  'complaint': 's-pending',
-  'suggestion': 's-reviewed',
-  'compliment': 's-reviewed',
-  'concern': 's-pending',
 };
 
 /* ── STATE ── */
@@ -451,6 +441,16 @@ let activeDateRange = 'all';
 /* ── UTILS ── */
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function postJSON(url, body) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).then(res => res.json().then(data => {
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Request failed.');
+    return data;
+  }));
 }
 function dateOf(r) { return new Date(r.date + 'T' + r.time); }
 
@@ -504,15 +504,7 @@ function changePageSize(val) { pageSize = parseInt(val); currentPage = 1; render
 
 /* ── STATUS INLINE UPDATE ── */
 function updateStatus(id, newStatus) {
-  fetch(`/dashboard/responses/${id}/status/`, {
-    method:'POST',
-    headers:{'X-CSRFToken': CSRF_TOKEN, 'Content-Type':'application/json'},
-    body: JSON.stringify({status: newStatus})
-  })
-  .then(response => response.json().then(data => {
-    if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to update status.');
-    return data;
-  }))
+  postJSON(`/dashboard/responses/${id}/status/`, {status: newStatus})
   .then(data => {
     const row = ALL_DATA.find(r => r.id === id);
     if (row) {
@@ -532,15 +524,7 @@ function updateStatus(id, newStatus) {
 }
 
 function updateCategory(id, newCat) {
-  fetch(`/dashboard/responses/${id}/category/`, {
-    method:'POST',
-    headers:{'X-CSRFToken': CSRF_TOKEN, 'Content-Type':'application/json'},
-    body: JSON.stringify({category: newCat})
-  })
-  .then(response => response.json().then(data => {
-    if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to update category.');
-    return data;
-  }))
+  postJSON(`/dashboard/responses/${id}/category/`, {category: newCat})
   .then(data => {
     const row = ALL_DATA.find(r => r.id === id);
     if (row) {
@@ -561,15 +545,7 @@ function addNote(id) {
   const body = input.value.trim();
   if (!body) return;
 
-  fetch(`/dashboard/responses/${id}/notes/add/`, {
-    method: 'POST',
-    headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body: body })
-  })
-  .then(response => response.json().then(data => {
-    if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to add note.');
-    return data;
-  }))
+  postJSON(`/dashboard/responses/${id}/notes/add/`, { body: body })
   .then(data => {
     const row = ALL_DATA.find(r => r.id === id);
     if (row) {
@@ -647,7 +623,7 @@ function renderTable() {
       const rCfg      = RATING_CONFIG[r.rating]    || { cls:'chip-na', icon:'help_outline' };
       const sCfg      = SENTIMENT_CONFIG[r.sentiment] || { cls:'chip-na', icon:'' };
       const statusVal = r.status_value || String(r.status || 'Pending').toLowerCase();
-      const stCls     = STATUS_CLS[statusVal] || STATUS_CLS[r.status] || 's-pending';
+      const stCls     = STATUS_CLS[statusVal] || 's-pending';
       const catVal    = r.category_value || '';
       const dateStr   = new Date(r.date).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
       const checked   = selectedIds.has(r.id) ? 'checked' : '';
@@ -882,10 +858,7 @@ function updateStatCards(counts) {
   setVal('vsVal', counts.very_satisfactory);
   setVal('satVal', counts.satisfactory);
   setVal('unsatVal', counts.unsatisfactory);
-  setVal('nav-badge-count', counts.total);
-  if (typeof window.updateResponsesCount === 'function') {
-    window.updateResponsesCount(counts.total);
-  }
+  window.updateResponsesCount(counts.total);
 }
 
 function openDeleteResponsesModal() {
@@ -900,33 +873,21 @@ function openSingleDeleteModal(id) {
   setupDeleteModal([id]);
 }
 
+function setDeleteBusy(on) {
+  document.getElementById('confirmDeleteResponsesBtn').classList.toggle('is-loading', on);
+  ['confirmDeleteResponsesBtn', 'cancelDeleteResponsesBtn', 'deleteResponsesCloseBtn']
+    .forEach(id => { document.getElementById(id).disabled = on; });
+}
+
 function setupDeleteModal(ids) {
   const isSingle = ids.length === 1;
-  const titleEl = document.getElementById('deleteResponsesModalTitle');
-  const countEl = document.getElementById('deleteTargetCount');
-  const listEl = document.getElementById('deleteTargetList');
-  const confirmBtn = document.getElementById('confirmDeleteResponsesBtn');
-  const cancelBtn = document.getElementById('cancelDeleteResponsesBtn');
-  const closeBtn = document.getElementById('deleteResponsesCloseBtn');
-
-  if (titleEl) {
-    titleEl.textContent = isSingle ? 'Delete Feedback Response?' : 'Delete Feedback Responses?';
-  }
-  if (countEl) {
-    countEl.textContent = isSingle
-      ? `Permanently delete response #${ids[0]}?`
-      : `Permanently delete ${ids.length} selected responses?`;
-  }
-  if (listEl) {
-    listEl.textContent = ids.map(id => `#${id}`).join(', ');
-  }
-  if (confirmBtn) {
-    confirmBtn.classList.remove('is-loading');
-    confirmBtn.disabled = false;
-  }
-  if (cancelBtn) cancelBtn.disabled = false;
-  if (closeBtn) closeBtn.disabled = false;
-
+  document.getElementById('deleteResponsesModalTitle').textContent =
+    isSingle ? 'Delete Feedback Response?' : 'Delete Feedback Responses?';
+  document.getElementById('deleteTargetCount').textContent = isSingle
+    ? `Permanently delete response #${ids[0]}?`
+    : `Permanently delete ${ids.length} selected responses?`;
+  document.getElementById('deleteTargetList').textContent = ids.map(id => `#${id}`).join(', ');
+  setDeleteBusy(false);
   document.getElementById('deleteResponsesModal').classList.add('open');
 }
 
@@ -940,34 +901,11 @@ function closeDeleteResponsesModal() {
 function executeDeleteResponses() {
   if (isDeletingResponses || !pendingDeleteIds.length) return;
   isDeletingResponses = true;
-
-  const confirmBtn = document.getElementById('confirmDeleteResponsesBtn');
-  const cancelBtn = document.getElementById('cancelDeleteResponsesBtn');
-  const closeBtn = document.getElementById('deleteResponsesCloseBtn');
-
-  if (confirmBtn) {
-    confirmBtn.classList.add('is-loading');
-    confirmBtn.disabled = true;
-  }
-  if (cancelBtn) cancelBtn.disabled = true;
-  if (closeBtn) closeBtn.disabled = true;
+  setDeleteBusy(true);
 
   const idsToDelete = [...pendingDeleteIds];
 
-  fetch('/dashboard/responses/delete/', {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': CSRF_TOKEN,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ ids: idsToDelete })
-  })
-  .then(res => res.json().then(data => {
-    if (!res.ok || !data.ok) {
-      throw new Error(data.error || 'Failed to delete response(s).');
-    }
-    return data;
-  }))
+  postJSON('/dashboard/responses/delete/', { ids: idsToDelete })
   .then(data => {
     // 1. Close modal
     closeDeleteResponsesModal();
@@ -994,25 +932,14 @@ function executeDeleteResponses() {
     updateBulkBar();
 
     // 5. Trigger success toast
-    if (typeof window.showToast === 'function') {
-      window.showToast(data.message || 'Responses deleted successfully.', 'success', false);
-    }
+    window.showToast(data.message || 'Responses deleted successfully.', 'success', false);
   })
   .catch(err => {
-    if (typeof window.showToast === 'function') {
-      window.showToast(err.message || 'An error occurred while deleting.', 'error', false);
-    } else {
-      alert(err.message || 'An error occurred while deleting.');
-    }
+    window.showToast(err.message || 'An error occurred while deleting.', 'error', false);
   })
   .finally(() => {
     isDeletingResponses = false;
-    if (confirmBtn) {
-      confirmBtn.classList.remove('is-loading');
-      confirmBtn.disabled = false;
-    }
-    if (cancelBtn) cancelBtn.disabled = false;
-    if (closeBtn) closeBtn.disabled = false;
+    setDeleteBusy(false);
   });
 }
 
