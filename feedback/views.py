@@ -13,12 +13,9 @@ TOKEN_INVALID_MESSAGE = 'This feedback link has expired or was already used. Ask
 
 
 def index(request):
-    config = FeedbackConfiguration.get_solo()
     key = request.GET.get('t', '')
     token = FeedbackToken.usable().filter(key=key).first() if key else None
     return render(request, 'feedback/index.html', {
-        'survey_enabled': config.survey_enabled,
-        'offline_message': config.get_survey_offline_message(),
         'token': token,
         'token_invalid': bool(key) and token is None,
         'topics': [(v, label, FeedbackEntry.TOPIC_ICONS[v]) for v, label in FeedbackEntry.TOPIC_CHOICES],
@@ -27,14 +24,6 @@ def index(request):
 
 @require_POST
 def submit_feedback(request):
-    config = FeedbackConfiguration.get_solo()
-    if not config.survey_enabled:
-        return JsonResponse({
-            'ok': False,
-            'error': config.get_survey_offline_message(),
-            'survey_disabled': True,
-        }, status=403)
-
     try:
         payload = json.loads(request.body.decode('utf-8'))
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -65,7 +54,7 @@ def submit_feedback(request):
         return JsonResponse({'ok': False, 'error': 'Unknown topic selected.'}, status=400)
     topics = list(dict.fromkeys(topics))  # drop duplicates, keep order
 
-    comment_sentiment = analyze_comment_sentiment(comment) if config.auto_analysis_enabled else FeedbackEntry.PENDING
+    comment_sentiment = analyze_comment_sentiment(comment) if FeedbackConfiguration.get_solo().auto_analysis_enabled else FeedbackEntry.PENDING
     sentiment = combine_sentiment(experience, comment_sentiment)
 
     with transaction.atomic():

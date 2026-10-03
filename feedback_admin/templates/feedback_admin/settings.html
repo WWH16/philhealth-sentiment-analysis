@@ -82,13 +82,6 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
 }
 .settings-input:focus { border-color: var(--g-primary); }
 .settings-input.field-error { border-color: var(--red) !important; background: var(--red-bg); }
-.settings-textarea {
-  width: 100%; padding: 10px 12px; font-size: 13px; font-family: var(--font);
-  border: 1.5px solid var(--border); background: var(--surface-page);
-  color: var(--text-primary); outline: none; border-radius: 0;
-  transition: border-color 120ms; resize: vertical; min-height: 80px; line-height: 1.6;
-}
-.settings-textarea:focus { border-color: var(--g-primary); }
 
 /* inline field error message */
 .settings-field-err {
@@ -333,7 +326,7 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
       <div>
         <div class="page-eyebrow"><span class="material-icons-round">tune</span> System Configuration</div>
         <h1 class="page-title">Settings</h1>
-        <p class="page-subtitle">Manage survey configuration, sentiment rules, database backups, and notification digests.</p>
+        <p class="page-subtitle">Manage sentiment rules, database backups, and notification digests.</p>
       </div>
     </div>
   </div>
@@ -344,10 +337,7 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
     <div class="col-12 col-lg-3">
       <div class="settings-nav" id="settingsNav">
         <div class="settings-nav-group-label">Configuration</div>
-        <button type="button" id="btn-survey-settings" class="settings-nav-item is-active" onclick="showPanelNav('survey-settings', this)">
-          <span class="material-icons-round" aria-hidden="true">quiz</span> Survey Settings
-        </button>
-        <button type="button" id="btn-sentiment-analysis" class="settings-nav-item" onclick="showPanelNav('sentiment-analysis', this)">
+        <button type="button" id="btn-sentiment-analysis" class="settings-nav-item is-active" onclick="showPanelNav('sentiment-analysis', this)">
           <span class="material-icons-round" aria-hidden="true">psychology</span> Sentiment Analysis
         </button>
         <button type="button" id="btn-system-settings" class="settings-nav-item" onclick="showPanelNav('system-settings', this)">
@@ -363,103 +353,9 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
     <div class="col-12 col-lg-9">
 
       <!-- ═══════════════════════════════
-           PANEL 1 — SURVEY SETTINGS
-      ═══════════════════════════════ -->
-      <div class="settings-panel active" id="panel-survey-settings">
-
-        <form
-          id="surveySettingsForm"
-          method="post"
-          action="{% url 'update_survey_settings' %}"
-          onsubmit="event.preventDefault(); saveSurveySettings(this)"
-        >
-          {% csrf_token %}
-          <div class="settings-section">
-            <div class="settings-section-head">
-              <div class="settings-section-icon"><span class="material-icons-round">toggle_on</span></div>
-              <div>
-                <div class="settings-section-title">Survey Availability</div>
-                <div class="settings-section-desc">Control whether the public feedback form is accessible.</div>
-              </div>
-              <span id="surveyStatusChip" class="status-chip {% if feedback_config.survey_enabled %}chip-active{% else %}chip-inactive{% endif %}" style="margin-left:auto;">
-                <span class="material-icons-round">{% if feedback_config.survey_enabled %}check_circle{% else %}pause_circle{% endif %}</span>
-                <span id="surveyStatusChipText">{% if feedback_config.survey_enabled %}Form Active{% else %}Form Paused{% endif %}</span>
-              </span>
-            </div>
-            <div class="settings-section-body">
-              <div class="settings-row">
-                <div class="settings-row-info">
-                  <div class="settings-row-label">Enable Survey</div>
-                  <div class="settings-row-hint">When enabled, citizens can submit feedback via the public-facing form.</div>
-                </div>
-                <div class="settings-row-control">
-                  <label class="toggle-switch" aria-label="Enable survey">
-                    <input
-                      type="checkbox"
-                      id="surveyEnabledToggle"
-                      name="survey_enabled"
-                      {% if feedback_config.survey_enabled %}checked{% endif %}
-                      onchange="onToggleSurveyAvailability(this)"
-                    >
-                    <span class="toggle-track"></span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- DYNAMIC AVAILABILITY NOTICE -->
-              <div style="margin: 14px 0;">
-                <div id="surveyActiveNotice" class="confirm-stability-notice" style="background:var(--g-xlight);border-color:var(--g-light);color:var(--g-forest);font-weight:600;{% if not feedback_config.survey_enabled %}display:none;{% endif %}">
-                  <span class="material-icons-round" style="color:var(--g-primary);">check_circle</span>
-                  <span>Public feedback portal is <strong>active</strong> and accepting client responses at the feedback form.</span>
-                </div>
-                <div id="surveyPausedNotice" class="restore-alert-box" style="margin-bottom:0;background:#fffbe6;border-color:#f5e4a0;color:#7a5500;{% if feedback_config.survey_enabled %}display:none;{% endif %}">
-                  <span class="material-icons-round" style="color:var(--gold);">warning</span>
-                  <div><strong>Survey is paused:</strong> Citizens visiting the public portal will see the offline notice below. Submission requests are blocked.</div>
-                </div>
-              </div>
-
-              <div class="settings-row" id="surveyOfflineMsgRow" style="padding-top:14px;border-top:1px solid var(--border);border-bottom:none;">
-                <div class="settings-row-info">
-                  <div class="settings-row-label">Offline Message</div>
-                  <div class="settings-row-hint">Notice displayed to citizens on the public portal when the survey is paused.</div>
-                  <div style="width:100%;margin-top:10px;">
-                    <textarea
-                      class="settings-textarea"
-                      id="surveyOfflineMessageInput"
-                      name="survey_offline_message"
-                      rows="3"
-                      maxlength="500"
-                      placeholder="Enter offline notice for citizens..."
-                      oninput="syncSurveySettingsState()"
-                    >{{ feedback_config.survey_offline_message|default:"Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya." }}</textarea>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:11px;color:var(--text-muted);">
-                      <span>Standard official notice in Tagalog or English</span>
-                      <span id="offlineMsgCharCount">0/500</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-save-bar">
-            <div class="settings-save-inner">
-              <span id="surveySettingsState" style="font-size:12px;color:var(--text-secondary)">All changes saved</span>
-              <button type="submit" class="btn-ph btn-ph-primary" id="saveSurveySettingsBtn">
-                <span class="ph-loader"></span>
-                <span class="material-icons-round">save</span> Save Survey Settings
-              </button>
-            </div>
-          </div>
-        </form>
-
-      </div><!-- /panel-survey-settings -->
-
-
-      <!-- ═══════════════════════════════
            PANEL 3 — SENTIMENT ANALYSIS
       ═══════════════════════════════ -->
-      <div class="settings-panel" id="panel-sentiment-analysis">
+      <div class="settings-panel active" id="panel-sentiment-analysis">
 
         <form
           id="sentimentSettingsForm"
@@ -820,115 +716,6 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
 
 {% block page_scripts %}
 <script>
-let savedSurveyEnabled = {{ feedback_config.survey_enabled|yesno:"true,false" }};
-let savedSurveyOfflineMessage = "{{ feedback_config.survey_offline_message|default:'Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya.'|escapejs }}";
-let surveySettingsSavePromise = null;
-
-function syncSurveySettingsState() {
-  const toggle = document.getElementById('surveyEnabledToggle');
-  const msgInput = document.getElementById('surveyOfflineMessageInput');
-  const label = document.getElementById('surveySettingsState');
-  const chip = document.getElementById('surveyStatusChip');
-  const chipText = document.getElementById('surveyStatusChipText');
-  const activeNotice = document.getElementById('surveyActiveNotice');
-  const pausedNotice = document.getElementById('surveyPausedNotice');
-  const counter = document.getElementById('offlineMsgCharCount');
-
-  if (!toggle || !msgInput || !label) return;
-
-  if (counter) {
-    counter.textContent = `${msgInput.value.length}/500`;
-  }
-
-  const isEnabled = toggle.checked;
-  if (activeNotice) activeNotice.style.display = isEnabled ? 'flex' : 'none';
-  if (pausedNotice) pausedNotice.style.display = isEnabled ? 'none' : 'flex';
-
-  if (chip && chipText) {
-    if (isEnabled) {
-      chip.className = 'status-chip chip-active';
-      const icon = chip.querySelector('.material-icons-round');
-      if (icon) icon.textContent = 'check_circle';
-      chipText.textContent = 'Form Active';
-    } else {
-      chip.className = 'status-chip chip-inactive';
-      const icon = chip.querySelector('.material-icons-round');
-      if (icon) icon.textContent = 'pause_circle';
-      chipText.textContent = 'Form Paused';
-    }
-  }
-
-  const isDirty = (
-    isEnabled !== savedSurveyEnabled ||
-    msgInput.value.trim() !== savedSurveyOfflineMessage.trim()
-  );
-
-  label.textContent = isDirty ? 'Unsaved changes' : 'All changes saved';
-}
-
-function onToggleSurveyAvailability(toggle) {
-  syncSurveySettingsState();
-}
-
-function hasUnsavedSurveySettings() {
-  const toggle = document.getElementById('surveyEnabledToggle');
-  const msgInput = document.getElementById('surveyOfflineMessageInput');
-  if (!toggle || !msgInput) return false;
-  return (
-    toggle.checked !== savedSurveyEnabled ||
-    msgInput.value.trim() !== savedSurveyOfflineMessage.trim()
-  );
-}
-
-function resetSurveySettingsForm() {
-  const toggle = document.getElementById('surveyEnabledToggle');
-  const msgInput = document.getElementById('surveyOfflineMessageInput');
-  if (toggle) toggle.checked = savedSurveyEnabled;
-  if (msgInput) msgInput.value = savedSurveyOfflineMessage;
-  syncSurveySettingsState();
-}
-
-function saveSurveySettings(form) {
-  const btn = document.getElementById('saveSurveySettingsBtn');
-  if (!form || !btn) return Promise.resolve(false);
-
-  if (surveySettingsSavePromise) return surveySettingsSavePromise;
-
-  btn.classList.add('is-loading');
-
-  const formData = new FormData(form);
-
-  surveySettingsSavePromise = fetch(form.action, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRFToken': '{{ csrf_token }}',
-    },
-  })
-    .then(async r => {
-      const data = await r.json();
-      if (!r.ok || !data.ok) {
-        throw new Error(data.error || 'Unable to save survey availability settings.');
-      }
-      savedSurveyEnabled = !!data.survey_enabled;
-      savedSurveyOfflineMessage = data.survey_offline_message || '';
-      syncSurveySettingsState();
-      showToast(data.message || 'Survey settings saved successfully.', 'success');
-      return true;
-    })
-    .catch(err => {
-      showToast(err.message || 'Error saving survey settings.', 'error');
-      return false;
-    })
-    .finally(() => {
-      btn.classList.remove('is-loading');
-      surveySettingsSavePromise = null;
-    });
-
-  return surveySettingsSavePromise;
-}
-
 let savedAutoAnalysisEnabled = null;
 let sentimentSettingsSavePromise = null;
 
@@ -1170,7 +957,7 @@ function clearFieldErr(inputId) {
 
 /* ── PANEL SWITCHING ── */
 function showPanel(id, btn) {
-  if (!id || id === 'user-management' || id === 'account-security') id = 'survey-settings';
+  if (!id || id === 'user-management' || id === 'account-security') id = 'sentiment-analysis';
   document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('is-active'));
 
@@ -1197,13 +984,6 @@ async function showPanelNav(id, btn) {
 
   const activePanelId = getActiveSettingsPanelId();
   if (
-    activePanelId === 'survey-settings'
-    && id !== 'survey-settings'
-    && hasUnsavedSurveySettings()
-  ) {
-    resetSurveySettingsForm();
-  }
-  if (
     activePanelId === 'sentiment-analysis'
     && id !== 'sentiment-analysis'
     && hasUnsavedSentimentSettings()
@@ -1222,7 +1002,6 @@ function openPanelFromHash() {
   if (!hash) return;
 
   const validIds = [
-    'survey-settings',
     'sentiment-analysis',
     'system-settings',
     'notifications'
@@ -1843,7 +1622,6 @@ function closeConfirmModal(id) {
 /* ── INIT ── */
 function pageInit() {
   openPanelFromHash();
-  syncSurveySettingsState();
   const toggle = document.getElementById('autoAnalysisToggle');
   if (toggle) {
     savedAutoAnalysisEnabled = toggle.checked;

@@ -197,7 +197,8 @@ def restore_backup(uploaded_file):
         with transaction.atomic():
             if 'feedback.feedbackentry' in models_in_fixture:
                 FeedbackEntry.objects.all().delete()
-            call_command('loaddata', str(tmp_path))
+            # Older backups may hold fields since dropped (e.g. survey settings).
+            call_command('loaddata', str(tmp_path), ignorenonexistent=True)
     except Exception as exc:
         raise RuntimeError(f'Failed to restore backup: {exc}') from exc
     finally:

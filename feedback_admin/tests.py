@@ -50,59 +50,6 @@ class SentimentSettingsTests(TestCase):
         self.assertTrue(FeedbackConfiguration.get_solo().auto_analysis_enabled)
 
 
-class SurveySettingsAdminTests(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(
-            username='admin',
-            password='password123',
-            is_staff=True,
-            is_superuser=True,
-        )
-        self.client.force_login(self.user)
-
-    def test_settings_page_uses_persisted_survey_availability(self):
-        config = FeedbackConfiguration.get_solo()
-        config.survey_enabled = False
-        config.survey_offline_message = 'Maintenance ongoing.'
-        config.save()
-
-        response = self.client.get(reverse('settings_page') + '#survey-settings')
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="surveyEnabledToggle"')
-        self.assertContains(response, 'Maintenance ongoing.')
-        self.assertContains(response, 'Form Paused')
-
-    def test_update_survey_settings_disables_and_enables(self):
-        # Disable survey
-        response = self.client.post(
-            reverse('update_survey_settings'),
-            {'survey_offline_message': 'Temporary pause.'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
-        )
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertTrue(payload['ok'])
-        self.assertFalse(payload['survey_enabled'])
-        self.assertEqual(payload['survey_offline_message'], 'Temporary pause.')
-        self.assertFalse(FeedbackConfiguration.get_solo().survey_enabled)
-        self.assertEqual(FeedbackConfiguration.get_solo().survey_offline_message, 'Temporary pause.')
-
-        # Re-enable survey
-        response = self.client.post(
-            reverse('update_survey_settings'),
-            {
-                'survey_enabled': 'on',
-                'survey_offline_message': 'System is active.',
-            },
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
-        )
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertTrue(payload['ok'])
-        self.assertTrue(payload['survey_enabled'])
-        self.assertTrue(FeedbackConfiguration.get_solo().survey_enabled)
-
-
 class DashboardViewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(

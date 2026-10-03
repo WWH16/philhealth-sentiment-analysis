@@ -33,7 +33,6 @@ urlpatterns = [
     path('responses/count/', views.responses_count, name='responses_count'),
     path('responses/delete/', views.responses_delete, name='responses_delete'),
     path('settings/', views.settings_page, name='settings_page'),
-    path('settings/survey/', views.update_survey_settings, name='update_survey_settings'),
     path('settings/sentiment/', views.update_sentiment_settings, name='update_sentiment_settings'),
     path('settings/notifications/', views.update_notification_settings, name='update_notification_settings'),
     path('settings/notifications/send-now/', views.send_summary_now, name='send_summary_now'),

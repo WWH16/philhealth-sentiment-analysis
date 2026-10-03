@@ -1515,37 +1515,6 @@ def settings_page(request):
     return render(request, 'feedback_admin/settings.html', context)
 
 
-@superuser_required
-@require_POST
-def update_survey_settings(request):
-    config = FeedbackConfiguration.get_solo()
-    old_survey_enabled = config.survey_enabled
-    survey_enabled = request.POST.get('survey_enabled') == 'on'
-    offline_message = request.POST.get('survey_offline_message', '').strip()
-    if not offline_message:
-        offline_message = 'Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya.'
-
-    config.survey_enabled = survey_enabled
-    config.survey_offline_message = offline_message
-    config.save(update_fields=['survey_enabled', 'survey_offline_message', 'updated_at'])
-
-    if old_survey_enabled != survey_enabled:
-        log_admin_event(
-            request.user,
-            config,
-            CHANGE,
-            f'Survey availability {"enabled" if survey_enabled else "disabled"}',
-        )
-
-    state = 'enabled' if survey_enabled else 'disabled'
-    return JsonResponse({
-        'ok': True,
-        'message': f'Survey availability {state}. Citizens {"can now submit feedback via the public-facing form" if survey_enabled else "will see the offline notice when visiting the public portal"}.',
-        'survey_enabled': survey_enabled,
-        'survey_offline_message': offline_message,
-    })
-
-
 from feedback.services import reanalyze_pending_entries, topic_counts
 
 

@@ -6,9 +6,6 @@ from django.db import models
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 
-DEFAULT_OFFLINE_MESSAGE = 'Ang feedback system ay pansamantalang hindi available. Pakisubukan muli mamaya.'
-
-
 class FeedbackToken(models.Model):
     """Single-use feedback link that staff hand to one served client as a QR code.
 
@@ -126,15 +123,6 @@ class FeedbackEntry(models.Model):
 
 
 class FeedbackConfiguration(models.Model):
-    survey_enabled = models.BooleanField(
-        default=True,
-        help_text='Controls whether citizens can access and submit the public feedback form.'
-    )
-    survey_offline_message = models.TextField(
-        blank=True,
-        default=DEFAULT_OFFLINE_MESSAGE,
-        help_text='Notice shown to citizens when public feedback submissions are disabled.'
-    )
     auto_analysis_enabled = models.BooleanField(default=True)
     daily_summary_enabled = models.BooleanField(default=False)
     notification_email = models.EmailField(blank=True, default='')
@@ -151,8 +139,7 @@ class FeedbackConfiguration(models.Model):
 
     def __str__(self):
         state = 'enabled' if self.auto_analysis_enabled else 'disabled'
-        survey_state = 'active' if self.survey_enabled else 'paused'
-        return f'Feedback configuration (survey: {survey_state}, auto-analysis: {state})'
+        return f'Feedback configuration (auto-analysis: {state})'
 
     @classmethod
     def get_solo(cls):
@@ -161,8 +148,4 @@ class FeedbackConfiguration(models.Model):
         except (OperationalError, ProgrammingError):
             return cls(pk=1)
         return config
-
-    @classmethod
-    def get_survey_offline_message(cls):
-        return cls.get_solo().survey_offline_message or DEFAULT_OFFLINE_MESSAGE
 

@@ -38,12 +38,7 @@
   <main id="main" class="page">
     <div class="wrap">
 
-      {% if not survey_enabled %}
-      <div class="intro">
-        <h1>The online form is paused right now</h1>
-        <div class="offline" role="status">{{ offline_message }}</div>
-      </div>
-      {% elif not token %}
+      {% if not token %}
       <div class="intro">
         {% if token_invalid %}
         <h1>This feedback link no longer works</h1>
