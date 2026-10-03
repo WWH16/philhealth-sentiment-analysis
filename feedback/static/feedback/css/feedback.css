@@ -146,25 +146,33 @@ a { color: var(--g-forest); text-underline-offset: 3px; }
 /* Once one is picked, the other two faces go quiet. */
 .rate:has(input:checked) .rate-opt:not(:has(input:checked)) .rate-face { filter: grayscale(1); opacity: 0.5; }
 
-/* ── Topics: checkbox chips, pick one or more ─────────────────────── */
+/* ── Topics: checklist tiles, pick one or more ────────────────────── */
 .block-hint { margin: 6px 0 0; font-size: 15px; color: var(--text-secondary); }
-.topics { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Even columns that fit the width: three on desktop, two on tablets,
+   one full-width row each on phones (same rhythm as the rating rows). */
+.topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 8px; }
 .topic-opt {
-  position: relative; display: inline-flex; align-items: center; gap: 8px;
-  min-height: 48px; padding: 10px 14px; cursor: pointer; user-select: none;
+  position: relative; display: flex; align-items: center; gap: 12px;
+  min-height: 56px; padding: 10px 14px; cursor: pointer; user-select: none;
   font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--text-primary);
   background: var(--surface-card); border: 1.5px solid var(--border);
   transition: border-color 140ms var(--ease-out), background-color 140ms var(--ease-out), color 140ms var(--ease-out);
 }
 .topic-opt input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
-.topic-opt .material-icons-round { font-size: 20px; color: var(--g-primary); }
-/* The check always holds its space, so picking a chip never reflows the row under the finger. */
-.topic-check { opacity: 0; transform: scale(0.6); transition: opacity 160ms var(--ease-out), transform 260ms var(--ease-out); }
+.topic-opt .material-icons-round { font-size: 22px; color: var(--g-primary); }
+.topic-label { flex: 1; }
+/* Empty square until picked, then a filled check: square says "pick many",
+   where the rating's round ring says "pick one". */
+.topic-opt .topic-check {
+  display: grid; place-items: center; width: 24px; height: 24px;
+  border: 2px solid #c9cdd3; border-radius: 3px; font-size: 0;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
 @media (hover: hover) { .topic-opt:hover { border-color: var(--ink4); } }
 .topic-opt:has(input:focus-visible) { outline: 2px solid var(--g-primary); outline-offset: 2px; }
 .topic-opt:has(input:checked) { border-color: var(--g-forest); background: var(--g-light); color: var(--g-forest); }
 .topic-opt:has(input:checked) .material-icons-round { color: var(--g-forest); }
-.topic-opt input:checked ~ .topic-check { opacity: 1; transform: none; }
+.topic-opt input:checked ~ .topic-check { background: var(--g-forest); border-color: var(--g-forest); color: #fff; font-size: 20px; }
 
 /* ── Comment boxes ────────────────────────────────────────────────── */
 textarea {
