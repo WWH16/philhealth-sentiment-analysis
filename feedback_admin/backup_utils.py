@@ -1,39 +1,32 @@
 """
 Database backup and restore utilities.
 
-Supports both Local and Vercel (serverless AWS Lambda) environments without
-requiring external database CLI binaries (mysqldump, pg_dump, psql, mysql) on PATH.
+Backups are Django JSON fixtures made with `dumpdata`, so no pg_dump or other
+database binary is needed (works locally and on Vercel). Restores run `loaddata`
+inside one transaction.
 
-Backups are created as standard Django JSON fixtures via `dumpdata` (or SQL if provided).
-Restores load JSON fixtures via `loaddata` inside an atomic transaction, or execute SQL
-statements directly / via available DB tools.
-
-Files live in settings.BACKUP_DIR or BASE_DIR/backups, falling back to tempfile.gettempdir()/backups
-when the filesystem is read-only (e.g. on Vercel).
+Files live in settings.BACKUP_DIR, falling back to tempfile.gettempdir()/backups
+when that is read-only (e.g. on Vercel).
 """
 import datetime
 import json
-import os
 import re
+import shutil
 import tempfile
 from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
 from django.core.management import call_command
-from django.db import connection, transaction
+from django.db import transaction
 from django.utils import timezone
 
-BACKUP_FILENAME_RE = re.compile(r'^philhealth_backup_\d{8}_\d{6}(?:_\d+)?\.json$')
+BACKUP_FILENAME_RE = re.compile(r'^philhealth_backup_(\d{8}_\d{6})(?:_\d+)?\.json$')
 
 
 def get_backup_dir() -> Path:
-    """Returns the writable backup directory.
-    On Local: uses settings.BACKUP_DIR or BASE_DIR/backups.
-    On Vercel (serverless read-only filesystem): falls back to /tmp/backups.
-    """
-    configured = getattr(settings, 'BACKUP_DIR', None)
-    candidate = Path(configured) if configured else settings.BASE_DIR / 'backups'
+    """settings.BACKUP_DIR, or the temp dir when that cannot be written (Vercel)."""
+    candidate = Path(settings.BACKUP_DIR)
     try:
         candidate.mkdir(parents=True, exist_ok=True)
         # Verify writability (critical on Vercel where BASE_DIR cannot be written to)
@@ -45,10 +38,7 @@ def get_backup_dir() -> Path:
         pass
 
     backup_dir = Path(tempfile.gettempdir()) / 'backups'
-    try:
-        backup_dir.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        pass
+    backup_dir.mkdir(parents=True, exist_ok=True)
     return backup_dir
 
 
@@ -105,29 +95,20 @@ def list_backups():
     backup_dir = get_backup_dir()
     rows = []
     for path in backup_dir.glob('philhealth_backup_*.json'):
-        if not BACKUP_FILENAME_RE.match(path.name):
+        match = BACKUP_FILENAME_RE.match(path.name)
+        if not match:
             continue
         try:
             stat = path.stat()
-        except OSError:
+            created = timezone.make_aware(datetime.datetime.strptime(match.group(1), '%Y%m%d_%H%M%S'))
+        except (OSError, ValueError):
             continue
-        ts_match = re.search(r'philhealth_backup_(\d{8}_\d{6})', path.name)
-        if ts_match:
-            ts_str = ts_match.group(1)
-            try:
-                created = timezone.make_aware(datetime.datetime.strptime(ts_str, '%Y%m%d_%H%M%S'))
-            except (ValueError, OverflowError):
-                created = timezone.make_aware(datetime.datetime.fromtimestamp(stat.st_mtime))
-        else:
-            created = timezone.make_aware(datetime.datetime.fromtimestamp(stat.st_mtime))
-
         rows.append({
             'filename': path.name,
             'size_bytes': stat.st_size,
             'size_display': _human_size(stat.st_size),
             'created_at': created,
             'created_display': timezone.localtime(created).strftime('%b %d, %Y at %I:%M %p'),
-            'extension': 'JSON',
         })
     rows.sort(key=lambda r: r['created_at'], reverse=True)
     return rows
@@ -146,35 +127,12 @@ def delete_backup(filename):
     resolve_backup_path(filename).unlink()
 
 
-def _iter_file_chunks(file_obj, chunk_size=65536):
-    if hasattr(file_obj, 'chunks'):
-        yield from file_obj.chunks()
-    else:
-        while True:
-            chunk = file_obj.read(chunk_size)
-            if not chunk:
-                break
-            yield chunk
-
-
 def restore_backup(uploaded_file):
-    """Restores the database from an uploaded .json backup file.
-    Takes an automated safety backup of the current database before applying changes.
-    Supports both Django UploadedFile instances and standard file-like objects.
+    """Restores the database from a .json backup (an UploadedFile or open binary file).
+    Takes a safety backup of the current database before applying changes.
     """
-    filename = getattr(uploaded_file, 'name', '') or 'backup'
-    is_json = filename.lower().endswith('.json')
-
-    head = uploaded_file.read(4096)
-    uploaded_file.seek(0)
-    head_text = head.decode('utf-8', errors='ignore').strip()
-
-    if not is_json and not (head_text.startswith('[') or head_text.startswith('{')):
-        raise ValueError('Only .json backup files are supported for database restore.')
-
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False, mode='wb') as tmp:
-        for chunk in _iter_file_chunks(uploaded_file):
-            tmp.write(chunk)
+        shutil.copyfileobj(uploaded_file, tmp)
         tmp_path = Path(tmp.name)
 
     try:

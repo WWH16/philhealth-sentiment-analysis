@@ -81,7 +81,6 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
   transition: border-color 120ms; min-width: 220px;
 }
 .settings-input:focus { border-color: var(--g-primary); }
-.settings-input.field-error { border-color: var(--red) !important; background: var(--red-bg); }
 
 /* inline field error message */
 .settings-field-err {
@@ -457,26 +456,7 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
               <div class="backup-list-header">Recent Backups</div>
               <div id="backupLogList">
                 {% for b in backups %}
-                <div class="backup-log-item" id="backup-row-{{ b.filename|slugify }}" data-backup-filename="{{ b.filename }}">
-                  <div>
-                    <div class="backup-log-name">{{ b.filename }}</div>
-                    <div class="backup-log-date">{{ b.created_display }}</div>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span class="backup-log-size">{{ b.size_display }}</span>
-                    <button type="button" class="btn-ph btn-ph-sm backup-row-action" style="border-color:var(--border);color:var(--text-secondary);"
-                      onclick="openRestoreExistingModal('{{ b.filename }}')" title="Restore from this backup">
-                      <span class="material-icons-round" style="font-size:14px;color:var(--gold);">restore</span> Restore
-                    </button>
-                    <a class="btn-ph btn-ph-sm backup-row-action" href="{% url 'backup_download' b.filename %}" title="Download">
-                      <span class="material-icons-round">download</span>
-                    </a>
-                    <button type="button" class="btn-ph btn-ph-sm backup-row-action" style="color:var(--red);border-color:var(--red)"
-                      onclick="openDeleteBackupModal('{{ b.filename }}')" title="Delete">
-                      <span class="material-icons-round">delete</span>
-                    </button>
-                  </div>
-                </div>
+                {% include 'feedback_admin/_backup_row.html' %}
                 {% empty %}
                 <div id="backupEmptyNotice" style="font-size:12px;color:var(--text-muted);font-style:italic;">No backups yet. Click "Backup Now" to create the first one.</div>
                 {% endfor %}
@@ -533,7 +513,7 @@ input:checked + .toggle-track::after { transform: translateX(20px); }
               <button type="button" class="btn-ph" id="restoreRemoveBtn" style="display:none;" onclick="clearRestoreFile(event)" title="Remove selected file">
                 <span class="material-icons-round">close</span> Clear
               </button>
-              <button type="button" class="btn-ph" id="restoreBtn" disabled style="border-color:var(--red);color:var(--red);" onclick="openRestoreModal()">
+              <button type="button" class="btn-ph" id="restoreBtn" disabled style="border-color:var(--red);color:var(--red);" onclick="openRestoreConfirm()">
                 <span class="ph-loader"></span>
                 <span class="material-icons-round">restore</span> Restore Database
               </button>
@@ -926,35 +906,6 @@ function saveSentimentSettings() {
   return persistSentimentSettings();
 }
 
-/* ── HELPERS ── */
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function showFieldErr(inputId, msg) {
-  const input = document.getElementById(inputId);
-  if (!input) { showToast(msg, 'error'); return; }
-  input.parentElement.querySelectorAll('.settings-field-err').forEach(e => e.remove());
-  input.classList.add('field-error');
-  const err = document.createElement('p');
-  err.className = 'settings-field-err';
-  err.innerHTML = `<span class="material-icons-round">error</span>${escHtml(msg)}`;
-  input.after(err);
-  input.focus({ preventScroll: true });
-  input.addEventListener('input', function clear() {
-    input.classList.remove('field-error');
-    err.remove();
-    input.removeEventListener('input', clear);
-  }, { once: true });
-}
-
-function clearFieldErr(inputId) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
-  input.classList.remove('field-error');
-  input.parentElement.querySelectorAll('.settings-field-err').forEach(e => e.remove());
-}
-
 /* ── PANEL SWITCHING ── */
 function showPanel(id, btn) {
   if (!id || id === 'user-management' || id === 'account-security') id = 'sentiment-analysis';
@@ -1021,63 +972,28 @@ let currentSystemOperation = null; // null | 'backup' | 'restore' | 'delete'
 function setSystemOperationBusy(type, isBusy) {
   currentSystemOperation = isBusy ? type : null;
 
-  // 1. Lock settings navigation tabs
-  const nav = document.getElementById('settingsNav');
-  if (nav) {
-    if (isBusy) nav.classList.add('is-locked');
-    else nav.classList.remove('is-locked');
-  }
+  document.getElementById('settingsNav')?.classList.toggle('is-locked', isBusy);
 
-  // 2. Lock backup button if not the active operation
   const backupBtn = document.getElementById('createBackupBtn');
   if (backupBtn && type !== 'backup') {
     backupBtn.disabled = isBusy;
-    if (isBusy) backupBtn.classList.add('is-disabled');
-    else backupBtn.classList.remove('is-disabled');
+    backupBtn.classList.toggle('is-disabled', isBusy);
   }
 
-  // 3. Lock dropzone and restore triggers
-  const dropZone = document.getElementById('restoreDropZone');
-  if (dropZone) {
-    if (isBusy) dropZone.classList.add('is-disabled');
-    else dropZone.classList.remove('is-disabled');
-  }
+  document.getElementById('restoreDropZone')?.classList.toggle('is-disabled', isBusy);
   const restoreBtn = document.getElementById('restoreBtn');
-  if (restoreBtn) {
-    if (isBusy) {
-      restoreBtn.disabled = true;
-    } else {
-      restoreBtn.disabled = !pendingRestoreFile;
-    }
-  }
+  if (restoreBtn) restoreBtn.disabled = isBusy || !pendingRestoreFile;
   const restoreRemoveBtn = document.getElementById('restoreRemoveBtn');
-  if (restoreRemoveBtn) {
-    if (isBusy) {
-      restoreRemoveBtn.disabled = true;
-    } else {
-      restoreRemoveBtn.disabled = false;
-    }
-  }
+  if (restoreRemoveBtn) restoreRemoveBtn.disabled = isBusy;
 
-  // 4. Lock table action buttons
   document.querySelectorAll('.backup-row-action').forEach(el => {
-    if (isBusy) {
-      el.setAttribute('aria-disabled', 'true');
-      el.classList.add('is-disabled');
-      if (el.tagName === 'BUTTON') el.disabled = true;
-    } else {
-      el.removeAttribute('aria-disabled');
-      el.classList.remove('is-disabled');
-      if (el.tagName === 'BUTTON') el.disabled = false;
-    }
+    el.classList.toggle('is-disabled', isBusy);
+    el.setAttribute('aria-disabled', String(isBusy));
+    if (el.tagName === 'BUTTON') el.disabled = isBusy;
   });
 
-  // 5. beforeunload guard
-  if (isBusy) {
-    window.addEventListener('beforeunload', handleBeforeUnloadOperation);
-  } else {
-    window.removeEventListener('beforeunload', handleBeforeUnloadOperation);
-  }
+  if (isBusy) window.addEventListener('beforeunload', handleBeforeUnloadOperation);
+  else window.removeEventListener('beforeunload', handleBeforeUnloadOperation);
 }
 
 function handleBeforeUnloadOperation(e) {
@@ -1087,113 +1003,30 @@ function handleBeforeUnloadOperation(e) {
   return msg;
 }
 
-function _escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 function _humanBytes(b) {
-  if (!b || isNaN(b)) return '0 B';
   if (b < 1024) return b + ' B';
   if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
   return (b / 1048576).toFixed(1) + ' MB';
 }
 
 function removeBackupRow(filename) {
-  if (!filename) return;
-  const targetName = String(filename).trim();
-
-  // 1. Find by data-backup-filename attribute
-  let row = null;
-  const items = document.querySelectorAll('.backup-log-item');
-  for (const item of items) {
-    if (item.getAttribute('data-backup-filename') === targetName) {
-      row = item;
-      break;
-    }
-  }
-
-  // 2. Fallback: match by .backup-log-name text content
-  if (!row) {
-    for (const item of items) {
-      const nameEl = item.querySelector('.backup-log-name');
-      if (nameEl && nameEl.textContent.trim() === targetName) {
-        row = item;
-        break;
-      }
-    }
-  }
-
-  // 3. Fallback: match by safeId
-  if (!row) {
-    const safeId = 'backup-row-' + targetName.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-    row = document.getElementById(safeId);
-  }
-
-  if (row) {
-    row.remove();
-  }
-
-  // Update empty state if no backups remain
+  document.querySelector(`[data-backup-filename="${CSS.escape(filename)}"]`)?.remove();
   const list = document.getElementById('backupLogList');
-  if (list && list.querySelectorAll('.backup-log-item').length === 0) {
+  if (list && !list.querySelector('.backup-log-item')) {
     list.innerHTML = '<div id="backupEmptyNotice" style="font-size:12px;color:var(--text-muted);font-style:italic;">No backups yet. Click "Backup Now" to create the first one.</div>';
   }
 }
 
-function prependBackupRow(b) {
+// Row HTML comes from the server (_backup_row.html), so it matches the rendered list.
+function prependBackupRow(html) {
   const list = document.getElementById('backupLogList');
-  if (!list || !b || !b.filename) return;
-
-  const emptyNotice = document.getElementById('backupEmptyNotice');
-  if (emptyNotice) emptyNotice.remove();
-
-  removeBackupRow(b.filename);
-
-  const safeId = 'backup-row-' + b.filename.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-  const downloadUrl = b.download_url || `/dashboard/settings/backup/${encodeURIComponent(b.filename)}/download/`;
-
-  const item = document.createElement('div');
-  item.className = 'backup-log-item';
-  item.id = safeId;
-  item.setAttribute('data-backup-filename', b.filename);
+  if (!list || !html) return;
+  document.getElementById('backupEmptyNotice')?.remove();
+  list.insertAdjacentHTML('afterbegin', html);
+  const item = list.firstElementChild;
   item.style.transition = 'background-color 1.2s ease';
   item.style.backgroundColor = 'var(--g-xlight)';
-
-  const isLocked = !!currentSystemOperation;
-  const disabledClass = isLocked ? ' backup-row-action is-disabled' : ' backup-row-action';
-  const disabledAttr = isLocked ? ' disabled aria-disabled="true"' : '';
-
-  item.innerHTML = `
-    <div>
-      <div class="backup-log-name">${_escapeHtml(b.filename)}</div>
-      <div class="backup-log-date">${_escapeHtml(b.created_display || 'Just now')}</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="backup-log-size">${_escapeHtml(b.size_display || _humanBytes(b.size_bytes))}</span>
-      <button type="button" class="btn-ph btn-ph-sm${disabledClass}" style="border-color:var(--border);color:var(--text-secondary);"${disabledAttr}
-        onclick="openRestoreExistingModal('${_escapeHtml(b.filename)}')" title="Restore from this backup">
-        <span class="material-icons-round" style="font-size:14px;color:var(--gold);">restore</span> Restore
-      </button>
-      <a class="btn-ph btn-ph-sm${disabledClass}" href="${downloadUrl}" title="Download"${disabledAttr}>
-        <span class="material-icons-round">download</span>
-      </a>
-      <button type="button" class="btn-ph btn-ph-sm${disabledClass}" style="color:var(--red);border-color:var(--red)"${disabledAttr}
-        onclick="openDeleteBackupModal('${_escapeHtml(b.filename)}')" title="Delete">
-        <span class="material-icons-round">delete</span>
-      </button>
-    </div>
-  `;
-
-  list.insertBefore(item, list.firstChild);
-  setTimeout(() => {
-    item.style.backgroundColor = 'transparent';
-  }, 1000);
+  setTimeout(() => { item.style.backgroundColor = 'transparent'; }, 1000);
 }
 
 /* ── CREATE BACKUP ── */
@@ -1224,15 +1057,8 @@ function createBackup() {
       let data = {};
       try { data = await r.json(); } catch (e) {}
       if (data.ok) {
-        if (typeof window.updateResponsesCount === 'function' && data.feedback_count !== undefined) {
-          window.updateResponsesCount(data.feedback_count);
-        } else if (typeof window.reloadResponsesCount === 'function') {
-          window.reloadResponsesCount();
-        }
         showToast(data.message || 'Database backup created successfully.', 'success', false);
-        if (data.backup) {
-          prependBackupRow(data.backup);
-        }
+        prependBackupRow(data.backup.html);
       } else {
         showToast(data.error || data.message || 'Failed to create database backup.', 'error', false);
       }
@@ -1346,6 +1172,11 @@ function executeDeleteBackup() {
 /* ── RESTORE FILE (DROPZONE + FILE PICKER) ── */
 function applyRestoreFile(file) {
   if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.json')) {
+    showToast('Only .json backup files are accepted for restore.', 'error', false);
+    document.getElementById('restoreFile').value = '';
+    return;
+  }
   pendingRestoreFile = file;
   pendingRestoreExistingFilename = null;
 
@@ -1369,16 +1200,7 @@ function onRestoreFileSelected(input) {
     showToast('Cannot select files while a database operation is in progress.', 'warning', false);
     return;
   }
-  const file = input.files[0] || null;
-  if (file) {
-    const name = file.name.toLowerCase();
-    if (!name.endsWith('.json')) {
-      showToast('Only .json backup files are accepted for restore.', 'error', false);
-      clearRestoreFile();
-      return;
-    }
-  }
-  applyRestoreFile(file);
+  applyRestoreFile(input.files[0]);
 }
 
 function resetRestoreDropzone() {
@@ -1421,14 +1243,7 @@ function handleRestoreDrop(e) {
     showToast('Cannot select files while a database operation is in progress.', 'warning', false);
     return;
   }
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  const name = file.name.toLowerCase();
-  if (!name.endsWith('.json')) {
-    showToast('Only .json backup files are accepted for restore.', 'error', false);
-    return;
-  }
-  applyRestoreFile(file);
+  applyRestoreFile(e.dataTransfer.files[0]);
 }
 
 function handleRestoreDragOver(e) {
@@ -1446,70 +1261,19 @@ function handleRestoreDragLeave(e) {
   if (zone) zone.classList.remove('drag-over');
 }
 
-/* ── RESTORE MODALS (1-CLICK & UPLOAD) ── */
-function openRestoreExistingModal(filename) {
+/* ── RESTORE MODAL ── */
+// filename: restore a listed backup; none: restore the file picked in the drop zone.
+function openRestoreConfirm(filename) {
+  if (!filename && !pendingRestoreFile) return;
   if (currentSystemOperation) {
     showToast('Another database operation is in progress.', 'warning', false);
     return;
   }
-  pendingRestoreExistingFilename = filename;
-  pendingRestoreFile = null;
-
-  const label = document.getElementById('restoreFileLabel');
-  if (label) label.textContent = filename;
-  const btn = document.getElementById('confirmRestoreBtn');
-  const btnText = document.getElementById('confirmRestoreBtnText');
-  const cancelBtn = document.getElementById('cancelRestoreBtn');
-  const closeBtn = document.getElementById('restoreModalCloseBtn');
-
-  if (btn) {
-    btn.classList.remove('is-loading');
-    btn.disabled = false;
-  }
-  if (btnText) btnText.textContent = 'Yes, Restore Database';
-  if (cancelBtn) {
-    cancelBtn.disabled = false;
-    cancelBtn.style.display = '';
-    cancelBtn.style.opacity = '';
-    cancelBtn.style.pointerEvents = '';
-  }
-  if (closeBtn) closeBtn.style.display = '';
-
-  const modal = document.getElementById('restoreConfirmModal');
-  if (modal) modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function openRestoreModal() {
-  if (!pendingRestoreFile) return;
-  if (currentSystemOperation) {
-    showToast('Another database operation is in progress.', 'warning', false);
-    return;
-  }
-  pendingRestoreExistingFilename = null;
-
-  const label = document.getElementById('restoreFileLabel');
-  if (label) label.textContent = `${pendingRestoreFile.name} (${_humanBytes(pendingRestoreFile.size)})`;
-  const btn = document.getElementById('confirmRestoreBtn');
-  const btnText = document.getElementById('confirmRestoreBtnText');
-  const cancelBtn = document.getElementById('cancelRestoreBtn');
-  const closeBtn = document.getElementById('restoreModalCloseBtn');
-
-  if (btn) {
-    btn.classList.remove('is-loading');
-    btn.disabled = false;
-  }
-  if (btnText) btnText.textContent = 'Yes, Restore Database';
-  if (cancelBtn) {
-    cancelBtn.disabled = false;
-    cancelBtn.style.display = '';
-    cancelBtn.style.opacity = '';
-    cancelBtn.style.pointerEvents = '';
-  }
-  if (closeBtn) closeBtn.style.display = '';
-
-  const modal = document.getElementById('restoreConfirmModal');
-  if (modal) modal.classList.add('open');
+  pendingRestoreExistingFilename = filename || null;
+  if (filename) pendingRestoreFile = null;
+  document.getElementById('restoreFileLabel').textContent = filename
+    || `${pendingRestoreFile.name} (${_humanBytes(pendingRestoreFile.size)})`;
+  document.getElementById('restoreConfirmModal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
@@ -1565,16 +1329,10 @@ function executeRestore() {
         forceCloseModal('restoreConfirmModal');
 
         // 3. Prepend safety backup if returned
-        if (data.safety_backup) {
-          prependBackupRow(data.safety_backup);
-        }
+        prependBackupRow(data.safety_backup.html);
 
         // 4. Reload responses count shown on the responses tab badge
-        if (typeof window.updateResponsesCount === 'function' && data.feedback_count !== undefined) {
-          window.updateResponsesCount(data.feedback_count);
-        } else if (typeof window.reloadResponsesCount === 'function') {
-          window.reloadResponsesCount();
-        }
+        window.updateResponsesCount(data.feedback_count);
 
         // 5. Show success toast
         showToast(data.message || 'Database restored successfully.', 'success', false);

@@ -194,7 +194,7 @@ philhealth-sentiment-analysis/
 │   └── views.py             # Public submit APIs
 │
 ├── feedback_admin/          # Administrative Dashboard App
-│   ├── backup_utils.py      # Secure MySQL dump and restore utilities
+│   ├── backup_utils.py      # JSON fixture backup and restore utilities
 │   ├── context_processors.py# Global template stats (e.g. pending items)
 │   ├── templates/           # Dashboard, responses, analytics HTML templates
 │   └── views.py             # Management and reporting logic

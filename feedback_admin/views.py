@@ -35,6 +35,7 @@ from feedback.email_service import send_daily_summary_email
 
 from django.http import FileResponse, Http404
 from django.core.exceptions import SuspiciousFileOperation
+from django.template.loader import render_to_string
 
 from feedback_admin.backup_utils import (
     create_backup, list_backups, resolve_backup_path, delete_backup, restore_backup,
@@ -1705,11 +1706,17 @@ def cron_daily_summary(request):
     return JsonResponse(result, status=status_code)
 
 
+def _backup_json(info):
+    """Filename plus the list row HTML, so the page can insert the new backup."""
+    return {
+        'filename': info['filename'],
+        'html': render_to_string('feedback_admin/_backup_row.html', {'b': info}),
+    }
+
+
 @superuser_required
 @require_POST
 def backup_create(request):
-    if not request.user.is_superuser:
-        return JsonResponse({'ok': False, 'error': 'Only superusers can create backups.'}, status=403)
     try:
         result = create_backup()
     except Exception as e:
@@ -1717,28 +1724,15 @@ def backup_create(request):
 
     log_admin_event(request.user, FeedbackConfiguration.get_solo(), ADDITION,
                      f'Created backup "{result["filename"]}"')
-
-    feedback_count = FeedbackEntry.objects.count()
-
     return JsonResponse({
         'ok': True,
         'message': f'Backup created: {result["filename"]}',
-        'feedback_count': feedback_count,
-        'backup': {
-            'filename': result['filename'],
-            'size_bytes': result['size_bytes'],
-            'size_display': result.get('size_display', ''),
-            'created_display': result.get('created_display', ''),
-            'download_url': reverse('backup_download', args=[result['filename']]),
-        },
+        'backup': _backup_json(result),
     })
 
 
 @superuser_required
 def backup_download(request, filename):
-    if not request.user.is_superuser:
-        messages.error(request, 'Only superusers can download backups.')
-        return redirect('settings_page')
     try:
         path = resolve_backup_path(filename)
     except (SuspiciousFileOperation, FileNotFoundError):
@@ -1750,8 +1744,6 @@ def backup_download(request, filename):
 @superuser_required
 @require_POST
 def backup_delete(request, filename):
-    if not request.user.is_superuser:
-        return JsonResponse({'ok': False, 'error': 'Only superusers can delete backups.'}, status=403)
     try:
         delete_backup(filename)
     except (SuspiciousFileOperation, FileNotFoundError):
@@ -1767,9 +1759,6 @@ def backup_delete(request, filename):
 @superuser_required
 @require_POST
 def backup_restore(request):
-    if not request.user.is_superuser:
-        return JsonResponse({'ok': False, 'error': 'Only superusers can restore backups.'}, status=403)
-
     uploaded = request.FILES.get('backup_file')
     existing_filename = request.POST.get('existing_filename', '').strip()
 
@@ -1795,17 +1784,9 @@ def backup_restore(request):
     log_admin_event(request.user, FeedbackConfiguration.get_solo(), CHANGE,
                      f'Restored database from "{source_label}" (safety backup: "{safety["filename"]}")')
 
-    feedback_count = FeedbackEntry.objects.count()
-
     return JsonResponse({
         'ok': True,
         'message': f'Database restored successfully from "{source_label}". Previous data was saved as "{safety["filename"]}".',
-        'feedback_count': feedback_count,
-        'safety_backup': {
-            'filename': safety['filename'],
-            'size_bytes': safety['size_bytes'],
-            'size_display': safety.get('size_display', ''),
-            'created_display': safety.get('created_display', ''),
-            'download_url': reverse('backup_download', args=[safety['filename']]),
-        },
+        'feedback_count': FeedbackEntry.objects.count(),
+        'safety_backup': _backup_json(safety),
     })

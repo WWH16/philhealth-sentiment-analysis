@@ -1,0 +1,24 @@
+{% comment %}
+One row in the settings page's backup list. Rendered by the page loop and
+returned as HTML by backup_create / backup_restore, so both stay identical.
+{% endcomment %}
+<div class="backup-log-item" data-backup-filename="{{ b.filename }}">
+  <div>
+    <div class="backup-log-name">{{ b.filename }}</div>
+    <div class="backup-log-date">{{ b.created_display }}</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span class="backup-log-size">{{ b.size_display }}</span>
+    <button type="button" class="btn-ph btn-ph-sm backup-row-action" style="border-color:var(--border);color:var(--text-secondary);"
+      onclick="openRestoreConfirm('{{ b.filename }}')" title="Restore from this backup">
+      <span class="material-icons-round" style="font-size:14px;color:var(--gold);">restore</span> Restore
+    </button>
+    <a class="btn-ph btn-ph-sm backup-row-action" href="{% url 'backup_download' b.filename %}" title="Download">
+      <span class="material-icons-round">download</span>
+    </a>
+    <button type="button" class="btn-ph btn-ph-sm backup-row-action" style="color:var(--red);border-color:var(--red)"
+      onclick="openDeleteBackupModal('{{ b.filename }}')" title="Delete">
+      <span class="material-icons-round">delete</span>
+    </button>
+  </div>
+</div>
